@@ -2,12 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": [
-        "*.html",
-        "*.js",
-        "visuals/**",
-        "vendor/**"
-      ]
+      "includeFiles": "**/*"
     }
   },
   "rewrites": [
