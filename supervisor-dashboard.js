@@ -1251,6 +1251,31 @@ async function loadSupervisorJournals() {
   await loadPendingJournals();
 }
 
+let supervisorRealtimeTimer = null;
+
+function startSupervisorRealtimeUpdates() {
+  if (supervisorRealtimeTimer) clearInterval(supervisorRealtimeTimer);
+
+  supervisorRealtimeTimer = setInterval(async () => {
+    if (document.hidden) return;
+
+    const activeTab = document.querySelector('.tab-content.active')?.id;
+    try {
+      if (activeTab === 'overview') {
+        await loadSupervisorData();
+      } else if (activeTab === 'my-trainees') {
+        await loadAssignedTrainees();
+      } else if (activeTab === 'journal-sign') {
+        await loadPendingJournals();
+      } else if (activeTab === 'dtr-verification') {
+        await loadDTRData();
+      }
+    } catch (error) {
+      console.error('Supervisor real-time update failed:', error);
+    }
+  }, 10000);
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // PERFORMANCE APPRAISAL SECTION
 // ────────────────────────────────────────────────────────────────────────────
@@ -1926,6 +1951,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load supervisor data and populate dashboard
   loadSupervisorData();
+  startSupervisorRealtimeUpdates();
 
   // Load geofence settings for supervisor
   loadGeofenceSettings();

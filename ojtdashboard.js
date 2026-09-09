@@ -348,13 +348,10 @@ function startDTRPolling() {
         }
 
         if (changeDetected) {
-          // Show notification and refresh
-          showNotification('✅ Attendance Recorded', 'Your time in/out has been recorded. Refreshing page...', 'success');
-          
-          // Refresh after showing notification
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
+          showNotification('✅ Attendance Updated', 'Your time in/out has been updated.', 'success');
+          await loadTodayDTRSummary();
+          await loadDTRRecords();
+          await loadRecentActivity();
         }
 
         // Update state
@@ -364,6 +361,31 @@ function startDTRPolling() {
       console.error('Error in DTR polling:', error);
     }
   }, 5000);
+}
+
+let studentRealtimeTimer = null;
+
+function startStudentRealtimeUpdates() {
+  if (studentRealtimeTimer) clearInterval(studentRealtimeTimer);
+
+  studentRealtimeTimer = setInterval(async () => {
+    if (document.hidden) return;
+
+    const activeTab = document.querySelector('.tab-content.active')?.id;
+    try {
+      if (activeTab === 'overview') {
+        await loadDashboardData();
+        await loadRecentActivity();
+      } else if (activeTab === 'dtr') {
+        await loadTodayDTRSummary();
+        await loadDTRRecords();
+      } else if (activeTab === 'journal') {
+        await loadPreviousJournals();
+      }
+    } catch (error) {
+      console.error('Student real-time update failed:', error);
+    }
+  }, 10000);
 }
 
 /**
@@ -3465,6 +3487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setInterval(updateGeofenceStatus, 5000); // Update every 5 seconds
   
   await loadDTRRecords();
+  startStudentRealtimeUpdates();
 
   // Set default month to current month
   const today = new Date();

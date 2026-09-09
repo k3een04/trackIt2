@@ -569,7 +569,8 @@ function getStatusClass(status) {
   return 'status-pending';
 }
 
-function getStatusLabel(status) {
+function getStatusLabel(status, journal) {
+  if (status === 'pending' && journal && journal.supervisorSigned !== true) return 'Awaiting Supervisor';
   if (status === 'approved') return 'Approved';
   if (status === 'returned') return 'Returned';
   return 'Pending';
@@ -625,7 +626,7 @@ function renderJournalList(status) {
     const traineeName = journal.studentId?.fullName || 'Unknown Trainee';
     const displayDate = formatShortDate(getJournalDate(journal, status));
     const statusClass = getStatusClass(status);
-    const statusLabel = getStatusLabel(status);
+    const statusLabel = getStatusLabel(status, journal);
 
     return `
       <div class="journal-item cursor-pointer ${selectedJournalId === journal._id ? 'selected' : ''}" onclick="selectJournal(this, '${journal._id}', '${status}')">
@@ -693,9 +694,9 @@ function selectJournal(element, journalId, status = currentJournalFilter) {
   const signedDate = formatShortDate(journal.supervisorSignedAt);
   const approvedDate = formatShortDate(journal.coordinatorApprovedAt);
   const statusClass = getStatusClass(status);
-  const statusLabel = getStatusLabel(status);
+  const statusLabel = getStatusLabel(status, journal);
   const concepts = Array.isArray(journal.concepts) ? journal.concepts.filter(Boolean) : [];
-  const canReview = status === 'pending';
+  const canReview = status === 'pending' && journal.supervisorSigned === true;
 
   const viewer = document.getElementById('journal-viewer');
   viewer.innerHTML = `
@@ -706,6 +707,7 @@ function selectJournal(element, journalId, status = currentJournalFilter) {
           <p class="text-slate-400 text-sm">Submitted by: ${escapeHtml(traineeName)}</p>
           <p class="text-slate-500 text-xs mt-1">Submitted: ${submittedDate}</p>
           <p class="text-slate-500 text-xs mt-1">Supervisor Signed: ${signedDate}</p>
+          ${status === 'pending' && !journal.supervisorSigned ? '<p class="text-amber-400 text-xs mt-2">Awaiting supervisor review and signature</p>' : ''}
           ${status === 'approved' ? `<p class="text-slate-500 text-xs mt-1">Coordinator Approved: ${approvedDate}</p>` : ''}
         </div>
         <div class="flex items-center gap-2">
@@ -1231,6 +1233,29 @@ function closeSidebarOnMobile() {
   }
 }
 
+let coordinatorRealtimeTimer = null;
+
+function startCoordinatorRealtimeUpdates() {
+  if (coordinatorRealtimeTimer) clearInterval(coordinatorRealtimeTimer);
+
+  coordinatorRealtimeTimer = setInterval(async () => {
+    if (document.hidden) return;
+
+    const activeTab = document.querySelector('.tab-content.active')?.id;
+    try {
+      if (activeTab === 'overview') {
+        await loadDashboardData();
+      } else if (activeTab === 'trainees') {
+        await loadTrainees();
+      } else if (activeTab === 'journal-review') {
+        await loadCoordinatorJournals(currentJournalFilter);
+      }
+    } catch (error) {
+      console.error('Coordinator real-time update failed:', error);
+    }
+  }, 10000);
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // AUTHENTICATION & LOGOUT
 // ────────────────────────────────────────────────────────────────────────────
@@ -1257,6 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadTrainees();
   loadSupervisors();
   loadCoordinatorJournals();
+  startCoordinatorRealtimeUpdates();
 
   // Setup filter listeners for auto-filtering
   setupFilterListeners();
