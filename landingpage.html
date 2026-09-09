@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>TrackIT – OJT Monitoring System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="visuals\landingpage.css?v=1">
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="navbar" class="px-5 py-4 md:px-10">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2">
+        <div>
+          <img src="Trackitlogo.png" alt="" srcset="">
+        </div>
+        <span class="font-display font-800 text-white tracking-tight" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-teal-400">IT</span></span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#features" class="text-sm text-slate-400 hover:text-white transition-colors">Features</a>
+        <a href="#how" class="text-sm text-slate-400 hover:text-white transition-colors">How It Works</a>
+        <a href="#users" class="text-sm text-slate-400 hover:text-white transition-colors">Users</a>
+        <a href="#about" class="text-sm text-slate-400 hover:text-white transition-colors">About</a>
+        <a href="#contact" class="btn-primary" style="padding:10px 22px;font-size:0.85rem;">Get Started</a>
+        <a href="loginpage.html" class="text-sm font-semibold text-teal-400 hover:text-teal-300 transition-colors">Login</a>
+      </div>
+
+      <button id="menu-btn" class="md:hidden text-slate-400 hover:text-white" onclick="toggleMenu()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="glass-card mt-3 rounded-xl mx-0 p-4 flex flex-col gap-3">
+      <a href="#features" class="text-sm text-slate-300 py-2 px-3 rounded-lg hover:bg-white/5 transition" onclick="toggleMenu()">Features</a>
+      <a href="#how" class="text-sm text-slate-300 py-2 px-3 rounded-lg hover:bg-white/5 transition" onclick="toggleMenu()">How It Works</a>
+      <a href="#users" class="text-sm text-slate-300 py-2 px-3 rounded-lg hover:bg-white/5 transition" onclick="toggleMenu()">Users</a>
+      <a href="#about" class="text-sm text-slate-300 py-2 px-3 rounded-lg hover:bg-white/5 transition" onclick="toggleMenu()">About</a>
+      <a href="#contact" class="text-sm text-slate-300 py-2 px-3 rounded-lg hover:bg-white/5 transition" onclick="toggleMenu()">Get Started</a>
+      <a href="loginpage.html" class="text-sm font-semibold text-teal-400 hover:text-teal-300 transition-colors" onclick="toggleMenu()">Login</a>
+      
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative min-h-screen flex items-center pt-24 pb-16 px-5 md:px-10 overflow-hidden">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="max-w-6xl mx-auto w-full relative z-10">
+      <div class="grid md:grid-cols-2 gap-12 items-center">
+
+        <!-- Left -->
+        <div>
+          <div class="pill mb-6 reveal">
+            <span class="pill-dot"></span>
+            STI West Negros University · CICT Department
+          </div>
+
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-display leading-tight mb-6 reveal reveal-delay-1" style="font-weight:800;letter-spacing:-0.03em;line-height:1.1;">
+            OJT Monitoring,<br/>
+            <span class="gradient-text">Reimagined.</span>
+          </h1>
+
+          <p class="text-slate-400 text-base md:text-lg leading-relaxed mb-8 max-w-md reveal reveal-delay-2">
+            TrackIT is a centralized web-based On-the-Job Training monitoring system powered by Dynamic QR, descriptive analytics, NLP auto-summarization, and real-time dashboards.
+          </p>
+
+          <div class="flex flex-wrap gap-4 reveal reveal-delay-3">
+            <a href="#features" class="btn-primary">
+              Explore Features
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+            <a href="#about" class="btn-ghost">Learn More</a>
+          </div>
+
+          <!-- Stats row -->
+          <div class="mt-12 grid grid-cols-3 gap-4 reveal reveal-delay-4">
+            <div>
+              <div class="stat-num">3</div>
+              <div class="text-xs text-slate-500 mt-1">User Roles</div>
+            </div>
+            <div class="border-l border-white/10 pl-4">
+              <div class="stat-num">6</div>
+              <div class="text-xs text-slate-500 mt-1">Core Modules</div>
+            </div>
+            <div class="border-l border-white/10 pl-4">
+              <div class="stat-num">100%</div>
+              <div class="text-xs text-slate-500 mt-1">Web-Based</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right – mockup -->
+        <div class="reveal reveal-delay-2 float-anim glow-ring rounded-2xl">
+          <div class="mockup-wrap">
+            <div class="mockup-bar">
+              <div class="dot" style="background:#ff5f57"></div>
+              <div class="dot" style="background:#febc2e"></div>
+              <div class="dot" style="background:#28c840"></div>
+              <div class="flex-1 mx-3">
+                <div class="h-5 bg-white/5 rounded-md flex items-center px-3">
+                  <span class="text-xs text-slate-600">trackit.cict.edu.ph/dashboard</span>
+                </div>
+              </div>
+            </div>
+            <!-- Dashboard preview -->
+            <div class="p-4 space-y-3">
+              <!-- Header -->
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <div class="text-xs text-slate-500">Welcome back,</div>
+                  <div class="font-display font-bold text-sm text-white" style="font-family:'Syne',sans-serif;">Zoe Nicole Mandal</div>
+                </div>
+                <div class="pill" style="font-size:0.65rem;">OJT Active</div>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="glass-card rounded-xl p-3">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-xs text-slate-400">OJT Hours Completed</span>
+                  <span class="text-xs font-bold text-teal-400">68%</span>
+                </div>
+                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full" style="width:68%;background:linear-gradient(90deg,#00c8aa,#00e5c8);"></div>
+                </div>
+                <div class="flex justify-between mt-2">
+                  <span class="text-xs text-slate-600">272 hrs done</span>
+                  <span class="text-xs text-slate-600">400 hrs total</span>
+                </div>
+              </div>
+
+              <!-- Mini cards row -->
+              <div class="grid grid-cols-3 gap-2">
+                <div class="glass-card rounded-xl p-2 text-center">
+                  <div class="text-lg font-display font-bold text-teal-400" style="font-family:'Syne',sans-serif;">12</div>
+                  <div class="text-xs text-slate-500">Journals</div>
+                </div>
+                <div class="glass-card rounded-xl p-2 text-center">
+                  <div class="text-lg font-display font-bold text-yellow-400" style="font-family:'Syne',sans-serif;">5</div>
+                  <div class="text-xs text-slate-500">Pending</div>
+                </div>
+                <div class="glass-card rounded-xl p-2 text-center">
+                  <div class="text-lg font-display font-bold text-green-400" style="font-family:'Syne',sans-serif;">98%</div>
+                  <div class="text-xs text-slate-500">Attendance</div>
+                </div>
+              </div>
+
+              <!-- QR area -->
+              <div class="glass-card rounded-xl p-3 flex items-center gap-3">
+                <div class="relative w-12 h-12 flex-shrink-0" style="background:#fff;border-radius:8px;padding:4px;overflow:hidden;">
+                  <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="14" height="14" fill="none" stroke="#0a0f1e" stroke-width="2"/>
+                    <rect x="5" y="5" width="8" height="8" fill="#0a0f1e"/>
+                    <rect x="24" y="2" width="14" height="14" fill="none" stroke="#0a0f1e" stroke-width="2"/>
+                    <rect x="27" y="5" width="8" height="8" fill="#0a0f1e"/>
+                    <rect x="2" y="24" width="14" height="14" fill="none" stroke="#0a0f1e" stroke-width="2"/>
+                    <rect x="5" y="27" width="8" height="8" fill="#0a0f1e"/>
+                    <rect x="24" y="24" width="4" height="4" fill="#0a0f1e"/>
+                    <rect x="30" y="24" width="4" height="4" fill="#0a0f1e"/>
+                    <rect x="24" y="30" width="4" height="4" fill="#0a0f1e"/>
+                    <rect x="30" y="30" width="4" height="4" fill="#0a0f1e"/>
+                  </svg>
+                  <div class="qr-scan-line"></div>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white">Dynamic QR Check-In</div>
+                  <div class="text-xs text-slate-500 mt-0.5">Scan to record attendance · Geotagged</div>
+                </div>
+                <div class="ml-auto">
+                  <div class="w-2 h-2 rounded-full bg-teal-400" style="box-shadow:0 0 8px #00c8aa;"></div>
+                </div>
+              </div>
+
+              <!-- Recent log -->
+              <div>
+                <div class="text-xs text-slate-500 mb-2">Recent Activity</div>
+                <div class="space-y-1.5">
+                  <div class="flex items-center gap-2 text-xs">
+                    <div class="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0"></div>
+                    <span class="text-slate-400">Journal Week 12 submitted</span>
+                    <span class="ml-auto text-slate-600">2h ago</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-xs">
+                    <div class="w-1.5 h-1.5 rounded-full bg-yellow-400 flex-shrink-0"></div>
+                    <span class="text-slate-400">Supervisor reviewed DTR</span>
+                    <span class="ml-auto text-slate-600">Yesterday</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-xs">
+                    <div class="w-1.5 h-1.5 rounded-full bg-slate-600 flex-shrink-0"></div>
+                    <span class="text-slate-400">Attendance verified ✓</span>
+                    <span class="ml-auto text-slate-600">Mon</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- RESEARCH GAP BANNER -->
+  <section class="px-5 md:px-10 py-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="glass-card rounded-2xl px-6 py-5 flex flex-col md:flex-row items-start md:items-center gap-4 reveal">
+        <div class="icon-box flex-shrink-0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div>
+          <div class="text-sm font-bold text-white mb-1" style="font-family:'Syne',sans-serif;">The Problem TrackIT Solves</div>
+          <p class="text-sm text-slate-400 leading-relaxed">OJT management in the CICT department currently relies on paper-based DTRs and manual processes — non-integrated, lacking real-time tracking, report generation, and interactive visualization tools, causing inefficiencies and delays.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="px-5 md:px-10 py-20">
+    <div class="max-w-6xl mx-auto">
+
+      <div class="text-center mb-14 reveal">
+        <div class="pill mx-auto mb-4">Core Features</div>
+        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4" style="font-weight:800;letter-spacing:-0.02em;">Everything You Need,<br/><span class="gradient-text">In One System.</span></h2>
+        <p class="text-slate-400 max-w-xl mx-auto text-base">Six powerful modules built to eliminate manual OJT inefficiencies for trainees, supervisors, and coordinators alike.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <!-- Feature 1 -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-1 hover:border-teal-500/30 transition-all duration-300 group">
+          <div class="icon-box mb-4 group-hover:bg-teal-400/20 transition-colors">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Dynamic QR Attendance</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Real-time, secure attendance tracking via Dynamic QR codes with geotagging and camera-based DTR authentication to prevent proxy attendance.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-2 hover:border-teal-500/30 transition-all duration-300 group">
+          <div class="icon-box mb-4 group-hover:bg-teal-400/20 transition-colors">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Digital Weekly Journals</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Structured checkbox-based journals capturing theoretical concepts in practice, with integrated grammar correction and NLP-powered auto-summarization.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-3 hover:border-teal-500/30 transition-all duration-300 group">
+          <div class="icon-box mb-4 group-hover:bg-teal-400/20 transition-colors">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Descriptive Analytics</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Interactive dashboards and charts giving coordinators data-driven insights into trainee performance, attendance trends, and program outcomes.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-1 hover:border-teal-500/30 transition-all duration-300 group">
+          <div class="icon-box mb-4 group-hover:bg-teal-400/20 transition-colors">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Digital Signature Verification</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Supervisors verify and digitally sign weekly journals and monthly performance appraisal forms with a single confirmation — no printing required.</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-2 hover:border-teal-500/30 transition-all duration-300 group">
+          <div class="icon-box mb-4 group-hover:bg-teal-400/20 transition-colors">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">NLP Auto-Summarization</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Natural Language Processing automatically generates concise, meaningful summaries of trainee journal entries, saving coordinators hours of review time.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-3 hover:border-teal-500/30 transition-all duration-300 group">
+          <div class="icon-box mb-4 group-hover:bg-teal-400/20 transition-colors">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Printable Document Generation</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Automatically generate and export printable DTRs, weekly journals, and monthly performance appraisal forms ready for submission and record-keeping.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="divider mx-5 md:mx-10"></div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="px-5 md:px-10 py-20">
+    <div class="max-w-6xl mx-auto">
+
+      <div class="text-center mb-14 reveal">
+        <div class="pill mx-auto mb-4">How It Works</div>
+        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4" style="font-weight:800;letter-spacing:-0.02em;">From Check-In to<br/><span class="gradient-text">Certified Report.</span></h2>
+        <p class="text-slate-400 max-w-md mx-auto text-base">A seamless end-to-end workflow that replaces every paper form.</p>
+      </div>
+
+      <div class="max-w-2xl mx-auto space-y-0">
+
+        <div class="relative pl-16 pb-10 reveal reveal-delay-1">
+          <div class="timeline-line"></div>
+          <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-teal-500/30 bg-teal-500/10 flex items-center justify-center">
+            <span class="text-teal-400 font-bold font-display" style="font-family:'Syne',sans-serif;">01</span>
+          </div>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Trainee Scans Dynamic QR</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Upon arrival at the company, the OJT trainee scans the daily Dynamic QR code. Geotagging confirms the trainee's location for authenticity.</p>
+        </div>
+
+        <div class="relative pl-16 pb-10 reveal reveal-delay-2">
+          <div class="timeline-line"></div>
+          <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-teal-500/30 bg-teal-500/10 flex items-center justify-center">
+            <span class="text-teal-400 font-bold font-display" style="font-family:'Syne',sans-serif;">02</span>
+          </div>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Daily Duty Logs & Weekly Journals</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Trainees submit virtual duty logs of daily tasks and write weekly journals with checkbox-based theory-to-practice entries and grammar correction.</p>
+        </div>
+
+        <div class="relative pl-16 pb-10 reveal reveal-delay-3">
+          <div class="timeline-line"></div>
+          <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-teal-500/30 bg-teal-500/10 flex items-center justify-center">
+            <span class="text-teal-400 font-bold font-display" style="font-family:'Syne',sans-serif;">03</span>
+          </div>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Supervisor Reviews & Signs</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Company supervisors verify DTRs and duty logs, then digitally sign the weekly journal and monthly performance appraisal form with a single click.</p>
+        </div>
+
+        <div class="relative pl-16 pb-10 reveal reveal-delay-4">
+          <div class="timeline-line"></div>
+          <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-teal-500/30 bg-teal-500/10 flex items-center justify-center">
+            <span class="text-teal-400 font-bold font-display" style="font-family:'Syne',sans-serif;">04</span>
+          </div>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">NLP Summarizes Journals</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">The NLP engine auto-generates concise summaries of trainee journals, allowing OJT coordinators to quickly assess trainee learning outcomes.</p>
+        </div>
+
+        <div class="relative pl-16 reveal reveal-delay-1">
+          <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center">
+            <span class="text-yellow-400 font-bold font-display" style="font-family:'Syne',sans-serif;">05</span>
+          </div>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Analytics, Reports & Exports</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Coordinators access descriptive analytics dashboards, generate automated reports, and export printable DTRs and performance appraisal forms for submission.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="divider mx-5 md:mx-10"></div>
+
+  <!-- USERS -->
+  <section id="users" class="px-5 md:px-10 py-20">
+    <div class="max-w-6xl mx-auto">
+
+      <div class="text-center mb-14 reveal">
+        <div class="pill mx-auto mb-4">Target Users</div>
+        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4" style="font-weight:800;letter-spacing:-0.02em;">Built for <span class="gradient-text">Everyone</span><br/>in the OJT Ecosystem.</h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+
+        <!-- Trainee -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-1 hover:border-teal-500/30">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500/20 to-teal-500/5 border border-teal-500/20 flex items-center justify-center mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="pill mb-3" style="font-size:0.65rem;">Trainee</div>
+          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">OJT Trainee</h3>
+          <ul class="space-y-2">
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Scan QR for attendance with Dynamic QR technology
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Submit virtual duty logs and weekly journals
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Monitor completed and remaining OJT hours
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Integrated grammar correction in journals
+            </li>
+          </ul>
+        </div>
+
+        <!-- Supervisor -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-2 hover:border-teal-500/30" >
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500/30 to-teal-500/10 border border-teal-500/30 flex items-center justify-center mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="pill mb-3" style="font-size:0.65rem;">Supervisor</div>
+          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Company Supervisor</h3>
+          <ul class="space-y-2">
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Verify and approve trainee DTRs
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Monitor submitted duty logs daily
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Apply digital signature upon verification
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c8aa" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Review monthly performance appraisals
+            </li>
+          </ul>
+        </div>
+
+        <!-- Coordinator -->
+        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-3 hover:border-teal-500/30">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 border border-yellow-500/20 flex items-center justify-center mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f5c842" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <div class="pill mb-3" style="font-size:0.65rem;border-color:rgba(245,200,66,0.3);background:rgba(245,200,66,0.08);color:#f5c842;">Coordinator</div>
+          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">OJT Coordinator</h3>
+          <ul class="space-y-2">
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5c842" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              View and manage OJT partner companies
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5c842" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Access descriptive analytics dashboards
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5c842" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Analyze NLP-summarized trainee journals
+            </li>
+            <li class="flex items-start gap-2 text-sm text-slate-400">
+              <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5c842" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Generate and export reports and visualizations
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="divider mx-5 md:mx-10"></div>
+
+  <!-- ABOUT / TEAM -->
+  <section id="about" class="px-5 md:px-10 py-20">
+    <div class="max-w-6xl mx-auto">
+
+      <div class="grid md:grid-cols-2 gap-14 items-center">
+
+        <div class="reveal">
+          <div class="pill mb-6">About the Project</div>
+          <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-5" style="font-weight:800;letter-spacing:-0.02em;">Capstone Project<br/><span class="gradient-text">IT27-E05</span></h2>
+          <p class="text-slate-400 leading-relaxed mb-5">TrackIT is a Capstone Project for INTE1031 – Capstone Project 1 developed by Group IT27-E05 at the College of Information and Communications Technology, STI West Negros University, Bacolod City.</p>
+          <p class="text-slate-400 leading-relaxed mb-8">The system addresses the research gap of the absence of a centralized, web-based OJT monitoring platform for the CICT department — replacing inefficient manual processes with intelligent, automated solutions.</p>
+
+          <!-- SDG badges -->
+          <div class="mb-6">
+            <div class="text-xs text-slate-500 mb-3 uppercase tracking-widest">UN Sustainable Development Goals</div>
+            <div class="flex flex-wrap gap-2">
+              <span class="sdg-badge" style="background:rgba(38,114,190,0.15);border:1px solid rgba(38,114,190,0.3);color:#5eb8f5;">SDG 4 · Quality Education</span>
+              <span class="sdg-badge" style="background:rgba(255,88,22,0.15);border:1px solid rgba(255,88,22,0.3);color:#ff8c5a;">SDG 8 · Decent Work</span>
+              <span class="sdg-badge" style="background:rgba(250,130,0,0.15);border:1px solid rgba(250,130,0,0.3);color:#ffa24d;">SDG 9 · Innovation</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team -->
+        <div class="reveal reveal-delay-2">
+          <div class="text-xs text-slate-500 mb-4 uppercase tracking-widest">Development Team</div>
+          <div class="space-y-3">
+
+            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-700 flex items-center justify-center text-navy font-bold text-sm flex-shrink-0" style="color:#0a0f1e;">ZM</div>
+              <div>
+                <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Zoe Nicole D. Mandal</div>
+                <div class="text-xs text-slate-500">Project Manager</div>
+              </div>
+              <div class="ml-auto">
+                <div class="pill" style="font-size:0.6rem;">PM</div>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">KM</div>
+              <div>
+                <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Kevin Nicolas N. Marciano</div>
+                <div class="text-xs text-slate-500">Lead Programmer</div>
+              </div>
+              <div class="ml-auto">
+                <div class="pill" style="font-size:0.6rem;border-color:rgba(96,165,250,0.3);background:rgba(96,165,250,0.08);color:#60a5fa;">DEV</div>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">EE</div>
+              <div>
+                <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Emmanuel Kay John H. Estorco</div>
+                <div class="text-xs text-slate-500">System Analyst</div>
+              </div>
+              <div class="ml-auto">
+                <div class="pill" style="font-size:0.6rem;border-color:rgba(167,139,250,0.3);background:rgba(167,139,250,0.08);color:#a78bfa;">SA</div>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">JC</div>
+              <div>
+                <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">John Michael M. Celis</div>
+                <div class="text-xs text-slate-500">UI/UX Designer</div>
+              </div>
+              <div class="ml-auto">
+                <div class="pill" style="font-size:0.6rem;border-color:rgba(244,114,182,0.3);background:rgba(244,114,182,0.08);color:#f472b6;">UX</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider mx-5 md:mx-10"></div>
+
+  <!-- CTA -->
+  <section id="contact" class="px-5 md:px-10 py-24 relative overflow-hidden">
+    <div class="orb orb-3"></div>
+    <div class="max-w-3xl mx-auto text-center relative z-10 reveal">
+      <div class="pill mx-auto mb-6">Ready to Start?</div>
+      <h2 class="text-3xl md:text-5xl font-display font-800 text-white mb-6" style="font-weight:800;letter-spacing:-0.03em;line-height:1.1;">
+        End Manual OJT<br/>Tracking. <span class="gradient-text">For Good.</span>
+      </h2>
+      <p class="text-slate-400 text-base md:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+        TrackIT brings together real-time attendance, intelligent journals, digital signatures, and descriptive analytics into one unified platform for the CICT department.
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="#features" class="btn-primary text-base">
+          Explore Features
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="#about" class="btn-ghost text-base">Meet the Team</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="px-5 md:px-10 py-8 border-t border-white/5">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0f1e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <span class="font-display text-sm text-white" style="font-family:'Syne',sans-serif;font-weight:700;">Track<span class="text-teal-400">IT</span></span>
+      </div>
+      <p class="text-xs text-slate-600 text-center">© 2025 TrackIT · Group IT27-E05 · STI West Negros University CICT · INTE1031 Capstone Project 1</p>
+      <div class="flex items-center gap-4">
+        <a href="#features" class="text-xs text-slate-600 hover:text-teal-400 transition-colors">Features</a>
+        <a href="#how" class="text-xs text-slate-600 hover:text-teal-400 transition-colors">How It Works</a>
+        <a href="#about" class="text-xs text-slate-600 hover:text-teal-400 transition-colors">Team</a>
+      </div>
+    </div>
+  </footer>
+
+
+  <script src="landingpage.js?v=1"></script>
+</body>
+</html>

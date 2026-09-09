@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>TrackIT – Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="visuals\loginpage.css?v=1">
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="px-5 py-4 md:px-10">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="landingpage.html" class="flex items-center gap-2">
+        <div>
+          <img src="Trackitlogo.png" alt="" srcset="">
+        </div>
+        <span class="font-display font-800 text-white tracking-tight" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-teal-400">IT</span></span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-4">
+        <span class="text-sm text-slate-400">Don't have an account?</span>
+        <a href="signup.html" class="text-sm font-semibold text-teal-400 hover:text-teal-300 transition-colors">Sign Up</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative min-h-screen flex items-center pt-32 pb-16 px-5 md:px-10 overflow-hidden">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="max-w-6xl mx-auto w-full relative z-10">
+      <div class="grid md:grid-cols-2 gap-12 items-center">
+
+        <!-- Left – Welcome Message -->
+        <div class="hidden md:block">
+          <div class="pill mb-6 reveal">
+            <span class="pill-dot"></span>
+            Welcome Back
+          </div>
+
+          <h1 class="text-4xl md:text-5xl font-display leading-tight mb-6 reveal reveal-delay-1" style="font-weight:800;letter-spacing:-0.03em;line-height:1.1;">
+            Sign in to your<br/>
+            <span class="gradient-text">TrackIT Account</span>
+          </h1>
+
+          <p class="text-slate-400 text-base md:text-lg leading-relaxed mb-8 max-w-md reveal reveal-delay-2">
+            Access your OJT monitoring dashboard, track your progress, submit journals, and stay connected with your institution.
+          </p>
+
+          <div class="space-y-3 reveal reveal-delay-3">
+            <div class="flex items-center gap-3 text-slate-300">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-teal-400"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Real-time progress tracking</span>
+            </div>
+            <div class="flex items-center gap-3 text-slate-300">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-teal-400"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Secure QR-based attendance</span>
+            </div>
+            <div class="flex items-center gap-3 text-slate-300">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-teal-400"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>AI-powered analytics</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right – Login Form -->
+        <div class="reveal reveal-delay-2">
+          <div class="glass-card rounded-2xl p-8 md:p-10">
+            <!-- Title -->
+            <h2 class="font-display font-800 text-2xl mb-2 text-white" style="font-family:'Syne',sans-serif;">Sign In</h2>
+            <p class="text-slate-400 text-sm mb-8">Enter your credentials to access your dashboard</p>
+
+            <!-- Form -->
+            <form id="loginForm" class="space-y-5">
+
+              <!-- Email -->
+              <div>
+                <label class="text-sm text-slate-300 font-semibold mb-2 block">Email Address</label>
+                <input 
+                  type="email" 
+                  placeholder="you@example.com" 
+                  class="input-field"
+                  required
+                />
+              </div>
+
+              <!-- Password -->
+              <div>
+                <label class="text-sm text-slate-300 font-semibold mb-2 block">Password</label>
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  class="input-field"
+                  required
+                />
+              </div>
+
+              <!-- Remember & Forgot -->
+              <div class="flex items-center justify-between">
+                <label class="checkbox-label">
+                  <input type="checkbox" />
+                  <span>Remember me</span>
+                </label>
+                <a href="#forgot" class="text-sm link-text">Forgot password?</a>
+              </div>
+
+              <!-- Sign In Button -->
+              <button type="submit" class="btn-primary mt-6">
+                Sign In
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+
+            </form>
+
+            <!-- Divider -->
+            <div class="my-6 flex items-center gap-3">
+              <div class="flex-1 h-px bg-white/10"></div>
+              <span class="text-xs text-slate-500">OR</span>
+              <div class="flex-1 h-px bg-white/10"></div>
+            </div>
+
+            <!-- Social Login -->
+            <div class="grid grid-cols-2 gap-3">
+              <button class="btn-social">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              </button>
+              <button class="btn-social">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.834 8.207 11.441.6.111.82-.261.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.604-.015 2.896-.015 3.286 0 .319.217.694.825.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+              </button>
+            </div>
+
+            <!-- Sign Up Link -->
+            <p class="text-center text-sm text-slate-400 mt-8">
+              Don't have an account? 
+              <a href="signup.html" class="link-text">Create one now</a>
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+<script src="loginpage.js?v=1"></script>
+</body>
+</html>

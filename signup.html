@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>TrackIT – Sign Up</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="visuals\signup.css?v=1">
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="px-5 py-4 md:px-10">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="landingpage.html" class="flex items-center gap-2">
+        <div>
+          <img src="Trackitlogo.png" alt="" srcset="">
+        </div>
+        <span style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;" class="text-white">Track<span class="text-teal-400">IT</span></span>
+      </a>
+      <div class="hidden md:flex items-center gap-4">
+        <span class="text-sm text-slate-400">Already have an account?</span>
+        <a href="loginpage.html" class="text-sm font-semibold text-teal-400 hover:text-teal-300 transition-colors">Sign In</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="relative min-h-screen flex items-center pt-32 pb-16 px-5 md:px-10 overflow-hidden">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="max-w-6xl mx-auto w-full relative z-10">
+      <div class="grid md:grid-cols-2 gap-12 items-start">
+
+        <!-- Left – Info Panel -->
+        <div class="hidden md:block sticky top-32">
+          <div class="pill mb-6 reveal">
+            <span class="pill-dot"></span>
+            Join TrackIT
+          </div>
+          <h1 class="text-4xl md:text-5xl font-display leading-tight mb-6 reveal reveal-delay-1" style="font-weight:800;letter-spacing:-0.03em;line-height:1.1;">
+            Create your<br/>
+            <span class="gradient-text">TrackIT Account</span>
+          </h1>
+          <p class="text-slate-400 text-base md:text-lg leading-relaxed mb-8 max-w-md reveal reveal-delay-2">
+            Join the OJT monitoring platform. Choose your role and get started in minutes.
+          </p>
+
+          <!-- Role cards (left panel) -->
+          <div class="space-y-3 reveal reveal-delay-3">
+            <div class="role-info-card" id="info-student">
+              <div class="role-info-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              </div>
+              <div>
+                <div class="text-sm font-semibold text-white" style="font-family:'Syne',sans-serif;">OJT Student</div>
+                <div class="text-xs text-slate-400">Track hours, submit journals & DTR</div>
+              </div>
+            </div>
+            <div class="role-info-card" id="info-coordinator">
+              <div class="role-info-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <div>
+                <div class="text-sm font-semibold text-white" style="font-family:'Syne',sans-serif;">OJT Coordinator</div>
+                <div class="text-xs text-slate-400">Oversee trainees, analytics & reports</div>
+              </div>
+            </div>
+            <div class="role-info-card" id="info-supervisor">
+              <div class="role-info-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div>
+                <div class="text-sm font-semibold text-white" style="font-family:'Syne',sans-serif;">Company Supervisor</div>
+                <div class="text-xs text-slate-400">Verify DTRs & review trainee progress</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right – Signup Form -->
+        <div class="reveal reveal-delay-2">
+          <div class="glass-card rounded-2xl p-8 md:p-10">
+            <h2 class="font-display font-800 text-2xl mb-2 text-white" style="font-family:'Syne',sans-serif;">Create Account</h2>
+            <p class="text-slate-400 text-sm mb-6">Get started with your OJT tracking journey</p>
+
+            <!-- STEP 1: Role Selection -->
+            <div id="step-role">
+              <p class="text-xs text-slate-400 uppercase tracking-widest mb-4 font-semibold">Step 1 — Select your role</p>
+              <div class="space-y-3">
+                <button type="button" class="role-btn w-full" data-role="student" onclick="selectRole('student')">
+                  <div class="role-btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                  </div>
+                  <div class="text-left">
+                    <div class="font-semibold text-white text-sm" style="font-family:'Syne',sans-serif;">OJT Student</div>
+                    <div class="text-xs text-slate-400">Track hours, submit journals & daily time records</div>
+                  </div>
+                  <svg class="ml-auto flex-shrink-0 opacity-40 role-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+
+                <button type="button" class="role-btn w-full" data-role="coordinator" onclick="selectRole('coordinator')">
+                  <div class="role-btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                  </div>
+                  <div class="text-left">
+                    <div class="font-semibold text-white text-sm" style="font-family:'Syne',sans-serif;">OJT Coordinator</div>
+                    <div class="text-xs text-slate-400">Oversee trainees, analytics & generate reports</div>
+                  </div>
+                  <svg class="ml-auto flex-shrink-0 opacity-40 role-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+
+                <button type="button" class="role-btn w-full" data-role="supervisor" onclick="selectRole('supervisor')">
+                  <div class="role-btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  </div>
+                  <div class="text-left">
+                    <div class="font-semibold text-white text-sm" style="font-family:'Syne',sans-serif;">Company Supervisor</div>
+                    <div class="text-xs text-slate-400">Verify DTRs & monitor trainee performance</div>
+                  </div>
+                  <svg class="ml-auto flex-shrink-0 opacity-40 role-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP 2: Form fields (shown after role selected) -->
+            <div id="step-form" style="display:none;">
+              <!-- Selected role badge -->
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-2">
+                  <div id="selected-role-badge" class="role-badge"></div>
+                </div>
+                <button type="button" onclick="goBackToRole()" class="text-xs text-slate-400 hover:text-teal-400 transition-colors flex items-center gap-1">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                  Change role
+                </button>
+              </div>
+
+              <form id="signupForm" class="space-y-4">
+                <input type="hidden" id="roleInput" name="role" />
+
+                <!-- Full Name (all roles) -->
+                <div>
+                  <label class="text-sm text-slate-300 font-semibold mb-2 block">Full Name</label>
+                  <input type="text" id="fullName" placeholder="Juan Dela Cruz" class="input-field" required />
+                </div>
+
+                <!-- Email (all roles) -->
+                <div>
+                  <label class="text-sm text-slate-300 font-semibold mb-2 block">Email Address</label>
+                  <input type="email" id="email" placeholder="you@example.com" class="input-field" required />
+                </div>
+
+                <!-- Student-specific fields -->
+                <div id="fields-student" class="role-fields space-y-4" style="display:none;">
+                  <div>
+                    <label class="text-sm text-slate-300 font-semibold mb-2 block">Student ID</label>
+                    <input type="text" id="studentId" placeholder="2024-00123" class="input-field" />
+                  </div>
+                  <div>
+                    <label class="text-sm text-slate-300 font-semibold mb-2 block">Department</label>
+                    <select id="department-student" class="input-field">
+                      <option value="" disabled selected>Select your department</option>
+                      <option value="CICT">CICT</option>
+                      <option value="COE">COE</option>
+                      <option value="CAS">CAS</option>
+                      <option value="CED">CED</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Coordinator-specific fields -->
+                <div id="fields-coordinator" class="role-fields space-y-4" style="display:none;">
+                  <div>
+                    <label class="text-sm text-slate-300 font-semibold mb-2 block">Department</label>
+                    <select id="department-coordinator" class="input-field">
+                      <option value="" disabled selected>Select your department</option>
+                      <option value="CICT">CICT</option>
+                      <option value="COE">COE</option>
+                      <option value="CAS">CAS</option>
+                      <option value="CED">CED</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Supervisor-specific fields -->
+                <div id="fields-supervisor" class="role-fields space-y-4" style="display:none;">
+                  <div>
+                    <label class="text-sm text-slate-300 font-semibold mb-2 block">Company Name</label>
+                    <input type="text" id="companyName-supervisor" placeholder="ABC Corporation" class="input-field" />
+                  </div>
+                  <div>
+                    <label class="text-sm text-slate-300 font-semibold mb-2 block">Position / Title</label>
+                    <input type="text" id="companyPosition" placeholder="HR Manager" class="input-field" />
+                  </div>
+                </div>
+
+                <!-- Password (all roles) -->
+                <div>
+                  <label class="text-sm text-slate-300 font-semibold mb-2 block">Password</label>
+                  <input type="password" id="password" placeholder="••••••••" class="input-field" required oninput="checkPasswordStrength(this.value)" />
+                  <div class="strength-indicator">
+                    <div class="strength-bar" id="bar1"></div>
+                    <div class="strength-bar" id="bar2"></div>
+                    <div class="strength-bar" id="bar3"></div>
+                  </div>
+                  <div class="strength-text" id="strengthText">Password strength</div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div>
+                  <label class="text-sm text-slate-300 font-semibold mb-2 block">Confirm Password</label>
+                  <input type="password" id="confirmPassword" placeholder="••••••••" class="input-field" required />
+                  <div class="text-xs text-red-400 mt-1 hidden" id="passwordMismatch">Passwords do not match</div>
+                </div>
+
+                <!-- Terms -->
+                <label class="checkbox-label">
+                  <input type="checkbox" id="terms" required />
+                  <span>I agree to the <a href="#" class="link-text">Terms of Service</a> and <a href="#" class="link-text">Privacy Policy</a></span>
+                </label>
+
+                <!-- Error message -->
+                <div id="errorMsg" class="error-msg hidden"></div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-primary mt-2" id="submitBtn">
+                  <span id="submitText">Create Account</span>
+                  <svg id="submitArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  <svg id="submitSpinner" class="hidden animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="40" stroke-dashoffset="10"/></svg>
+                </button>
+              </form>
+            </div>
+
+            <!-- Sign In Link -->
+            <p class="text-center text-sm text-slate-400 mt-8">
+              Already have an account?
+              <a href="loginpage.html" class="link-text">Sign in here</a>
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <script src="signup.js?v=2"></script>
+</body>
+</html>

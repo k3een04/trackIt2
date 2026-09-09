@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>TrackIT – Student Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=1">
+</head>
+<body>
+  <script>
+    // Authentication check - redirect to login if not authenticated
+    (function checkAuth() {
+      console.log('🔍 Checking authentication...');
+      const token = localStorage.getItem('trackit_token');
+      const user = JSON.parse(localStorage.getItem('trackit_user') || 'null');
+      
+      if (!token || !user || user.role !== 'student') {
+        window.location.href = 'loginpage.html';
+        return;
+      }
+      
+      // Store auth info globally
+      window.currentUser = user;
+      window.authToken = token;
+      console.log('✅ Authentication successful for:', user.fullName);
+    })();
+  </script>
+
+  <!-- NAV -->
+  <nav id="navbar" class="px-5 py-4 md:px-10 fixed w-full top-0 left-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="" class="flex items-center gap-2">
+        <div>
+          <img src="Trackitlogo.png" alt="" srcset="">
+        </div>
+        <span class="font-display font-800 text-white tracking-tight" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-teal-400">IT</span></span>
+      </a>
+
+      <div class="flex items-center gap-4">
+        <span class="hidden md:inline text-sm text-slate-400">Welcome, <span id="user-name" class="text-teal-400">Student</span></span>
+        <button id="theme-toggle" onclick="toggleTheme()" class="p-2 hover:bg-white/10 rounded-lg transition" title="Toggle dark/light mode">
+          <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <!-- Moon icon (shown in light mode) -->
+            <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            <!-- Sun icon (shown in dark mode) -->
+            <circle class="sun-icon" cx="12" cy="12" r="5"></circle>
+            <line class="sun-icon" x1="12" y1="1" x2="12" y2="3"></line>
+            <line class="sun-icon" x1="12" y1="21" x2="12" y2="23"></line>
+            <line class="sun-icon" x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line class="sun-icon" x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line class="sun-icon" x1="1" y1="12" x2="3" y2="12"></line>
+            <line class="sun-icon" x1="21" y1="12" x2="23" y2="12"></line>
+            <line class="sun-icon" x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line class="sun-icon" x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+        <button onclick="logout()" class="btn-ghost text-xs md:text-sm">Logout</button>
+        <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <nav class="space-y-2">
+      <a href="#overview" class="nav-link active" onclick="switchTab('overview')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        <span>Overview</span>
+      </a>
+      <a href="#dtr" class="nav-link" onclick="switchTab('dtr')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        <span>DTR</span>
+      </a>
+      <a href="#journal" class="nav-link" onclick="switchTab('journal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <span>Weekly Journal</span>
+      </a>
+      <a href="#dutylog" class="nav-link" onclick="switchTab('dutylog')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        <span>Duty Log</span>
+      </a>
+      <a href="#progress" class="nav-link" onclick="switchTab('progress')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13 16 8 11 2 17"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        <span>My Progress</span>
+      </a>
+      <a href="#documents" class="nav-link" onclick="switchTab('documents')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <span>Documents</span>
+      </a>
+      <a href="#settings" class="nav-link" onclick="switchTab('settings')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.96 2.96l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.96-2.96l4.24-4.24M19.78 19.78l-4.24-4.24m-2.96-2.96l-4.24-4.24"></path></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="tab-toolbar">
+      <button id="tab-back" class="tab-back-btn is-disabled" onclick="goBackTab()" disabled aria-label="Go back to previous tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Back</span>
+      </button>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div id="overview" class="tab-content active">
+      <div class="page-header">
+        <h1>Overview</h1>
+        <p class="text-slate-400">Welcome back! Here's your OJT progress summary.</p>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="glass-card p-6">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-slate-400 text-sm">Completed Hours</span>
+            <div class="icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5z"/></svg>
+            </div>
+          </div>
+          <div class="stat-num">0</div>
+          <p class="text-xs text-slate-500 mt-2">/ 486 hours required</p>
+        </div>
+
+        <div class="glass-card p-6">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-slate-400 text-sm">Days Present</span>
+            <div class="icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+          </div>
+          <div class="stat-num">0</div>
+          <p class="text-xs text-slate-500 mt-2">This month</p>
+        </div>
+
+        <div class="glass-card p-6">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-slate-400 text-sm">Pending Journals</span>
+            <div class="icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+          </div>
+          <div class="stat-num">0</div>
+          <p class="text-xs text-slate-500 mt-2">Awaiting review</p>
+        </div>
+
+        <div class="glass-card p-6">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-slate-400 text-sm">Remaining Hours</span>
+            <div class="icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+          </div>
+          <div class="stat-num">0</div>
+          <p class="text-xs text-slate-500 mt-2">to complete OJT</p>
+        </div>
+      </div>
+
+      <!-- Progress Bar and Activity -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- OJT Progress -->
+        <div class="glass-card p-6 lg:col-span-1">
+          <h3 class="font-display font-700 mb-6">OJT Progress</h3>
+          <div class="progress-circle" style="--progress: 0%">
+            <div class="progress-value">0%</div>
+          </div>
+          <p class="text-center text-slate-400 text-sm mt-4">0 of 486 hours completed</p>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="glass-card p-6 lg:col-span-2">
+          <h3 class="font-display font-700 mb-6">Recent Activity</h3>
+          <div class="space-y-4" id="recent-activity-container">
+            <p class="text-slate-500 text-sm text-center py-6">Loading activity...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Journals -->
+      <div class="glass-card p-6 mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display font-700">Pending Journals</h3>
+          <button onclick="switchTab('journal')" class="text-xs px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-slate-300 transition">
+            View all
+          </button>
+        </div>
+        <div id="pending-journals-list" class="space-y-3">
+          <p class="text-slate-500 text-sm text-center py-6">Loading pending journals...</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="glass-card p-6">
+        <h3 class="font-display font-700 mb-6">Quick Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button onclick="switchTab('journal')" class="btn-primary w-full">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Submit Journal
+          </button>
+          <button onclick="switchTab('dtr')" class="btn-primary w-full">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+            View DTR
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DTR TAB -->
+    <div id="dtr" class="tab-content">
+      <div class="page-header">
+        <div>
+          <h1>Daily Time Record (DTR)</h1>
+          <p class="text-slate-400">Record attendance via geolocation and view your time records</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Geofence Tracking Section - Left Column (Mobile: Full Width) -->
+        <div class="lg:col-span-1">
+          <!-- Geofence Status Card -->
+          <div class="glass-card p-6 sticky top-28">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-display font-700 text-lg">Attendance Tracking</h3>
+              <button onclick="refreshGeolocation()" style="padding: 6px 12px; background: rgba(0,200,170,0.2); border: 1px solid rgba(0,200,170,0.5); border-radius: 6px; color: #00c8aa; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                 Refresh
+              </button>
+            </div>
+            
+            <!-- Geofence Status Display -->
+            <div style="display: flex; justify-content: center; align-items: center; background: rgba(0,200,170,0.05); border-radius: 10px; padding: 20px; margin-bottom: 15px; flex-direction: column;">
+              <div style="text-align: center; width: 100%;">
+                <div id="geofence-status" style="margin-bottom: 15px;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px;">
+                    <div id="status-indicator" style="width: 12px; height: 12px; border-radius: 50%; background: #94a3b8; animation: pulse 2s infinite;"></div>
+                    <span id="status-text" style="color: #cbd5e1; font-size: 14px;">Locating...</span>
+                  </div>
+                  <div style="font-size: 12px; color: #94a3b8;">
+                    <p style="margin: 2px 0;" id="distance-info">Distance: —</p>
+                    <p style="margin: 2px 0;" id="accuracy-info">Accuracy: —</p>
+                  </div>
+                </div>
+                <p id="geofence-load-status" style="color: #cbd5e1; font-size: 13px; margin: 0;">Initializing geolocation...</p>
+              </div>
+            </div>
+
+            <!-- Time In/Out Buttons -->
+            <div style="display: flex; gap: 8px; flex-direction: column;">
+              <button id="time-in-btn" onclick="recordTimeIn()" style="padding: 12px; background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.5); border-radius: 6px; color: #22c55e; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; disabled: true;" disabled>
+                ⏱ Time In
+              </button>
+              <button id="time-out-btn" onclick="recordTimeOut()" style="padding: 12px; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.5); border-radius: 6px; color: #ef4444; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" disabled>
+                ⏱ Time Out
+              </button>
+            </div>
+
+            <!-- Geofence Info Box -->
+            <div id="geofence-info" style="padding: 10px; border-radius: 6px; background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.3); margin-top: 15px; font-size: 12px; color: #d8b4fe; display: none;">
+              <p id="geofence-message" style="margin: 0;"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Stats and Records -->
+        <div class="lg:col-span-2 space-y-8">
+          <!-- Stats Section - Time In/Out Summary -->
+          <div class="glass-card p-6">
+            <h3 class="font-display font-700 mb-6"> Today's Summary</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <!-- Time In -->
+              <div style="padding: 15px; background: rgba(0,200,170,0.05); border-radius: 8px; border-left: 3px solid #00c8aa;">
+                <p class="text-slate-400 text-xs mb-2">Time In</p>
+                <p class="text-2xl font-display font-700 text-teal-400" id="today-time-in">—</p>
+                <p class="text-xs text-slate-500 mt-2" id="today-time-in-status">Not recorded</p>
+              </div>
+
+              <!-- Time Out -->
+              <div style="padding: 15px; background: rgba(0,200,170,0.05); border-radius: 8px; border-left: 3px solid #00c8aa;">
+                <p class="text-slate-400 text-xs mb-2">Time Out</p>
+                <p class="text-2xl font-display font-700 text-teal-400" id="today-time-out">—</p>
+                <p class="text-xs text-slate-500 mt-2" id="today-time-out-status">Not recorded</p>
+              </div>
+
+              <!-- Hours Rendered -->
+              <div style="padding: 15px; background: rgba(0,200,170,0.05); border-radius: 8px; border-left: 3px solid #00c8aa;">
+                <p class="text-slate-400 text-xs mb-2">Hours Rendered</p>
+                <p class="text-2xl font-display font-700 text-teal-400" id="today-hours">0</p>
+                <p class="text-xs text-slate-500 mt-2">today</p>
+              </div>
+            </div>
+
+            <!-- Monthly Stats -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <h4 class="text-sm font-semibold text-slate-300 mb-4">This Month</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Hours Completed -->
+                <div style="padding: 12px; background: rgba(100,116,139,0.05); border-radius: 6px;">
+                  <p class="text-slate-400 text-xs mb-1">Hours Completed</p>
+                  <p class="text-lg font-display font-700 text-teal-400" id="stat-hours-completed">0</p>
+                  <p class="text-xs text-slate-500" id="stat-hours-required">of 486 required</p>
+                </div>
+
+                <!-- Days Worked -->
+                <div style="padding: 12px; background: rgba(100,116,139,0.05); border-radius: 6px;">
+                  <p class="text-slate-400 text-xs mb-1">Days Worked</p>
+                  <p class="text-lg font-display font-700 text-teal-400" id="stat-days-worked">0</p>
+                  <p class="text-xs text-slate-500">this month</p>
+                </div>
+
+                <!-- Avg Hours/Day -->
+                <div style="padding: 12px; background: rgba(100,116,139,0.05); border-radius: 6px;">
+                  <p class="text-slate-400 text-xs mb-1">Avg Hours/Day</p>
+                  <p class="text-lg font-display font-700 text-teal-400" id="stat-avg-hours">0</p>
+                  <p class="text-xs text-slate-500">per day</p>
+                </div>
+
+                <!-- Verified Records -->
+                <div style="padding: 12px; background: rgba(100,116,139,0.05); border-radius: 6px;">
+                  <p class="text-slate-400 text-xs mb-1">Verified Records</p>
+                  <p class="text-lg font-display font-700 text-teal-400" id="stat-verified">0</p>
+                  <p class="text-xs text-slate-500">by supervisor</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="glass-card p-6">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
+              <span style="color: #cbd5e1;">OJT Progress</span>
+              <span style="color: #00c8aa; font-weight: 600;" id="progress-percent">0%</span>
+            </div>
+            <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden;">
+              <div id="progress-fill" style="height: 100%; background: linear-gradient(90deg, #00c8aa, #00e5c8); width: 0%; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <!-- Month Selector -->
+          <div class="glass-card p-6">
+            <label class="text-sm text-slate-400 block mb-3">Filter by Month:</label>
+            <input type="month" id="dtr-month" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" onchange="loadDTRRecords()">
+          </div>
+        </div>
+      </div>
+
+      <!-- DTR Records Table - Full Width -->
+      <div class="glass-card p-6 mt-8 overflow-x-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="font-display font-700">Attendance Records</h3>
+          <button onclick="openAllRecordsModal()" class="text-sm px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-slate-300 transition">
+            View All Past Records
+          </button>
+        </div>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/10">
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Date</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Time In</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Time Out</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Hours</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Status</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Verified</th>
+            </tr>
+          </thead>
+          <tbody id="dtr-table-body">
+            <tr>
+              <td colspan="6" class="py-8 text-center text-slate-500">Loading records...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal for All Records -->
+      <div id="all-records-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
+          <div class="sticky top-0 bg-slate-900 p-6 border-b border-white/10 flex justify-between items-center">
+            <h2 class="font-display font-700 text-white">All Attendance Records</h2>
+            <button onclick="closeAllRecordsModal()" class="text-slate-400 hover:text-white text-2xl">×</button>
+          </div>
+          <div class="p-6 overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-white/10">
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Date</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Time In</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Time Out</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Hours</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Status</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Verified</th>
+                </tr>
+              </thead>
+              <tbody id="all-records-table-body">
+                <tr>
+                  <td colspan="6" class="py-8 text-center text-slate-500">Loading records...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JOURNAL TAB -->
+    <div id="journal" class="tab-content">
+      <div class="page-header">
+        <h1>Weekly Journal</h1>
+        <p class="text-slate-400">Document your learning and experiences</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Journal Form -->
+        <div class="lg:col-span-2">
+          <div class="glass-card p-8">
+            <form id="journal-form" onsubmit="submitJournal(event)">
+              <!-- Week Selector -->
+              <div class="mb-8">
+                <label class="block text-sm font-semibold mb-3">Week Number</label>
+                <select id="week-selector" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                  <option value="">Loading weeks...</option>
+                </select>
+                <p class="text-xs text-slate-500 mt-2">Weeks you have already submitted are disabled. If your supervisor returns a journal for revision, that week becomes available again.</p>
+              </div>
+
+              <!-- Day Covered -->
+              <div class="mb-8">
+                <label class="block text-sm font-semibold mb-3">Day Covered</label>
+                <select id="day-covered" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                  <option value="">Select a day (optional)</option>
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
+                <p class="text-xs text-slate-500 mt-2">Specify which day this entry covers within the week.</p>
+              </div>
+
+              <!-- Narrative -->
+              <div class="mb-8">
+                <label class="block text-sm font-semibold mb-3">Narrative Journal Entry</label>
+                <textarea id="journal-narrative" rows="8" placeholder="Describe your experiences, challenges, and learnings this week. Include specific tasks, technologies used, and skills applied..." class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none resize-none"></textarea>
+              </div>
+
+              <!-- Photo Upload -->
+              <div class="mb-8">
+                <label class="block text-sm font-semibold mb-3">Upload Photo (Optional)</label>
+                <div id="journal-photo-upload" class="journal-photo-upload">
+                  <div class="journal-photo-preview">
+                    <span id="journal-photo-placeholder" class="journal-photo-placeholder">No photo selected</span>
+                    <img id="journal-photo-img" alt="Journal photo preview" class="hidden" />
+                  </div>
+                  <p class="text-xs text-slate-400 mt-3">Photo appears in the PDF export.</p>
+                </div>
+                <input type="file" id="journal-photo" accept="image/*" class="hidden">
+              </div>
+
+              <!-- AI Theory Extraction -->
+              <div class="mb-8">
+                <button type="button" onclick="autoExtractTheories(event)" class="btn-ghost">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                  Analyze & Extract Theories
+                </button>
+                <div id="theories-result" class="mt-4 hidden glass-card p-4 bg-white/5 rounded-lg">
+                  <p class="text-xs text-slate-400 mb-3">🎓 Identified IT Theories & Practices:</p>
+                  <div id="theories-list" class="space-y-2"></div>
+                </div>
+              </div>
+
+              <!-- Submit -->
+              <button type="submit" class="btn-primary w-full">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                Submit Journal
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Previous Journals -->
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-6">Previous Journals</h3>
+          <div class="space-y-3">
+            <p class="text-slate-500 text-sm text-center py-4">No journals submitted yet</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Journal Content Tooltip -->
+      <div id="journal-tooltip" class="hidden fixed bg-slate-900 border border-teal-400/30 rounded-lg shadow-lg p-6 max-w-md max-h-96 overflow-y-auto z-50" style="display: none;">
+        <button onclick="closeJournalTooltip()" class="absolute top-2 right-2 text-slate-400 hover:text-white text-xl">✕</button>
+        <div id="journal-tooltip-content"></div>
+      </div>
+    </div>
+
+    <!-- DUTY LOG TAB -->
+    <div id="dutylog" class="tab-content">
+      <div class="page-header">
+        <h1>Duty Log</h1>
+        <p class="text-slate-400">Track your daily tasks and activities</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <!-- Form -->
+        <div class="lg:col-span-2">
+          <div class="glass-card p-8">
+            <form id="dutylog-form" onsubmit="submitDutyLog(event)">
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Date</label>
+                <input type="date" id="dutylog-date" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Task Description</label>
+                <textarea id="dutylog-desc" rows="4" placeholder="What did you work on today?" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none resize-none"></textarea>
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Category</label>
+                <select id="dutylog-category" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                  <option>Technical</option>
+                  <option>Administrative</option>
+                  <option>Communication</option>
+                  <option>Other</option>
+                </select>
+              </div>
+
+              <div class="mb-8">
+                <label class="block text-sm font-semibold mb-3">Hours Spent</label>
+                <input type="number" id="dutylog-hours" step="0.5" min="0" max="24" placeholder="0.0" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <button type="submit" class="btn-primary w-full">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                Add to Duty Log
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-6">This Week</h3>
+          <div class="space-y-4">
+            <div>
+              <p class="text-slate-400 text-sm mb-2">Entries</p>
+              <p class="text-3xl font-display font-700 text-teal-400">0</p>
+            </div>
+            <div class="divider"></div>
+            <div>
+              <p class="text-slate-400 text-sm mb-2">Total Hours</p>
+              <p class="text-3xl font-display font-700 text-yellow-400">0</p>
+            </div>
+            <div class="divider"></div>
+            <div class="space-y-2">
+              <p class="text-slate-400 text-sm mb-2">By Category</p>
+              <p class="text-xs text-slate-500">No data yet</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Duty Logs Table -->
+      <div class="glass-card p-6 overflow-x-auto">
+        <h3 class="font-display font-700 mb-6">Submitted Logs</h3>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/10">
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Date</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Task</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Category</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Hours</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="5" class="py-6 text-center text-slate-500">No duty logs submitted yet</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROGRESS TAB -->
+    <div id="progress" class="tab-content">
+      <div class="page-header">
+        <h1>My Progress</h1>
+        <p class="text-slate-400">Track your OJT completion and performance</p>
+      </div>
+
+      <!-- Main Progress Ring -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div class="glass-card p-8 flex flex-col items-center justify-center">
+          <h3 class="font-display font-700 mb-8">OJT Completion</h3>
+          <div class="progress-circle" style="--progress: 0%; width: 200px; height: 200px;">
+            <div class="progress-value" style="font-size: 3rem;">0%</div>
+          </div>
+          <p class="text-center text-slate-400 text-sm mt-6">0 of 486 hours</p>
+        </div>
+
+        <!-- Weekly Chart -->
+        <div class="lg:col-span-2">
+          <div class="glass-card p-8">
+            <h3 class="font-display font-700 mb-6">Weekly Hours Rendered</h3>
+            <div style="position: relative; height: 300px;">
+              <canvas id="weeklyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Breakdown Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-4">Hours by Week</h3>
+          <div id="hoursbyweek-container" class="space-y-4">
+            <!-- Weekly hours populated by JavaScript -->
+          </div>
+        </div>
+
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-4">Company Info</h3>
+          <div class="space-y-4">
+            <div>
+              <p class="text-xs text-slate-400 mb-1">Company Name</p>
+              <p class="text-sm font-semibold" id="progress-company-name">Not assigned</p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 mb-1">Supervisor</p>
+              <p class="text-sm font-semibold" id="progress-supervisor-name">Not assigned</p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 mb-1">Position</p>
+              <p class="text-sm font-semibold" id="progress-position">Not assigned</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-4">Remaining Hours</h3>
+          <div class="mb-6">
+            <div class="text-4xl font-display font-700 text-yellow-400">486</div>
+            <p class="text-xs text-slate-400 mt-2">hours to complete</p>
+          </div>
+          <div class="p-3 rounded-lg bg-white/5 border border-white/10">
+            <p class="text-xs text-slate-400">Estimated completion</p>
+            <p class="text-sm font-semibold text-teal-400 mt-1">May 30, 2026</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Metrics -->
+      <div class="glass-card p-8">
+        <h3 class="font-display font-700 mb-6">Performance Metrics</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div>
+            <p class="text-sm text-slate-400 mb-3">Attendance Rate</p>
+            <p class="text-2xl font-display font-700 text-teal-400" id="metric-attendance">—</p>
+            <p class="text-xs text-slate-500 mt-1" id="metric-attendance-detail">Loading...</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-400 mb-3">Journal Submissions</p>
+            <p class="text-2xl font-display font-700 text-teal-400" id="metric-journals">—</p>
+            <p class="text-xs text-slate-500 mt-1" id="metric-journals-detail">Loading...</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-400 mb-3">Avg Hours/Week</p>
+            <p class="text-2xl font-display font-700 text-teal-400" id="metric-hours">—</p>
+            <p class="text-xs text-slate-500 mt-1" id="metric-hours-detail">Loading...</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-400 mb-3">Supervisor Rating</p>
+            <p class="text-2xl font-display font-700 text-yellow-400" id="metric-rating">—</p>
+            <p class="text-xs text-slate-500 mt-1" id="metric-rating-detail">Not rated yet</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS TAB -->
+    <div id="documents" class="tab-content">
+      <div class="page-header">
+        <div>
+          <h1>Documents</h1>
+          <p class="text-slate-400">Download your reports and forms</p>
+        </div>
+        <button onclick="toggleJournalLayoutPreview()" class="btn-ghost text-xs md:text-sm">
+          Preview Layout
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="glass-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="icon-box mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h3 class="font-display font-700 mb-2">Weekly Journal PDF</h3>
+            <p class="text-sm text-slate-400 mb-4">Choose up to 3 journals per download</p>
+            <p class="text-xs text-slate-500">Last generated: Apr 28, 2026</p>
+          </div>
+          <button onclick="downloadJournalPDF()" class="btn-primary w-full mt-6">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+        </div>
+
+        <div class="glass-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="icon-box mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <h3 class="font-display font-700 mb-2">DTR PDF</h3>
+            <p class="text-sm text-slate-400 mb-4">Daily Time Record for current month</p>
+            <p class="text-xs text-slate-500">Last generated: Apr 28, 2026</p>
+          </div>
+          <button onclick="downloadDTRPDF()" class="btn-primary w-full mt-6">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+        </div>
+
+        <div class="glass-card p-6 flex flex-col justify-between">
+          <div>
+            <div class="icon-box mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
+            </div>
+            <h3 class="font-display font-700 mb-2">Performance Appraisal</h3>
+            <p class="text-sm text-slate-400 mb-4">Monthly performance evaluation form</p>
+            <p class="text-xs text-slate-500">Last generated: Apr 21, 2026</p>
+          </div>
+          <button onclick="downloadAppraisalPDF()" class="btn-primary w-full mt-6">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="settings" class="tab-content">
+      <div class="page-header">
+        <h1>Settings</h1>
+        <p class="text-slate-400">Manage your profile and preferences</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+          <!-- Profile Edit -->
+          <div class="glass-card p-8 mb-8">
+            <h3 class="font-display font-700 mb-6">Profile Information</h3>
+            <form id="profile-form" onsubmit="saveProfile(event)">
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Full Name</label>
+                <input type="text" id="profile-name" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Email Address</label>
+                <input type="email" id="profile-email" value="" class="w-full glass-card px-4 py-3 text-slate-400 text-sm rounded-lg border border-white/10 outline-none opacity-50 cursor-not-allowed" readonly>
+                <p class="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Student ID</label>
+                <input type="text" id="profile-id" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Department</label>
+                <input type="text" id="profile-dept" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Company Name</label>
+                <input type="text" id="profile-company" value="" placeholder="Enter your OJT company name" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <button type="submit" class="btn-primary w-full">Save Profile Changes</button>
+            </form>
+          </div>
+
+          <!-- Change Password -->
+          <div class="glass-card p-8">
+            <h3 class="font-display font-700 mb-6">Change Password</h3>
+            <form id="password-form" onsubmit="changePassword(event)">
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Current Password</label>
+                <input type="password" id="current-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">New Password</label>
+                <input type="password" id="new-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-8">
+                <label class="block text-sm font-semibold mb-3">Confirm Password</label>
+                <input type="password" id="confirm-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <button type="submit" class="btn-primary w-full">Update Password</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Profile Photo & Summary -->
+        <div>
+          <div class="glass-card p-6">
+            <h3 class="font-display font-700 mb-6">Profile Photo</h3>
+            <div class="profile-photo-upload">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-400"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <p class="text-sm text-slate-400 mt-4 text-center">Click to upload photo</p>
+            </div>
+            <input type="file" id="profile-photo" accept="image/*" class="hidden">
+          </div>
+
+          <div class="glass-card p-6 mt-6">
+            <h3 class="font-display font-700 mb-4">Account Summary</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Member Since</span>
+                <span id="account-member-since" class="font-semibold">—</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Status</span>
+                <span class="text-teal-400 font-semibold">Active</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Supervisor</span>
+                <span id="account-supervisor" class="font-semibold">Not assigned</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="journal-download-modal" class="download-modal hidden">
+    <div class="download-modal-card">
+      <div class="download-modal-header">
+        <div>
+          <h3 class="font-display font-700">Download Weekly Journals</h3>
+          <p class="text-xs text-slate-400">Select up to 3 journals to include in one PDF.</p>
+        </div>
+        <button onclick="closeJournalDownloadModal()" class="download-modal-close">×</button>
+      </div>
+      <div id="journal-download-list" class="download-modal-list"></div>
+      <div class="download-modal-footer">
+        <span id="journal-download-count" class="text-xs text-slate-400">0 of 3 selected</span>
+        <div class="download-modal-actions">
+          <button onclick="closeJournalDownloadModal()" class="btn-ghost">Cancel</button>
+          <button id="journal-download-confirm" onclick="confirmJournalDownload()" class="btn-primary" disabled>Download PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="journal-layout-preview" class="layout-preview hidden">
+    <div class="layout-preview-card">
+      <div class="layout-preview-header">
+        <h3 class="font-display font-700">Weekly Journal Layout Preview</h3>
+        <button onclick="toggleJournalLayoutPreview()" class="layout-preview-close">×</button>
+      </div>
+      <div id="journal-layout-preview-content" class="layout-preview-content"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script type="module">
+    import * as pdfjsLib from './vendor/pdf.mjs';
+    window.pdfjsLib = pdfjsLib;
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.mjs';
+  </script>
+  <script src="ojtdashboard.js?v=1"></script>
+</body>
+</html>

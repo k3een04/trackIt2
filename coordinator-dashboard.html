@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>TrackIT – Coordinator Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=1">
+</head>
+<body>
+  <script>
+    // Authentication check - redirect to login if not authenticated
+    (function checkAuth() {
+      const token = localStorage.getItem('trackit_token');
+      const user = JSON.parse(localStorage.getItem('trackit_user') || 'null');
+      
+      if (!token || !user || user.role !== 'coordinator') {
+        window.location.href = 'loginpage.html';
+        return;
+      }
+      
+      // Store auth info globally
+      window.currentUser = user;
+      window.authToken = token;
+    })();
+  </script>
+
+  <!-- NAV -->
+  <nav id="navbar" class="px-5 py-4 md:px-10 fixed w-full top-0 left-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="" class="flex items-center gap-2">
+        <div>
+          <img src="Trackitlogo.png" alt="" srcset="">
+        </div>
+        <span class="font-display font-800 text-white tracking-tight" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-teal-400">IT</span></span>
+      </a>
+
+      <div class="flex items-center gap-4">
+        <span class="hidden md:inline text-sm text-slate-400">Welcome,  <span id="user-name" class="text-teal-400">Coordinator</span></span>
+        <button id="theme-toggle" onclick="toggleTheme()" class="p-2 hover:bg-white/10 rounded-lg transition" title="Toggle dark/light mode">
+          <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            <circle class="sun-icon" cx="12" cy="12" r="5"></circle>
+            <line class="sun-icon" x1="12" y1="1" x2="12" y2="3"></line>
+            <line class="sun-icon" x1="12" y1="21" x2="12" y2="23"></line>
+            <line class="sun-icon" x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line class="sun-icon" x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line class="sun-icon" x1="1" y1="12" x2="3" y2="12"></line>
+            <line class="sun-icon" x1="21" y1="12" x2="23" y2="12"></line>
+            <line class="sun-icon" x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line class="sun-icon" x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+        <button onclick="logout()" class="btn-ghost text-xs md:text-sm">Logout</button>
+        <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+      </div>
+    </nav>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <nav class="space-y-2">
+      <a href="#overview" class="nav-link active" onclick="switchTab('overview')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#trainees" class="nav-link" onclick="switchTab('trainees')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>Trainees</span>
+      </a>
+      <a href="#journal-review" class="nav-link" onclick="switchTab('journal-review')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <span>Journal Review</span>
+      </a>
+      <a href="#analytics" class="nav-link" onclick="switchTab('analytics')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13 16 8 11 2 17"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        <span>Analytics</span>
+      </a>
+      <a href="#notifications" class="nav-link" onclick="switchTab('notifications')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <span>Notifications</span>
+      </a>
+      <a href="#settings" class="nav-link" onclick="switchTab('settings')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.96 2.96l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.96-2.96l4.24-4.24M19.78 19.78l-4.24-4.24m-2.96-2.96l-4.24-4.24"></path></svg>
+        <span>Settings</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="tab-toolbar">
+      <button id="tab-back" class="tab-back-btn is-disabled" onclick="goBackTab()" disabled aria-label="Go back to previous tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Back</span>
+      </button>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div id="overview" class="tab-content active">
+      <div class="page-header">
+        <h1>Overview</h1>
+        <p class="text-slate-400">Monitor trainee progress and recent activities</p>
+      </div>
+
+      <!-- Analytics Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Key Metrics Bar Chart -->
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-6">Key Metrics Overview</h3>
+          <div style="height: 300px; position: relative;">
+            <canvas id="overviewMetricsChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Top Trainees Bar Chart -->
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-6">Top Trainees</h3>
+          <div style="height: 300px; position: relative;">
+            <canvas id="topTraineesChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trainee List & Recent Registrations -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Trainee List -->
+        <div class="lg:col-span-2 glass-card p-6">
+          <h3 class="font-display font-700 mb-6">Enrolled Trainees</h3>
+          <div class="space-y-4 max-h-96 overflow-y-auto" id="overview-trainee-list">
+            <p class="text-slate-500 text-sm text-center py-6">Loading trainees...</p>
+          </div>
+        </div>
+
+        <!-- Recent Registrations -->
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-6">Recent Registrations</h3>
+          <div class="space-y-4 max-h-96 overflow-y-auto" id="recent-registrations">
+            <p class="text-slate-500 text-sm text-center py-6">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="glass-card p-6">
+        <h3 class="font-display font-700 mb-6">Quick Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button onclick="switchTab('journal-review')" class="btn-primary w-full">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            Review Journals
+          </button>
+          <button onclick="switchTab('trainees')" class="btn-primary w-full">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            Manage Trainees
+          </button>
+          <button onclick="switchTab('analytics')" class="btn-primary w-full">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13 16 8 11 2 17"></polyline></svg>
+            View Analytics
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRAINEES TAB -->
+    <div id="trainees" class="tab-content">
+      <div class="page-header">
+        <h1>Trainees</h1>
+        <p class="text-slate-400">Manage and monitor all enrolled trainees</p>
+      </div>
+
+      <!-- Filters & Search -->
+      <div class="glass-card p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-2">Search Trainee</label>
+            <input type="text" id="trainee-search" placeholder="Name or ID..." class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-2">Department</label>
+            <select id="dept-filter" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              <option>All Departments</option>
+              <option>CICT</option>
+              <option>COE</option>
+              <option>CAS</option>
+              <option>CED</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trainees Table -->
+      <div class="glass-card p-6 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/10">
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Name</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Student ID</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Department</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Company</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Supervisor</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Hours</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Action</th>
+            </tr>
+          </thead>
+          <tbody id="trainees-table-body">
+            <!-- Dynamically populated by JS -->
+            <tr>
+              <td colspan="7" class="py-8 text-center text-slate-500">Loading trainees...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Assign Supervisor Modal -->
+      <div id="assign-supervisor-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+        <div class="glass-card p-8 w-full max-w-md relative" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1);">
+          <button onclick="closeAssignModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+          <h3 class="font-display font-700 text-xl mb-2">Assign Supervisor</h3>
+          <p class="text-slate-400 text-sm mb-6">Assigning supervisor to: <span id="assign-trainee-name" class="text-teal-400 font-semibold"></span></p>
+          <input type="hidden" id="assign-trainee-id">
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-3">Select Supervisor</label>
+            <select id="supervisor-select" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              <option value="">Loading supervisors...</option>
+            </select>
+          </div>
+
+          <div id="supervisor-info" class="hidden glass-card p-4 mb-6 bg-white/5 rounded-lg">
+            <p class="text-xs text-slate-400 mb-2">SUPERVISOR DETAILS</p>
+            <p id="sup-info-name" class="text-sm font-semibold text-white"></p>
+            <p id="sup-info-company" class="text-xs text-slate-400"></p>
+            <p id="sup-info-position" class="text-xs text-slate-500"></p>
+          </div>
+
+          <div class="flex gap-3">
+            <button onclick="closeAssignModal()" class="btn-ghost flex-1">Cancel</button>
+            <button onclick="confirmAssignSupervisor()" id="confirm-assign-btn" class="btn-primary flex-1">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Assign
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JOURNAL REVIEW TAB -->
+    <div id="journal-review" class="tab-content">
+      <div class="page-header">
+        <h1>Journal Review</h1>
+        <p class="text-slate-400">Review and approve trainee weekly journals</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Journal List -->
+        <div class="lg:col-span-1">
+          <div class="glass-card p-6">
+            <h3 class="font-display font-700 mb-6">Journals</h3>
+            
+            <!-- Status Tabs -->
+            <div class="flex gap-2 mb-6 border-b border-white/10 pb-4">
+              <button onclick="filterJournals(event, 'pending')" class="tab-btn active text-sm">
+                Pending <span class="badge" id="pending-count">0</span>
+              </button>
+              <button onclick="filterJournals(event, 'approved')" class="tab-btn text-sm">Approved</button>
+              <button onclick="filterJournals(event, 'returned')" class="tab-btn text-sm">Returned</button>
+            </div>
+
+            <!-- Journal Items -->
+            <div class="space-y-3 max-h-96 overflow-y-auto" id="journal-list">
+              <p class="text-slate-500 text-sm text-center py-4">Loading journals...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Journal Viewer -->
+        <div class="lg:col-span-2">
+          <div class="glass-card p-6" id="journal-viewer">
+            <div class="text-center py-12">
+              <p class="text-slate-400">Select a journal to review</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS TAB -->
+    <div id="analytics" class="tab-content">
+      <div class="page-header">
+        <h1>Analytics & Reports</h1>
+        <p class="text-slate-400">Descriptive analytics and performance insights</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="glass-card p-6">
+          <p class="text-slate-400 text-sm mb-3">Avg Completion Rate</p>
+          <div id="analytics-avg-completion" class="text-3xl font-display font-700 text-teal-400 mb-2">—</div>
+          <p id="analytics-avg-completion-note" class="text-xs text-slate-500">Based on verified hours</p>
+        </div>
+        <div class="glass-card p-6">
+          <p class="text-slate-400 text-sm mb-3">Most Applied Theory</p>
+          <div id="analytics-top-concept" class="text-lg font-semibold text-teal-400 mb-2">—</div>
+          <p id="analytics-top-concept-note" class="text-xs text-slate-500">—</p>
+        </div>
+        <div class="glass-card p-6">
+          <p class="text-slate-400 text-sm mb-3">Top Company</p>
+          <div id="analytics-top-company" class="text-lg font-semibold text-teal-400 mb-2">—</div>
+          <p id="analytics-top-company-note" class="text-xs text-slate-500">—</p>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-6">Hours Rendered per Trainee</h3>
+          <div style="position: relative; height: 300px;">
+            <canvas id="hoursChart"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-6">Journal Status Breakdown (Last 90 Days)</h3>
+          <div style="position: relative; height: 300px;">
+            <canvas id="journalStatusChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Department Breakdown -->
+      <div class="glass-card p-6 mb-8">
+        <h3 class="font-display font-700 mb-6">Department Breakdown</h3>
+        <div style="position: relative; height: 300px; max-width: 500px;">
+          <canvas id="deptChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Report Generation -->
+      <div class="glass-card p-6">
+        <h3 class="font-display font-700 mb-6">Generate Reports</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="p-4 rounded-lg bg-white/5 border border-white/10">
+            <button onclick="generateSemesterReport()" class="btn-primary w-full mb-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              Semester Summary
+            </button>
+            <p class="text-xs text-slate-500">Last: Apr 25</p>
+          </div>
+          <div class="p-4 rounded-lg bg-white/5 border border-white/10">
+            <button onclick="exportTraineeData()" class="btn-primary w-full mb-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              Trainee Data
+            </button>
+            <p class="text-xs text-slate-500">Last: Apr 24</p>
+          </div>
+          <div class="p-4 rounded-lg bg-white/5 border border-white/10">
+            <button onclick="exportAttendanceLogs()" class="btn-primary w-full mb-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              Attendance Logs
+            </button>
+            <p class="text-xs text-slate-500">Last: Apr 23</p>
+          </div>
+          <div class="p-4 rounded-lg bg-white/5 border border-white/10">
+            <button onclick="exportJournalAnalytics()" class="btn-primary w-full mb-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              Journal Analytics
+            </button>
+            <p class="text-xs text-slate-500">Last: Apr 22</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS TAB -->
+    <div id="notifications" class="tab-content">
+      <div class="page-header">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1>Notifications</h1>
+            <p class="text-slate-400">Stay updated with system activities</p>
+          </div>
+          <button onclick="markAllRead()" class="btn-ghost text-xs">Mark All as Read</button>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="glass-card p-6 mb-8">
+        <div class="flex gap-4 flex-wrap">
+          <button class="filter-tab active" onclick="filterNotifications('all')">All</button>
+          <button class="filter-tab" onclick="filterNotifications('unread')">Unread</button>
+          <button class="filter-tab" onclick="filterNotifications('journals')">Journals</button>
+          <button class="filter-tab" onclick="filterNotifications('attendance')">Attendance</button>
+          <button class="filter-tab" onclick="filterNotifications('system')">System</button>
+        </div>
+      </div>
+
+      <!-- Notifications List -->
+      <div class="space-y-4 max-w-2xl">
+        <div class="notification-item unread">
+          <div class="notification-icon journal"></div>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-white">Journal Submitted</p>
+            <p class="text-xs text-slate-400">John Doe submitted Week 17 journal</p>
+            <p class="text-xs text-slate-500 mt-1">2 hours ago</p>
+          </div>
+          <div class="unread-dot"></div>
+        </div>
+
+        <div class="notification-item unread">
+          <div class="notification-icon attendance"></div>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-white">DTR Pending Verification</p>
+            <p class="text-xs text-slate-400">Jane Smith's DTR for Apr 26 needs review</p>
+            <p class="text-xs text-slate-500 mt-1">4 hours ago</p>
+          </div>
+          <div class="unread-dot"></div>
+        </div>
+
+        <div class="notification-item">
+          <div class="notification-icon registration"></div>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-white">New Trainee Registered</p>
+            <p class="text-xs text-slate-400">Sarah Williams registered in CICT department</p>
+            <p class="text-xs text-slate-500 mt-1">1 day ago</p>
+          </div>
+        </div>
+
+        <div class="notification-item">
+          <div class="notification-icon system"></div>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-white">System Update</p>
+            <p class="text-xs text-slate-400">Dashboard maintenance completed successfully</p>
+            <p class="text-xs text-slate-500 mt-1">2 days ago</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="settings" class="tab-content">
+      <div class="page-header">
+        <h1>Settings</h1>
+        <p class="text-slate-400">Manage your profile and preferences</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+          <!-- Profile Edit -->
+          <div class="glass-card p-8 mb-8">
+            <h3 class="font-display font-700 mb-6">Profile Information</h3>
+            <form id="coordinator-profile-form" onsubmit="saveCoordinatorProfile(event)">
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Full Name</label>
+                <input type="text" id="coord-name" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Email Address</label>
+                <input type="email" id="coord-email" value="" class="w-full glass-card px-4 py-3 text-slate-400 text-sm rounded-lg border border-white/10 outline-none opacity-50 cursor-not-allowed" readonly>
+              </div>
+
+              <div class="mb-8">
+                <label class="block text-sm font-semibold mb-3">Department</label>
+                <input type="text" id="coord-dept" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <button type="submit" class="btn-primary w-full">Save Profile Changes</button>
+            </form>
+          </div>
+
+          <!-- Change Password -->
+          <div class="glass-card p-8 mb-8">
+            <h3 class="font-display font-700 mb-6">Change Password</h3>
+            <form id="coord-password-form" onsubmit="changeCoordinatorPassword(event)">
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">Current Password</label>
+                <input type="password" id="coord-current-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3">New Password</label>
+                <input type="password" id="coord-new-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <div class="mb-8">
+                <label class="block text-sm font-semibold mb-3">Confirm Password</label>
+                <input type="password" id="coord-confirm-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              </div>
+
+              <button type="submit" class="btn-primary w-full">Update Password</button>
+            </form>
+          </div>
+
+          <!-- Notification Preferences -->
+          <div class="glass-card p-8">
+            <h3 class="font-display font-700 mb-6">Notification Preferences</h3>
+            <div class="space-y-4">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked class="w-4 h-4 accent-teal-400">
+                <span class="text-sm">Journal Submissions</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked class="w-4 h-4 accent-teal-400">
+                <span class="text-sm">New Trainee Registrations</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked class="w-4 h-4 accent-teal-400">
+                <span class="text-sm">Attendance Alerts</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" class="w-4 h-4 accent-teal-400">
+                <span class="text-sm">System Updates</span>
+              </label>
+            </div>
+            <button onclick="alert('Preferences saved!')" class="btn-primary w-full mt-6">Save Preferences</button>
+          </div>
+        </div>
+
+        <!-- Account Summary -->
+        <div>
+          <div class="glass-card p-6">
+            <h3 class="font-display font-700 mb-4">Account Summary</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Role</span>
+                <span class="font-semibold">Coordinator</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Member Since</span>
+                <span class="font-semibold">Jan 10, 2024</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Status</span>
+                <span class="text-teal-400 font-semibold">Active</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Trainees Managed</span>
+                <span class="font-semibold">48</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Companies Partnered</span>
+                <span class="font-semibold">18</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="coordinator-dashboard.js?v=1"></script>
+</body>
+</html>
