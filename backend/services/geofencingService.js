@@ -78,7 +78,17 @@ function validateGeofence(traineeCoordinates, companyGeofence) {
  * @param {Object} schedule - { startTime, endTime, allowsOvertime, overtimeStartTime, overtimeEndTime }
  * @returns {Object} { isWithinSchedule, status, message }
  */
-function validateSchedule(currentTime, schedule) {
+function getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes) {
+  const offset = Number(timezoneOffsetMinutes);
+  if (!Number.isFinite(offset) || Math.abs(offset) > 840) {
+    return currentTime.getHours() * 60 + currentTime.getMinutes();
+  }
+
+  const clientTime = new Date(currentTime.getTime() - offset * 60 * 1000);
+  return clientTime.getUTCHours() * 60 + clientTime.getUTCMinutes();
+}
+
+function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
   if (!schedule) {
     return {
       isWithinSchedule: true,
@@ -87,7 +97,7 @@ function validateSchedule(currentTime, schedule) {
     };
   }
 
-  const timeOfDay = currentTime.getHours() * 60 + currentTime.getMinutes(); // minutes since midnight
+  const timeOfDay = getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes);
 
   // Parse schedule times (assuming HH:MM format)
   const parseTime = (timeStr) => {
@@ -137,7 +147,7 @@ function validateSchedule(currentTime, schedule) {
   };
 }
 
-function validateAttendanceWindow(currentTime, schedule, action) {
+function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetMinutes) {
   if (!schedule) {
     return { allowed: true, message: 'No schedule configured - time tracking allowed' };
   }
@@ -154,7 +164,7 @@ function validateAttendanceWindow(currentTime, schedule, action) {
     return { allowed: true, message: 'Schedule format invalid - time tracking allowed' };
   }
 
-  const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+  const currentMinutes = getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes);
   const windowStart = action === 'time-out' ? endMinutes : startMinutes;
   const windowEnd = windowStart + 5;
   const allowed = currentMinutes >= windowStart && currentMinutes <= windowEnd;

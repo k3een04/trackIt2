@@ -124,7 +124,7 @@ router.put('/company/current', authenticateToken, authorizeRole('supervisor'), a
  */
 router.post('/validate', authenticateToken, async (req, res) => {
   try {
-    const { companyId, traineeCoordinates } = req.body;
+    const { companyId, traineeCoordinates, timezoneOffsetMinutes } = req.body;
     const traineeId = req.user.id;
 
     if (!companyId) {
@@ -166,13 +166,13 @@ router.post('/validate', authenticateToken, async (req, res) => {
     let scheduleValidation = { isWithinSchedule: true, status: 'no_schedule' };
     
     if (trainee && trainee.schedule) {
-      scheduleValidation = validateSchedule(new Date(), trainee.schedule);
+      scheduleValidation = validateSchedule(new Date(), trainee.schedule, timezoneOffsetMinutes);
     }
 
     const attendanceWindows = trainee?.schedule
       ? {
-          timeIn: validateAttendanceWindow(new Date(), trainee.schedule, 'time-in'),
-          timeOut: validateAttendanceWindow(new Date(), trainee.schedule, 'time-out'),
+          timeIn: validateAttendanceWindow(new Date(), trainee.schedule, 'time-in', timezoneOffsetMinutes),
+          timeOut: validateAttendanceWindow(new Date(), trainee.schedule, 'time-out', timezoneOffsetMinutes),
         }
       : { timeIn: { allowed: true }, timeOut: { allowed: true } };
 
@@ -266,7 +266,7 @@ router.post('/time-in', authenticateToken, async (req, res) => {
     }
 
     const trainee = await User.findById(traineeId).select('schedule');
-    const attendanceWindow = validateAttendanceWindow(new Date(), trainee?.schedule, 'time-in');
+    const attendanceWindow = validateAttendanceWindow(new Date(), trainee?.schedule, 'time-in', req.body.timezoneOffsetMinutes);
     if (!attendanceWindow.allowed) {
       return res.status(400).json({
         success: false,
@@ -372,7 +372,7 @@ router.post('/time-out', authenticateToken, async (req, res) => {
     }
 
     const trainee = await User.findById(traineeId).select('schedule');
-    const attendanceWindow = validateAttendanceWindow(new Date(), trainee?.schedule, 'time-out');
+    const attendanceWindow = validateAttendanceWindow(new Date(), trainee?.schedule, 'time-out', req.body.timezoneOffsetMinutes);
     if (!attendanceWindow.allowed) {
       return res.status(400).json({
         success: false,

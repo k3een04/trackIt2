@@ -2818,6 +2818,7 @@ async function updateGeofenceStatus() {
       body: JSON.stringify({
         companyId,
         traineeCoordinates: currentCoordinates,
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
       }),
     });
 
@@ -2963,6 +2964,7 @@ async function recordTimeIn() {
       body: JSON.stringify({
         companyId,
         coordinates: currentCoordinates,
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
       }),
     });
 
@@ -3019,6 +3021,7 @@ async function recordTimeOut() {
       body: JSON.stringify({
         companyId,
         coordinates: currentCoordinates,
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
       }),
     });
 
