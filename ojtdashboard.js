@@ -584,10 +584,22 @@ async function fetchAPI(endpoint, options = {}) {
       return null;
     }
 
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const responseText = await response.text();
+      return {
+        success: false,
+        message: `Server returned HTTP ${response.status}${responseText ? `: ${responseText.slice(0, 160)}` : ''}`,
+      };
+    }
+
     return await response.json();
   } catch (error) {
     console.error('API Error:', error);
-    return null;
+    return {
+      success: false,
+      message: `Unable to reach the server: ${error.message}`,
+    };
   }
 }
 
@@ -1453,7 +1465,7 @@ async function submitJournal(event) {
     });
 
     if (!result || !result.success) {
-      alert('Failed to submit journal: ' + (result?.message || 'Unknown error'));
+      alert('Failed to submit journal: ' + (result?.error || result?.message || 'The server returned no response.'));
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalText;
       return;
