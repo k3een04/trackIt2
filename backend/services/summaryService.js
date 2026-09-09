@@ -95,6 +95,34 @@ function initializeOpenRouter() {
   return true;
 }
 
+function extractTheoriesLocally(narrative) {
+  const normalizedNarrative = narrative.toLowerCase();
+  const matches = [];
+
+  Object.entries(BSIT_CURRICULUM).forEach(([category, courses]) => {
+    courses.forEach((course) => {
+      const matchedKeywords = course.keywords.filter((keyword) =>
+        normalizedNarrative.includes(keyword.toLowerCase())
+      );
+
+      if (matchedKeywords.length > 0) {
+        matches.push({
+          course: course.course,
+          courseName: course.courseName,
+          category,
+          theory: `Applied ${matchedKeywords.slice(0, 3).join(', ')} in the OJT activity`,
+          matchCount: matchedKeywords.length,
+        });
+      }
+    });
+  });
+
+  return matches
+    .sort((a, b) => b.matchCount - a.matchCount)
+    .slice(0, 5)
+    .map(({ matchCount, ...theory }) => theory);
+}
+
 /**
  * @deprecated Use extractTheoriesFromNarrative instead
  * Legacy function for backward compatibility
@@ -110,14 +138,17 @@ async function summarizeText(text, maxLength = 50, concepts = []) {
  * @returns {Promise<Array>} Array of identified theories with course mapping
  */
 async function extractTheoriesFromNarrative(narrative) {
-  try {
-    if (!initializeOpenRouter()) {
-      throw new Error('OpenRouter not initialized - API key missing');
-    }
+  if (!narrative || narrative.trim().length === 0) {
+    return [];
+  }
 
-    if (!narrative || narrative.trim().length === 0) {
-      return [];
-    }
+  const localTheories = extractTheoriesLocally(narrative);
+  if (!initializeOpenRouter()) {
+    console.warn('[TheoryExtractionService] OpenRouter unavailable; using local curriculum matching');
+    return localTheories;
+  }
+
+  try {
 
     const curriculumContext = JSON.stringify(BSIT_CURRICULUM, null, 2);
 
@@ -181,7 +212,10 @@ Remember: Be specific, match to actual curriculum courses, and extract real lear
       throw new Error('Invalid response structure from OpenRouter');
     }
 
-    const responseText = data.choices[0].message.content;
+    const messageContent = data.choices[0].message.content;
+    const responseText = Array.isArray(messageContent)
+      ? messageContent.map((part) => part.text || '').join('')
+      : messageContent;
     if (!responseText) {
       throw new Error('Empty response text from OpenRouter');
     }
@@ -210,7 +244,8 @@ Remember: Be specific, match to actual curriculum courses, and extract real lear
     return theories;
   } catch (error) {
     console.error('[TheoryExtractionService] Error extracting theories:', error.message);
-    throw error;
+    console.warn('[TheoryExtractionService] Falling back to local curriculum matching');
+    return localTheories;
   }
 }
 
