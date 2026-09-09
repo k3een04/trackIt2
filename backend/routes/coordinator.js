@@ -111,7 +111,7 @@ router.post('/assign-supervisor', async (req, res) => {
     }
 
     // Verify supervisor exists and is a supervisor
-    const supervisor = await User.findById(supervisorId);
+    const supervisor = await User.findById(supervisorId).populate('companyId', 'name');
     if (!supervisor || supervisor.role !== 'supervisor') {
       return res.status(404).json({
         success: false,
@@ -121,6 +121,13 @@ router.post('/assign-supervisor', async (req, res) => {
 
     // Assign supervisor to trainee
     trainee.supervisorId = supervisor._id;
+    const supervisorCompanyName = supervisor.companyName || supervisor.companyId?.name;
+    if (supervisorCompanyName) {
+      trainee.companyName = supervisorCompanyName;
+    }
+    if (supervisor.companyId?._id) {
+      trainee.companyId = supervisor.companyId._id;
+    }
     await trainee.save();
 
     // Return updated trainee with populated supervisor
@@ -143,14 +150,21 @@ router.post('/assign-supervisor', async (req, res) => {
 });
 
 // @route   GET /api/coordinator/journals
-// @desc    Get all journals that are supervisor-signed and pending coordinator approval
+// @desc    Get journals pending coordinator review, including new submissions awaiting supervisor signature
 // @access  Private (Coordinator only)
 router.get('/journals', async (req, res) => {
   try {
-    // Get all supervisor-signed journals that are NOT yet coordinator-approved
+    // Include new submissions so coordinators can see them, but exclude journals
+    // already returned to a supervisor for revision.
     const journals = await Journal.find({
-      supervisorSigned: true,
       coordinatorApproved: false,
+      $or: [
+        { supervisorSigned: true },
+        {
+          supervisorSigned: false,
+          coordinatorRemarks: { $exists: false },
+        },
+      ],
     })
       .populate('studentId', 'fullName studentId email supervisorId')
       .populate('supervisorId', 'fullName email')
