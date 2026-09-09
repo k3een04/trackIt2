@@ -82,35 +82,23 @@ apiRouter.get('/health', async (req, res) => {
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
 
-// Serve static assets from project root and subdirectories
-app.use('/visuals', express.static(path.join(__dirname, '..', 'visuals')));
-app.use('/vendor', express.static(path.join(__dirname, '..', 'vendor')));
-app.use(express.static(path.join(__dirname, '..')));
+// Serve static assets from project root for local development
+const rootDir = path.join(__dirname, '..');
+app.use(express.static(rootDir));
 
-// Explicit page handlers for complete reliability
-const pages = [
-  'index.html',
-  'landingpage.html',
-  'loginpage.html',
-  'signup.html',
-  'ojtdashboard.html',
-  'supervisor-dashboard.html',
-  'coordinator-dashboard.html'
-];
-
-pages.forEach((page) => {
-  app.get(`/${page}`, (req, res) => {
-    res.sendFile(path.join(__dirname, '..', page));
-  });
-});
-
-// Root path fallback
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+// Root path fallback for local development
+app.get('/', (req, res, next) => {
+  const indexPath = path.join(rootDir, 'index.html');
+  const fs = require('fs');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  next();
 });
 
 // Global error handler
 app.use(errorHandler);
+
 
 
 module.exports = app;
