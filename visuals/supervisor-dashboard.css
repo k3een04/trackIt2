@@ -740,11 +740,32 @@ nav {
 @media (max-width: 480px) {
   nav {
     padding: 10px 12px;
+    min-height: 64px;
   }
 
-  nav .flex {
-    flex-direction: column;
+  nav > .max-w-7xl {
+    flex-direction: row;
     gap: 8px;
+    width: 100%;
+  }
+
+  nav > .max-w-7xl > div {
+    flex-direction: row;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  nav .btn-ghost {
+    width: auto;
+    min-height: 40px;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  nav #theme-toggle,
+  nav #menu-toggle {
+    min-height: 40px;
+    flex-shrink: 0;
   }
 
   .page-header h1 {
@@ -757,7 +778,7 @@ nav {
 
   .main-content {
     padding: 12px;
-    margin-top: 130px;
+    margin-top: 76px;
   }
 
   .stat-num {

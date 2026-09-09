@@ -98,6 +98,9 @@ app.get('/visuals/signup.css', (req, res) => {
 app.get('/visuals/ojtdashboard.css', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'visuals', 'ojtdashboard.css'));
 });
+app.get('/visuals/supervisor-dashboard.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'supervisor-dashboard.css'));
+});
 app.get('/landingpage.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'landingpage.js'));
 });
@@ -109,6 +112,9 @@ app.get('/signup.js', (req, res) => {
 });
 app.get('/ojtdashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'ojtdashboard.js'));
+});
+app.get('/supervisor-dashboard.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'supervisor-dashboard.js'));
 });
 app.get('/Trackitlogo.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'Trackitlogo.png'));
