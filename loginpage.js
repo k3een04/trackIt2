@@ -18,6 +18,38 @@ const API_BASE = (window.location.hostname === 'localhost' || window.location.ho
   }
 })();
 
+// ── Toggle Password Visibility ───────────────────────────────────────────
+const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+const passwordInput = document.getElementById('loginPassword');
+const eyeIcon = document.getElementById('eyeIcon');
+
+if (togglePasswordBtn && passwordInput) {
+  togglePasswordBtn.addEventListener('click', () => {
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+    
+    if (eyeIcon) {
+      if (isPassword) {
+        // Eye off icon
+        eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
+      } else {
+        // Eye on icon
+        eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+      }
+    }
+  });
+}
+
+// ── Restore Remembered Email ──────────────────────────────────────────────
+const rememberedEmail = localStorage.getItem('trackit_remembered_email');
+const emailInputEl = document.getElementById('loginEmail');
+const rememberCheckboxEl = document.getElementById('rememberMe');
+
+if (rememberedEmail && emailInputEl) {
+  emailInputEl.value = rememberedEmail;
+  if (rememberCheckboxEl) rememberCheckboxEl.checked = true;
+}
+
 // ── Form submission ───────────────────────────────────────────────────────
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
@@ -29,19 +61,28 @@ if (loginForm) {
     const submitBtn     = document.getElementById('loginSubmitBtn') || this.querySelector('button[type="submit"]');
     const submitText    = document.getElementById('loginSubmitText');
     const errorEl       = document.getElementById('loginError');
+    const errorTextEl   = document.getElementById('loginErrorText');
+    const rememberMe    = document.getElementById('rememberMe')?.checked;
 
     const email    = emailInput ? emailInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value : '';
 
     if (!email || !password) {
-      showError('Please enter your email and password.', errorEl);
+      showError('Please enter your email and password.', errorEl, errorTextEl);
       return;
     }
 
     // Hide previous error
     if (errorEl) {
       errorEl.classList.add('hidden');
-      errorEl.textContent = '';
+      if (errorTextEl) errorTextEl.textContent = '';
+    }
+
+    // Remember me handling
+    if (rememberMe) {
+      localStorage.setItem('trackit_remembered_email', email);
+    } else {
+      localStorage.removeItem('trackit_remembered_email');
     }
 
     // Loading state
@@ -66,16 +107,20 @@ if (loginForm) {
 
       redirectToDashboard(data.user.role);
     } catch (err) {
-      showError(err.message, errorEl);
+      showError(err.message, errorEl, errorTextEl);
       if (submitBtn) submitBtn.disabled = false;
       if (submitText) submitText.textContent = 'Sign In';
     }
   });
 }
 
-function showError(msg, el) {
+function showError(msg, el, textEl) {
   if (el) {
-    el.textContent = msg;
+    if (textEl) {
+      textEl.textContent = msg;
+    } else {
+      el.textContent = msg;
+    }
     el.classList.remove('hidden');
     return;
   }
