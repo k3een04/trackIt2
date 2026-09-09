@@ -89,8 +89,20 @@ app.use(express.static(rootDir));
 app.get('/visuals/landingpage.css', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'visuals', 'landingpage.css'));
 });
+app.get('/visuals/loginpage.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'loginpage.css'));
+});
+app.get('/visuals/signup.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'signup.css'));
+});
 app.get('/landingpage.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'landingpage.js'));
+});
+app.get('/loginpage.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'loginpage.js'));
+});
+app.get('/signup.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'signup.js'));
 });
 app.get('/Trackitlogo.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'Trackitlogo.png'));

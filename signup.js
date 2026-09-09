@@ -1,7 +1,3 @@
-// Clear any old auth data to prevent auto-redirects
-localStorage.removeItem('trackit_token');
-localStorage.removeItem('trackit_user');
-
 // ── Password strength checker ─────────────────────────────────────────────
 function checkPasswordStrength(password) {
   let strength = 0;
