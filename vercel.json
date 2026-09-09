@@ -6,8 +6,9 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/",
-      "destination": "/landingpage.html"
+      "source": "/api",
+      "destination": "/api/index.js"
     }
   ]
 }
+

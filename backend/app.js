@@ -44,18 +44,20 @@ const qrRoutes = require('./routes/qr');
 const journalRoutes = require('./routes/journal');
 const geofenceRoutes = require('./routes/geofence');
 
-// Mount API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/coordinator', coordinatorRoutes);
-app.use('/api/supervisor', supervisorRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/qr', qrRoutes);
-app.use('/api/journal', journalRoutes);
-app.use('/api/geofence', geofenceRoutes);
+// API Router
+const apiRouter = express.Router();
+
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/dashboard', dashboardRoutes);
+apiRouter.use('/coordinator', coordinatorRoutes);
+apiRouter.use('/supervisor', supervisorRoutes);
+apiRouter.use('/stats', statsRoutes);
+apiRouter.use('/qr', qrRoutes);
+apiRouter.use('/journal', journalRoutes);
+apiRouter.use('/geofence', geofenceRoutes);
 
 // Health check endpoint
-app.get('/api/health', async (req, res) => {
+apiRouter.get('/health', async (req, res) => {
   let dbStatus = 'disconnected';
   try {
     await connectDB();
@@ -71,6 +73,11 @@ app.get('/api/health', async (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Mount router on both '/api' and '/' for maximum serverless compatibility
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
+
 
 // Global error handler
 app.use(errorHandler);
