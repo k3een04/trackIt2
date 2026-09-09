@@ -96,7 +96,7 @@ function initializeOpenRouter() {
 }
 
 function extractTheoriesLocally(narrative) {
-  const normalizedNarrative = narrative.toLowerCase();
+  const normalizedNarrative = String(narrative).toLowerCase();
   const matches = [];
 
   Object.entries(BSIT_CURRICULUM).forEach(([category, courses]) => {
@@ -253,6 +253,7 @@ module.exports = {
   initializeOpenRouter,
   summarizeText, // deprecated
   extractTheoriesFromNarrative,
+  extractTheoriesLocally,
   BSIT_CURRICULUM,
 };
 

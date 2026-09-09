@@ -1480,7 +1480,7 @@ async function autoExtractTheories(event) {
     });
 
     if (!result || !result.success) {
-      alert('Failed to extract theories: ' + (result?.message || 'Unknown error'));
+      alert('Failed to extract theories: ' + (result?.error || result?.message || 'Unknown error'));
       button.disabled = false;
       button.innerHTML = originalText;
       return;

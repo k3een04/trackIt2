@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Journal = require('../models/Journal');
-const { extractTheoriesFromNarrative, summarizeText } = require('../services/summaryService');
+const {
+  extractTheoriesFromNarrative,
+  extractTheoriesLocally,
+  summarizeText,
+} = require('../services/summaryService');
 
 // Extract IT theories from narrative (replaces /summarize)
 router.post('/extract-theories', authenticateToken, async (req, res) => {
@@ -30,10 +34,13 @@ router.post('/extract-theories', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('[Journal Route] Error extracting theories:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error extracting theories',
-      error: error.message,
+    const fallbackTheories = extractTheoriesLocally(req.body?.narrative || '');
+    res.status(200).json({
+      success: true,
+      message: 'Theories extracted using curriculum matching',
+      data: {
+        identifiedTheories: fallbackTheories,
+      },
     });
   }
 });
