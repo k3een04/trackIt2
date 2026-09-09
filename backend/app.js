@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
@@ -15,10 +16,13 @@ app.use(cors());
 // Initialize OpenRouter
 initializeOpenRouter();
 
-// Middleware to ensure DB connection
+// Middleware to ensure DB connection for API routes
 app.use(async (req, res, next) => {
-  // Allow health check to respond immediately if needed or check DB
-  if (req.path === '/api/health') {
+  // Static assets and root or health check do not require pre-blocking DB connection
+  if (!req.path.startsWith('/api') && req.path !== '/health') {
+    return next();
+  }
+  if (req.path === '/api/health' || req.path === '/health') {
     return next();
   }
   try {
@@ -74,12 +78,20 @@ apiRouter.get('/health', async (req, res) => {
   });
 });
 
-// Mount router on both '/api' and '/' for maximum serverless compatibility
+// Mount API router on both '/api' and '/'
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
 
+// Serve static frontend files from project root
+app.use(express.static(path.join(__dirname, '..')));
+
+// Fallback to index.html for root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
 
 // Global error handler
 app.use(errorHandler);
 
 module.exports = app;
+
