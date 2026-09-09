@@ -12,13 +12,22 @@ async function resolveCompanyForUser(userId) {
 
   if (user.companyId) {
     const company = await Company.findById(user.companyId);
-    if (!company) return { error: 'Company not found', status: 404 };
-    return { user, company };
+    if (company) return { user, company };
   }
 
   if (user.companyName) {
-    const company = await Company.findOne({ name: user.companyName.trim() });
-    if (!company) return { error: 'Company not found', status: 404 };
+    const companyName = user.companyName.trim();
+    const escapedName = companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let company = await Company.findOne({
+      name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
+    });
+
+    if (!company) {
+      company = await Company.create({
+        name: companyName,
+        accreditationStatus: 'pending',
+      });
+    }
 
     user.companyId = company._id;
     await user.save();
