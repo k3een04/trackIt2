@@ -40,8 +40,14 @@ body::before {
   border-radius: 12px;
 }
 
-img{
-  width: 60px;
+/* Logo */
+.nav-logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 /* Nav */

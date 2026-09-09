@@ -1,28 +1,25 @@
 {
   "version": 2,
-  "routes": [
+  "rewrites": [
     {
-      "handle": "filesystem"
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.js"
+      "source": "/api",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/api",
-      "dest": "/api/index.js"
+      "source": "/login",
+      "destination": "/loginpage.html"
     },
     {
-      "src": "/login",
-      "dest": "/loginpage.html"
+      "source": "/signup",
+      "destination": "/signup.html"
     },
     {
-      "src": "/signup",
-      "dest": "/signup.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/landingpage.html"
+      "source": "/landing",
+      "destination": "/index.html"
     }
   ]
 }

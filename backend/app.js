@@ -78,23 +78,40 @@ apiRouter.get('/health', async (req, res) => {
   });
 });
 
-// Mount API router on both '/api' and '/'
+// Mount API router on '/api'
 app.use('/api', apiRouter);
-app.use('/', apiRouter);
 
-// Serve static assets from project root for local development
+// Serve static assets from project root for local development and direct serving
 const rootDir = path.join(__dirname, '..');
 app.use(express.static(rootDir));
 
-// Root path fallback for local development
-app.get('/', (req, res, next) => {
-  const indexPath = path.join(rootDir, 'index.html');
-  const fs = require('fs');
-  if (fs.existsSync(indexPath)) {
-    return res.sendFile(indexPath);
-  }
-  next();
+// Explicit page route handlers
+app.get(['/login', '/loginpage.html'], (req, res) => {
+  res.sendFile(path.join(rootDir, 'loginpage.html'));
 });
+
+app.get(['/signup', '/signup.html'], (req, res) => {
+  res.sendFile(path.join(rootDir, 'signup.html'));
+});
+
+app.get('/ojtdashboard.html', (req, res) => {
+  res.sendFile(path.join(rootDir, 'ojtdashboard.html'));
+});
+
+app.get('/coordinator-dashboard.html', (req, res) => {
+  res.sendFile(path.join(rootDir, 'coordinator-dashboard.html'));
+});
+
+app.get('/supervisor-dashboard.html', (req, res) => {
+  res.sendFile(path.join(rootDir, 'supervisor-dashboard.html'));
+});
+
+app.get(['/', '/index.html', '/landingpage.html'], (req, res) => {
+  res.sendFile(path.join(rootDir, 'index.html'));
+});
+
+// Fallback mount for API router at root
+app.use('/', apiRouter);
 
 // Global error handler
 app.use(errorHandler);

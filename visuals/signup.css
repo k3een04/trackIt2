@@ -52,8 +52,14 @@ body::before {
   background-clip: text;
 }
 
-img{
-  width: 60px;
+/* Logo */
+.nav-logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 nav {
@@ -62,6 +68,7 @@ nav {
   z-index: 100;
   background: rgba(10, 15, 30, 0.92);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
 

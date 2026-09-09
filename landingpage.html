@@ -14,13 +14,11 @@
 <body class="bg-[#0a0f1e] text-slate-100 font-sans antialiased min-h-screen">
 
   <!-- NAV -->
-  <nav id="navbar" class="px-5 py-4 md:px-10">
+  <nav id="navbar" class="px-5 py-3 md:px-10">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <a href="#" class="flex items-center gap-2">
-        <div>
-          <img src="Trackitlogo.png" alt="" srcset="">
-        </div>
-        <span class="font-display font-800 text-white tracking-tight" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-teal-400">IT</span></span>
+      <a href="index.html" class="flex items-center gap-2.5 group">
+        <img src="Trackitlogo.png" alt="TrackIT Logo" class="nav-logo-img w-9 h-9 object-contain group-hover:scale-105 transition-transform duration-200">
+        <span class="font-display font-800 text-xl md:text-2xl text-white tracking-tight" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-teal-400">IT</span></span>
       </a>
 
       <div class="hidden md:flex items-center gap-8">
@@ -32,7 +30,7 @@
         <a href="loginpage.html" class="text-sm font-semibold text-teal-400 hover:text-teal-300 transition-colors">Login</a>
       </div>
 
-      <button id="menu-btn" class="md:hidden text-slate-400 hover:text-white" onclick="toggleMenu()">
+      <button id="menu-btn" class="md:hidden text-slate-400 hover:text-white" onclick="toggleMenu()" aria-label="Toggle Menu">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
@@ -52,7 +50,7 @@
   </nav>
 
   <!-- HERO -->
-  <section class="relative min-h-screen flex items-center pt-24 pb-16 px-5 md:px-10 overflow-hidden">
+  <section class="relative min-h-screen flex items-center pt-28 md:pt-32 pb-16 px-5 md:px-10 overflow-hidden">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 
@@ -561,10 +559,8 @@
   <!-- FOOTER -->
   <footer class="px-5 md:px-10 py-8 border-t border-white/5">
     <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
-        <div class="w-6 h-6 rounded-md bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0f1e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </div>
+      <div class="flex items-center gap-2.5">
+        <img src="Trackitlogo.png" alt="TrackIT Logo" class="w-6 h-6 object-contain">
         <span class="font-display text-sm text-white" style="font-family:'Syne',sans-serif;font-weight:700;">Track<span class="text-teal-400">IT</span></span>
       </div>
       <p class="text-xs text-slate-600 text-center">© 2025 TrackIT · Group IT27-E05 · STI West Negros University CICT · INTE1031 Capstone Project 1</p>

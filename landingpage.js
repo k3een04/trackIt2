@@ -1,8 +1,10 @@
 const navbar = document.getElementById('navbar');
 if (navbar) {
-  window.addEventListener('scroll', () => {
+  const updateNavbar = () => {
     navbar.classList.toggle('scrolled', window.scrollY > 20);
-  });
+  };
+  window.addEventListener('scroll', updateNavbar, { passive: true });
+  updateNavbar();
 }
 
 // Mobile menu
