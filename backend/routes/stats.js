@@ -3,6 +3,7 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const User = require('../models/User');
 const DTR = require('../models/DTR');
 const Journal = require('../models/Journal');
+const Company = require('../models/Company');
 
 const router = express.Router();
 
@@ -391,6 +392,23 @@ router.get('/student', authenticateToken, authorizeRole('student'), async (req, 
         success: false,
         message: 'Student not found',
       });
+    }
+
+    // Older student records may have companyName without the company reference
+    // required by the geofence and DTR endpoints. Resolve and persist it here.
+    if (!student.companyId) {
+      const companyName = student.companyName || student.supervisorId?.companyName;
+      if (companyName) {
+        const escapedName = companyName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const company = await Company.findOne({
+          name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
+        }).select('name address geofenceLocation');
+
+        if (company) {
+          student.companyId = company._id;
+          await student.save();
+        }
+      }
     }
 
     // Get verified DTR records only (verified by supervisor)
