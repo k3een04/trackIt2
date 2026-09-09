@@ -85,6 +85,17 @@ app.use('/api', apiRouter);
 const rootDir = process.env.VERCEL ? process.cwd() : path.join(__dirname, '..');
 app.use(express.static(rootDir));
 
+// Explicit routes ensure Vercel's file tracer bundles the landing assets.
+app.get('/visuals/landingpage.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'landingpage.css'));
+});
+app.get('/landingpage.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'landingpage.js'));
+});
+app.get('/Trackitlogo.png', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'Trackitlogo.png'));
+});
+
 // Explicit page route handlers
 app.get(['/login', '/loginpage.html'], (req, res) => {
   res.sendFile(path.join(rootDir, 'loginpage.html'));
