@@ -1446,6 +1446,11 @@ async function submitJournal(event) {
     return;
   }
 
+  if (journalPhotoDataUrl && journalPhotoDataUrl.length > 3_000_000) {
+    alert('The journal photo is still too large after compression. Please choose a smaller image.');
+    return;
+  }
+
   // Show loading state
   const submitBtn = event.target.querySelector('button[type="submit"]');
   const originalText = submitBtn.innerHTML;
@@ -2019,7 +2024,7 @@ function setupJournalPhotoUpload() {
   if (!uploadDiv || !fileInput) return;
 
   uploadDiv.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', () => {
+  fileInput.addEventListener('change', async () => {
     const file = fileInput.files && fileInput.files[0];
     if (!file) {
       resetJournalPhotoPreview();
@@ -2032,14 +2037,46 @@ function setupJournalPhotoUpload() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      journalPhotoDataUrl = reader.result;
+    try {
+      journalPhotoDataUrl = await compressJournalPhoto(file);
       if (previewImg) {
         previewImg.src = journalPhotoDataUrl;
         previewImg.classList.remove('hidden');
       }
       if (placeholder) placeholder.classList.add('hidden');
+    } catch (error) {
+      console.error('Unable to process journal photo:', error);
+      alert('Unable to process this image. Please choose another image.');
+      resetJournalPhotoPreview();
+    }
+  });
+}
+
+function compressJournalPhoto(file) {
+  const maxDimension = 1600;
+  const quality = 0.78;
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Unable to read image file'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error('Unsupported image format'));
+      image.onload = () => {
+        const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext('2d');
+        if (!context) {
+          reject(new Error('Image processing is unavailable'));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      image.src = reader.result;
     };
     reader.readAsDataURL(file);
   });
