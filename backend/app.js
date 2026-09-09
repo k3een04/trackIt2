@@ -81,8 +81,8 @@ apiRouter.get('/health', async (req, res) => {
 // Mount API router on '/api'
 app.use('/api', apiRouter);
 
-// Serve static assets from project root for local development and direct serving
-const rootDir = path.join(__dirname, '..');
+// Resolve the repository root correctly in both local and serverless runtimes.
+const rootDir = process.env.VERCEL ? process.cwd() : path.join(__dirname, '..');
 app.use(express.static(rootDir));
 
 // Explicit page route handlers
