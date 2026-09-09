@@ -82,87 +82,16 @@ apiRouter.get('/health', async (req, res) => {
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
 
-// Helper to resolve files across local development and Vercel serverless environments
-function resolveFilePath(relPath) {
-  const fs = require('fs');
-  const candidates = [
-    path.join(__dirname, relPath),
-    path.join(__dirname, '..', relPath),
-    path.join(process.cwd(), relPath),
-    path.join(process.cwd(), '..', relPath),
-    path.join('/var/task', relPath),
-    path.resolve(relPath)
-  ];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
+// Serve static assets from project root for local development
+const rootDir = path.join(__dirname, '..');
+app.use(express.static(rootDir));
 
-// Serve static assets from visuals and vendor
-app.use('/visuals', (req, res, next) => {
-  const file = resolveFilePath(path.join('visuals', req.path));
-  if (file) {
-    return res.sendFile(file);
-  }
-  next();
-});
-
-app.use('/vendor', (req, res, next) => {
-  const file = resolveFilePath(path.join('vendor', req.path));
-  if (file) {
-    return res.sendFile(file);
-  }
-  next();
-});
-
-// Explicit static handler for root-level JS, CSS, images, and documents
-app.use((req, res, next) => {
-  if (req.method !== 'GET') return next();
-  const cleanPath = req.path.replace(/^\//, '');
-  if (!cleanPath || cleanPath.startsWith('api/')) return next();
-
-  const fs = require('fs');
-  const file = resolveFilePath(cleanPath);
-  if (file) {
-    try {
-      if (fs.statSync(file).isFile()) {
-        return res.sendFile(file);
-      }
-    } catch (e) {
-      // Pass to next middleware
-    }
-  }
-  next();
-});
-
-// Explicit page handlers for every HTML page to guarantee resolution
-const pages = [
-  'index.html',
-  'landingpage.html',
-  'loginpage.html',
-  'signup.html',
-  'ojtdashboard.html',
-  'supervisor-dashboard.html',
-  'coordinator-dashboard.html'
-];
-
-pages.forEach((page) => {
-  const routeName = page.replace('.html', '');
-  app.get([`/${page}`, `/${routeName}`], (req, res, next) => {
-    const file = resolveFilePath(page);
-    if (file) {
-      return res.sendFile(file);
-    }
-    next();
-  });
-});
-
-// Root path fallback
+// Root path fallback for local development
 app.get('/', (req, res, next) => {
-  const file = resolveFilePath('index.html') || resolveFilePath('landingpage.html');
-  if (file) {
-    return res.sendFile(file);
+  const indexPath = path.join(rootDir, 'index.html');
+  const fs = require('fs');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
   }
   next();
 });
@@ -170,9 +99,6 @@ app.get('/', (req, res, next) => {
 // Global error handler
 app.use(errorHandler);
 
-
-
-
-
 module.exports = app;
+
 
