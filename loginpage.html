@@ -80,10 +80,13 @@
             <!-- Form -->
             <form id="loginForm" class="space-y-5">
 
+              <div id="loginError" class="hidden p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-sm"></div>
+
               <!-- Email -->
               <div>
                 <label class="text-sm text-slate-300 font-semibold mb-2 block">Email Address</label>
                 <input 
+                  id="loginEmail"
                   type="email" 
                   placeholder="you@example.com" 
                   class="input-field"
@@ -95,6 +98,7 @@
               <div>
                 <label class="text-sm text-slate-300 font-semibold mb-2 block">Password</label>
                 <input 
+                  id="loginPassword"
                   type="password" 
                   placeholder="••••••••" 
                   class="input-field"
@@ -105,16 +109,16 @@
               <!-- Remember & Forgot -->
               <div class="flex items-center justify-between">
                 <label class="checkbox-label">
-                  <input type="checkbox" />
+                  <input type="checkbox" id="rememberMe" />
                   <span>Remember me</span>
                 </label>
                 <a href="#forgot" class="text-sm link-text">Forgot password?</a>
               </div>
 
               <!-- Sign In Button -->
-              <button type="submit" class="btn-primary mt-6">
-                Sign In
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <button id="loginSubmitBtn" type="submit" class="btn-primary mt-6">
+                <span id="loginSubmitText">Sign In</span>
+                <svg id="loginSubmitIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
 
             </form>

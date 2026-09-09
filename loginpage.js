@@ -4,82 +4,97 @@ const API_BASE = (window.location.hostname === 'localhost' || window.location.ho
 
 // ── Redirect if already logged in ────────────────────────────────────────
 (function checkAuth() {
-  const token = localStorage.getItem('trackit_token');
-  const user  = JSON.parse(localStorage.getItem('trackit_user') || 'null');
-  if (token && user) {
-    redirectToDashboard(user.role);
+  try {
+    const token = localStorage.getItem('trackit_token');
+    const user  = JSON.parse(localStorage.getItem('trackit_user') || 'null');
+    if (token && user && user.role) {
+      const validRoles = ['student', 'coordinator', 'supervisor'];
+      if (validRoles.includes(user.role)) {
+        redirectToDashboard(user.role);
+      }
+    }
+  } catch (e) {
+    console.error('Auth check error:', e);
   }
 })();
 
-// ── Reveal animations on load ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.reveal').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(20px)';
-  });
-});
-
 // ── Form submission ───────────────────────────────────────────────────────
-document.getElementById('loginForm')?.addEventListener('submit', async function(e) {
-  e.preventDefault();
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+  loginForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
 
-  const emailInput    = this.querySelector('input[type="email"]');
-  const passwordInput = this.querySelector('input[type="password"]');
-  const submitBtn     = this.querySelector('button[type="submit"]');
-  const errorEl       = document.getElementById('loginError');
+    const emailInput    = document.getElementById('loginEmail') || this.querySelector('input[type="email"]');
+    const passwordInput = document.getElementById('loginPassword') || this.querySelector('input[type="password"]');
+    const submitBtn     = document.getElementById('loginSubmitBtn') || this.querySelector('button[type="submit"]');
+    const submitText    = document.getElementById('loginSubmitText');
+    const errorEl       = document.getElementById('loginError');
 
-  const email    = emailInput.value.trim();
-  const password = passwordInput.value;
+    const email    = emailInput ? emailInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
 
-  if (!email || !password) {
-    showError('Please enter your email and password.', errorEl);
-    return;
-  }
+    if (!email || !password) {
+      showError('Please enter your email and password.', errorEl);
+      return;
+    }
 
-  // Loading state
-  submitBtn.disabled = true;
-  const originalHTML = submitBtn.innerHTML;
-  submitBtn.innerHTML = `<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="40" stroke-dashoffset="10"/></svg> Signing in…`;
+    // Hide previous error
+    if (errorEl) {
+      errorEl.classList.add('hidden');
+      errorEl.textContent = '';
+    }
 
-  try {
-    const res  = await fetch(`${API_BASE}/auth/login`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, password })
-    });
-    const data = await res.json();
+    // Loading state
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitText) submitText.textContent = 'Signing in…';
 
-    if (!res.ok) throw new Error(data.message || 'Login failed.');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/login`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email, password })
+      });
+      const data = await res.json();
 
-    localStorage.setItem('trackit_token', data.token);
-    localStorage.setItem('trackit_user',  JSON.stringify(data.user));
-    // Clear tab preference on login so user starts on overview tab
-    localStorage.removeItem('trackit_current_tab');
+      if (!res.ok) {
+        throw new Error(data.message || 'Login failed. Please check your credentials.');
+      }
 
-    redirectToDashboard(data.user.role);
-  } catch (err) {
-    showError(err.message, errorEl);
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalHTML;
-  }
-});
+      localStorage.setItem('trackit_token', data.token);
+      localStorage.setItem('trackit_user',  JSON.stringify(data.user));
+      localStorage.removeItem('trackit_current_tab');
+
+      redirectToDashboard(data.user.role);
+    } catch (err) {
+      showError(err.message, errorEl);
+      if (submitBtn) submitBtn.disabled = false;
+      if (submitText) submitText.textContent = 'Sign In';
+    }
+  });
+}
 
 function showError(msg, el) {
-  if (!el) {
-    // Create error element if not present
-    const form = document.getElementById('loginForm');
-    let errEl  = document.getElementById('loginError');
-    if (!errEl) {
-      errEl = document.createElement('div');
-      errEl.id = 'loginError';
-      errEl.style.cssText = 'padding:12px 16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;color:#fca5a5;font-size:0.875rem;margin-top:8px;';
-      form.appendChild(errEl);
-    }
-    errEl.textContent = msg;
+  if (el) {
+    el.textContent = msg;
+    el.classList.remove('hidden');
     return;
   }
-  el.textContent = msg;
-  el.style.display = 'block';
+  let fallbackEl = document.getElementById('loginError');
+  if (!fallbackEl) {
+    const form = document.getElementById('loginForm');
+    if (form) {
+      fallbackEl = document.createElement('div');
+      fallbackEl.id = 'loginError';
+      fallbackEl.className = 'p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-sm mb-4';
+      form.prepend(fallbackEl);
+    }
+  }
+  if (fallbackEl) {
+    fallbackEl.textContent = msg;
+    fallbackEl.classList.remove('hidden');
+  } else {
+    alert(msg);
+  }
 }
 
 function redirectToDashboard(role) {
