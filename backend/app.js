@@ -82,22 +82,57 @@ apiRouter.get('/health', async (req, res) => {
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
 
-// Serve static assets from project root for local development
-const rootDir = path.join(__dirname, '..');
-app.use(express.static(rootDir));
+// Serve static assets from project root (locally and on Vercel)
+const rootDir = path.resolve(__dirname, '..');
 
-// Root path fallback for local development
+// Explicit static folders
+app.use('/visuals', express.static(path.join(rootDir, 'visuals'), { maxAge: '1h' }));
+app.use('/vendor', express.static(path.join(rootDir, 'vendor'), { maxAge: '1h' }));
+app.use(express.static(rootDir, { maxAge: '1h' }));
+
+// Explicit page handlers for every HTML page to guarantee resolution
+const pages = [
+  'index.html',
+  'landingpage.html',
+  'loginpage.html',
+  'signup.html',
+  'ojtdashboard.html',
+  'supervisor-dashboard.html',
+  'coordinator-dashboard.html'
+];
+
+pages.forEach((page) => {
+  app.get(`/${page}`, (req, res, next) => {
+    const filePath = path.join(rootDir, page);
+    const fs = require('fs');
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+    const cwdPath = path.join(process.cwd(), page);
+    if (fs.existsSync(cwdPath)) {
+      return res.sendFile(cwdPath);
+    }
+    next();
+  });
+});
+
+// Root path fallback
 app.get('/', (req, res, next) => {
-  const indexPath = path.join(rootDir, 'index.html');
   const fs = require('fs');
-  if (fs.existsSync(indexPath)) {
-    return res.sendFile(indexPath);
+  const filePath = path.join(rootDir, 'index.html');
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+  const cwdPath = path.join(process.cwd(), 'index.html');
+  if (fs.existsSync(cwdPath)) {
+    return res.sendFile(cwdPath);
   }
   next();
 });
 
 // Global error handler
 app.use(errorHandler);
+
 
 
 
