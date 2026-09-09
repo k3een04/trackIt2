@@ -886,13 +886,18 @@ nav {
 
   /* Sidebars and modals */
   .sidebar {
-    width: 100%;
-    height: auto;
+    width: min(280px, 88vw);
+    height: calc(100vh - 80px);
     position: fixed;
     top: 80px;
-    left: 0;
-    max-height: 60vh;
+    left: -100%;
+    max-height: none;
     overflow-y: auto;
+    z-index: 40;
+  }
+
+  .sidebar.open {
+    left: 0;
   }
 
   .sidebar nav {

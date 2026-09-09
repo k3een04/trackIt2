@@ -99,7 +99,7 @@ function validateSchedule(currentTime, schedule) {
   const startMinutes = parseTime(schedule.startTime);
   const endMinutes = parseTime(schedule.endTime);
 
-  if (!startMinutes || !endMinutes) {
+  if (startMinutes == null || endMinutes == null) {
     return {
       isWithinSchedule: true,
       status: 'invalid_schedule',
@@ -137,8 +137,40 @@ function validateSchedule(currentTime, schedule) {
   };
 }
 
+function validateAttendanceWindow(currentTime, schedule, action) {
+  if (!schedule) {
+    return { allowed: true, message: 'No schedule configured - time tracking allowed' };
+  }
+
+  const parseTime = (timeStr) => {
+    if (!timeStr) return null;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return Number.isFinite(hours) && Number.isFinite(minutes) ? hours * 60 + minutes : null;
+  };
+
+  const startMinutes = parseTime(schedule.startTime);
+  const endMinutes = parseTime(schedule.endTime);
+  if (startMinutes == null || endMinutes == null) {
+    return { allowed: true, message: 'Schedule format invalid - time tracking allowed' };
+  }
+
+  const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+  const windowStart = action === 'time-out' ? endMinutes : startMinutes;
+  const windowEnd = windowStart + 5;
+  const allowed = currentMinutes >= windowStart && currentMinutes <= windowEnd;
+  const label = action === 'time-out' ? 'time-out' : 'time-in';
+
+  return {
+    allowed,
+    message: allowed
+      ? `Within ${label} window (${String(Math.floor(windowStart / 60)).padStart(2, '0')}:${String(windowStart % 60).padStart(2, '0')} - ${String(Math.floor(windowEnd / 60)).padStart(2, '0')}:${String(windowEnd % 60).padStart(2, '0')})`
+      : `Outside ${label} window. Allowed for 5 minutes from the scheduled ${label === 'time-in' ? 'start' : 'end'} time.`,
+  };
+}
+
 module.exports = {
   calculateDistance,
   validateGeofence,
   validateSchedule,
+  validateAttendanceWindow,
 };

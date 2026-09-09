@@ -4,7 +4,7 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const Company = require('../models/Company');
 const DTR = require('../models/DTR');
 const User = require('../models/User');
-const { validateGeofence, validateSchedule } = require('../services/geofencingService');
+const { validateGeofence, validateSchedule, validateAttendanceWindow } = require('../services/geofencingService');
 
 async function resolveCompanyForUser(userId) {
   const user = await User.findById(userId).select('companyId companyName role');
@@ -169,12 +169,20 @@ router.post('/validate', authenticateToken, async (req, res) => {
       scheduleValidation = validateSchedule(new Date(), trainee.schedule);
     }
 
+    const attendanceWindows = trainee?.schedule
+      ? {
+          timeIn: validateAttendanceWindow(new Date(), trainee.schedule, 'time-in'),
+          timeOut: validateAttendanceWindow(new Date(), trainee.schedule, 'time-out'),
+        }
+      : { timeIn: { allowed: true }, timeOut: { allowed: true } };
+
     res.status(200).json({
       success: true,
       message: 'Geofence validation complete',
       data: {
         geofence: geofenceValidation,
         schedule: scheduleValidation,
+        attendanceWindows,
         canTimeIn: geofenceValidation.isInRange && scheduleValidation.isWithinSchedule,
       },
     });
@@ -254,6 +262,15 @@ router.post('/time-in', authenticateToken, async (req, res) => {
         success: false,
         message: 'Outside geofence - time-in not allowed',
         data: geofenceValidation,
+      });
+    }
+
+    const trainee = await User.findById(traineeId).select('schedule');
+    const attendanceWindow = validateAttendanceWindow(new Date(), trainee?.schedule, 'time-in');
+    if (!attendanceWindow.allowed) {
+      return res.status(400).json({
+        success: false,
+        message: attendanceWindow.message,
       });
     }
 
@@ -351,6 +368,15 @@ router.post('/time-out', authenticateToken, async (req, res) => {
         success: false,
         message: 'Outside geofence - time-out not allowed',
         data: geofenceValidation,
+      });
+    }
+
+    const trainee = await User.findById(traineeId).select('schedule');
+    const attendanceWindow = validateAttendanceWindow(new Date(), trainee?.schedule, 'time-out');
+    if (!attendanceWindow.allowed) {
+      return res.status(400).json({
+        success: false,
+        message: attendanceWindow.message,
       });
     }
 

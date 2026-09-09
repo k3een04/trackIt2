@@ -2826,15 +2826,16 @@ async function updateGeofenceStatus() {
       return;
     }
 
-    const { geofence, schedule } = response.data;
+    const { geofence, schedule, attendanceWindows } = response.data;
+    const scheduleWithWindows = { ...schedule, attendanceWindows };
     
     // Update UI based on geofence status
     if (geofence.isInRange && schedule.isWithinSchedule) {
-      updateGeofenceStatusUI('in-range', geofence.message, geofence, schedule);
+      updateGeofenceStatusUI('in-range', geofence.message, geofence, scheduleWithWindows);
     } else if (geofence.isInRange && !schedule.isWithinSchedule) {
-      updateGeofenceStatusUI('outside-schedule', schedule.message, geofence, schedule);
+      updateGeofenceStatusUI('outside-schedule', schedule.message, geofence, scheduleWithWindows);
     } else {
-      updateGeofenceStatusUI('out-of-range', geofence.message, geofence, schedule);
+      updateGeofenceStatusUI('out-of-range', geofence.message, geofence, scheduleWithWindows);
     }
   } catch (error) {
     console.error('[Geofence] Error updating status:', error);
@@ -2854,6 +2855,8 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
   const timeOutBtn = document.getElementById('time-out-btn');
   const geofenceInfo = document.getElementById('geofence-info');
   const geofenceMessage = document.getElementById('geofence-message');
+  const timeInAllowed = scheduleData?.attendanceWindows?.timeIn?.allowed !== false;
+  const timeOutAllowed = scheduleData?.attendanceWindows?.timeOut?.allowed !== false;
 
   // Reset classes
   indicator.classList.remove('in-range', 'out-of-range');
@@ -2865,8 +2868,9 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       indicator.classList.add('in-range');
       statusText.classList.add('in-range');
       statusText.textContent = '✓ In Range';
-      timeInBtn.disabled = false;
+      timeInBtn.disabled = !timeInAllowed;
       timeInBtn.style.cursor = 'pointer';
+      timeOutBtn.disabled = !timeOutAllowed;
       geofenceInfo.style.display = 'none';
       break;
 
@@ -2875,6 +2879,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.classList.add('out-of-range');
       statusText.textContent = '✗ Out of Range';
       timeInBtn.disabled = true;
+      timeOutBtn.disabled = true;
       timeInBtn.style.cursor = 'not-allowed';
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
@@ -2885,6 +2890,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.classList.add('out-of-range');
       statusText.textContent = '⏰ Outside Schedule';
       timeInBtn.disabled = true;
+      timeOutBtn.disabled = true;
       timeInBtn.style.cursor = 'not-allowed';
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
@@ -2893,6 +2899,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
     case 'locating':
       statusText.textContent = message;
       timeInBtn.disabled = true;
+      timeOutBtn.disabled = true;
       geofenceInfo.style.display = 'none';
       break;
 
@@ -2900,6 +2907,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
     default:
       statusText.textContent = '⚠ Error';
       timeInBtn.disabled = true;
+      timeOutBtn.disabled = true;
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
   }
@@ -2977,6 +2985,7 @@ async function recordTimeIn() {
     // Refresh DTR records
     await loadDTRRecords();
     loadTodayDTRSummary();
+    await updateGeofenceStatus();
   } catch (error) {
     showNotification('Error', error.message || 'Error recording time in', 'error');
     console.error('[Geofence] Error recording time in:', error);
@@ -3032,6 +3041,7 @@ async function recordTimeOut() {
     // Refresh DTR records
     await loadDTRRecords();
     loadTodayDTRSummary();
+    await updateGeofenceStatus();
   } catch (error) {
     showNotification('Error', error.message || 'Error recording time out', 'error');
     console.error('[Geofence] Error recording time out:', error);
