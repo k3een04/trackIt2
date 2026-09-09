@@ -1722,7 +1722,7 @@ async function loadPreviousJournals() {
     journalDownloadCache = journals;
     applySubmittedWeeksToWeekSelector(journals);
 
-    const journalContainer = document.querySelector('#journal .space-y-3');
+    const journalContainer = document.getElementById('previous-journals-list');
 
     if (!journalContainer) return;
 
@@ -1736,11 +1736,12 @@ async function loadPreviousJournals() {
 
     // Add each journal to the list
     journals.forEach(journal => {
-      const date = new Date(journal.submittedAt).toLocaleDateString('en-US', { 
+      const dateValue = journal.submittedAt || journal.createdAt;
+      const date = dateValue ? new Date(dateValue).toLocaleDateString('en-US', {
         month: 'short', 
         day: 'numeric', 
         year: 'numeric' 
-      });
+      }) : 'Date unavailable';
       
       const journalEl = document.createElement('div');
       journalEl.className = 'p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-teal-400/50 transition group';
@@ -1761,7 +1762,7 @@ async function loadPreviousJournals() {
             <strong>Summary:</strong> ${journal.summary.substring(0, 100)}...
           </p>
         ` : ''}
-        <p class="text-xs text-slate-400 group-hover:text-teal-300">${journal.concepts.length > 0 ? 'Concepts: ' + journal.concepts.join(', ') : 'No concepts listed'}</p>
+        <p class="text-xs text-slate-400 group-hover:text-teal-300">${journal.identifiedTheories?.length > 0 ? 'Theories identified: ' + journal.identifiedTheories.length : 'No theories identified'}</p>
         <p class="text-xs text-slate-500 mt-2 group-hover:text-slate-400">Hover to view full content →</p>
       `;
       
