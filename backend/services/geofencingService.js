@@ -165,16 +165,24 @@ function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetM
   }
 
   const currentMinutes = getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes);
-  const windowStart = action === 'time-out' ? endMinutes : startMinutes;
-  const windowEnd = windowStart + 5;
+  const scheduledTime = action === 'time-out' ? endMinutes : startMinutes;
+
+  // Attendance window: 10 minutes BEFORE the scheduled time, 10 minutes AFTER.
+  const windowStart = scheduledTime - 10;
+  const windowEnd = scheduledTime + 10;
   const allowed = currentMinutes >= windowStart && currentMinutes <= windowEnd;
   const label = action === 'time-out' ? 'time-out' : 'time-in';
+
+  const formatWindowMinutes = (minutes) => {
+    const wrapped = ((minutes % 1440) + 1440) % 1440;
+    return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
+  };
 
   return {
     allowed,
     message: allowed
-      ? `Within ${label} window (${String(Math.floor(windowStart / 60)).padStart(2, '0')}:${String(windowStart % 60).padStart(2, '0')} - ${String(Math.floor(windowEnd / 60)).padStart(2, '0')}:${String(windowEnd % 60).padStart(2, '0')})`
-      : `Outside ${label} window. Allowed for 5 minutes from the scheduled ${label === 'time-in' ? 'start' : 'end'} time.`,
+      ? `Within ${label} window (${formatWindowMinutes(windowStart)} - ${formatWindowMinutes(windowEnd)})`
+      : `Outside ${label} window. Allowed 10 minutes before and up to 10 minutes after the scheduled ${label === 'time-in' ? 'start' : 'end'} time.`,
   };
 }
 

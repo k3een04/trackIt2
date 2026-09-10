@@ -2715,23 +2715,68 @@ function formatScheduleTime(hhmm) {
 }
 
 /**
- * Show the time out (schedule end time) set by the supervisor on the DTR tab.
- * Hides the info box when no schedule has been configured yet.
+ * Show the supervisor-set time in the DTR tab.
+ * Before the student clocks out → shows the scheduled time out.
+ * After the student clocks out → shows the scheduled time in.
  */
-function updateSupervisorTimeOutInfo(schedule) {
+function updateSupervisorScheduleInfo(schedule) {
   const infoBox = document.getElementById('supervisor-time-out-info');
   const valueEl = document.getElementById('supervisor-time-out-value');
+  const labelEl = document.getElementById('supervisor-schedule-label');
   if (!infoBox || !valueEl) return;
 
-  const endTime = schedule?.endTime;
-  if (!endTime) {
+  const punchState = window.dtrPunchState || {};
+  const isTimedOut = !!punchState.hasTimedOut;
+  const timeValue = isTimedOut ? schedule?.startTime : schedule?.endTime;
+
+  if (!timeValue) {
     infoBox.style.display = 'none';
     valueEl.textContent = '—';
     return;
   }
 
-  valueEl.textContent = formatScheduleTime(endTime);
+  if (labelEl) {
+    labelEl.textContent = isTimedOut ? 'Time in set by supervisor' : 'Time out set by supervisor';
+  }
+  valueEl.textContent = formatScheduleTime(timeValue);
   infoBox.style.display = 'flex';
+}
+
+/**
+ * Check whether now is inside the ±10-minute attendance window for an action.
+ * With no supervisor schedule, the action is always allowed.
+ * @param {Object|null} scheduleTimes - { startTime, endTime }
+ * @param {'time-in'|'time-out'} action
+ */
+function getScheduleWindowState(scheduleTimes, action) {
+  if (!scheduleTimes) return { allowed: true, reason: 'no_schedule' };
+
+  const timeStr = action === 'time-in' ? scheduleTimes.startTime : scheduleTimes.endTime;
+  if (!timeStr) return { allowed: true, reason: 'no_time' };
+
+  const match = String(timeStr).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return { allowed: true, reason: 'invalid_time' };
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const scheduledMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+
+  const windowStart = scheduledMinutes - 10;
+  const windowEnd = scheduledMinutes + 10;
+  const allowed = currentMinutes >= windowStart && currentMinutes <= windowEnd;
+  const label = action === 'time-in' ? 'time in' : 'time out';
+  const verb = action === 'time-in' ? 'Time in' : 'Time out';
+
+  let message;
+  if (allowed) {
+    message = `Within ${label} window`;
+  } else if (currentMinutes < windowStart) {
+    message = `${verb} opens 10 minutes before the scheduled ${label}`;
+  } else {
+    message = `${verb} is locked (allowed up to 10 minutes after the scheduled ${label})`;
+  }
+
+  return { allowed, reason: allowed ? 'within_window' : currentMinutes < windowStart ? 'too_early' : 'too_late', message };
 }
 
 /**
@@ -2766,16 +2811,30 @@ async function updateGeofenceStatus() {
 
     const { geofence, schedule, scheduleTimes } = response.data;
 
-    // Show the supervisor-set time out (end time) on the DTR tab
-    updateSupervisorTimeOutInfo(scheduleTimes);
+    // Show the supervisor-set time on the DTR tab (time out, or time in after clocking out)
+    updateSupervisorScheduleInfo(scheduleTimes);
 
-    // Update UI based on geofence status
-    if (geofence.isInRange && schedule.isWithinSchedule) {
-      updateGeofenceStatusUI('in-range', geofence.message, geofence, schedule);
-    } else if (geofence.isInRange && !schedule.isWithinSchedule) {
-      updateGeofenceStatusUI('outside-schedule', schedule.message, geofence, schedule);
-    } else {
+    // Out of range → show the distance message and lock the buttons
+    if (!geofence.isInRange) {
       updateGeofenceStatusUI('out-of-range', geofence.message, geofence, schedule);
+      return;
+    }
+
+    // In range → green status, then enforce the ±10-minute window on the buttons
+    updateGeofenceStatusUI('in-range', geofence.message, geofence, schedule);
+
+    const timeInBtn = document.getElementById('time-in-btn');
+    const timeOutBtn = document.getElementById('time-out-btn');
+    const timeInWindow = getScheduleWindowState(scheduleTimes, 'time-in');
+    const timeOutWindow = getScheduleWindowState(scheduleTimes, 'time-out');
+
+    if (timeInBtn && timeInBtn.style.display !== 'none') {
+      timeInBtn.disabled = !timeInWindow.allowed;
+      timeInBtn.style.cursor = timeInWindow.allowed ? 'pointer' : 'not-allowed';
+    }
+    if (timeOutBtn && timeOutBtn.style.display !== 'none') {
+      timeOutBtn.disabled = !timeOutWindow.allowed;
+      timeOutBtn.style.cursor = timeOutWindow.allowed ? 'pointer' : 'not-allowed';
     }
   } catch (error) {
     console.error('[Geofence] Error updating status:', error);
@@ -2815,16 +2874,6 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       indicator.classList.add('out-of-range');
       statusText.classList.add('out-of-range');
       statusText.textContent = '✗ Out of Range';
-      timeInBtn.disabled = true;
-      timeInBtn.style.cursor = 'not-allowed';
-      geofenceInfo.style.display = 'block';
-      geofenceMessage.textContent = message;
-      break;
-
-    case 'outside-schedule':
-      indicator.classList.add('out-of-range');
-      statusText.classList.add('out-of-range');
-      statusText.textContent = '⏰ Outside Schedule';
       timeInBtn.disabled = true;
       timeInBtn.style.cursor = 'not-allowed';
       geofenceInfo.style.display = 'block';
@@ -2988,9 +3037,10 @@ async function loadTodayDTRSummary() {
     if (!response || !response.success) return;
 
     const { hasTimedIn, hasTimedOut, dtr, schedule } = response.data;
+    window.dtrPunchState = { hasTimedIn, hasTimedOut };
 
-    // Show the supervisor-set time out (end time) on the DTR tab
-    updateSupervisorTimeOutInfo(schedule);
+    // Show the supervisor-set time on the DTR tab (time out, or time in after clocking out)
+    updateSupervisorScheduleInfo(schedule);
 
     if (dtr) {
       document.getElementById('today-time-in').textContent = dtr.timeIn ? new Date(dtr.timeIn).toLocaleTimeString() : '—';
