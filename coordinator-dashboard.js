@@ -1227,7 +1227,7 @@ function saveCoordinatorProfile(event) {
   alert(`Profile updated!\nName: ${name}`);
 }
 
-function changeCoordinatorPassword(event) {
+async function changeCoordinatorPassword(event) {
   event.preventDefault();
   const current = document.getElementById('coord-current-pass').value;
   const newPass = document.getElementById('coord-new-pass').value;
@@ -1243,8 +1243,29 @@ function changeCoordinatorPassword(event) {
     return;
   }
 
-  alert('Password changed successfully!');
-  document.getElementById('coord-password-form').reset();
+  if (newPass.length < 6) {
+    alert('New password must be at least 6 characters');
+    return;
+  }
+
+  const btn = event.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  const result = await fetchAPI('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Update Password';
+
+  if (result && result.success) {
+    alert('Password changed successfully!');
+    document.getElementById('coord-password-form').reset();
+  } else {
+    alert(result?.message || 'Failed to change password. Please try again.');
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────

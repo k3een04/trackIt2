@@ -1479,7 +1479,7 @@ function saveSupervisorProfile(event) {
   });
 }
 
-function changeSupervisorPassword(event) {
+async function changeSupervisorPassword(event) {
   event.preventDefault();
   const current = document.getElementById('sup-current-pass').value;
   const newPass = document.getElementById('sup-new-pass').value;
@@ -1495,8 +1495,29 @@ function changeSupervisorPassword(event) {
     return;
   }
 
-  alert('Password changed successfully!');
-  document.getElementById('sup-password-form').reset();
+  if (newPass.length < 6) {
+    alert('New password must be at least 6 characters');
+    return;
+  }
+
+  const btn = event.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  const result = await fetchAPI('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Update Password';
+
+  if (result && result.success) {
+    showNotification('Password changed', 'Your password has been updated successfully.', 'success');
+    document.getElementById('sup-password-form').reset();
+  } else {
+    showNotification('Password change failed', result?.message || 'Please try again.', 'error');
+  }
 }
 
 function saveSupervisorPreferences() {

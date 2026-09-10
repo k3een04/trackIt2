@@ -1590,7 +1590,7 @@ async function saveProfile(event) {
   }
 }
 
-function changePassword(event) {
+async function changePassword(event) {
   event.preventDefault();
   const current = document.getElementById('current-pass').value;
   const newPass = document.getElementById('new-pass').value;
@@ -1606,14 +1606,29 @@ function changePassword(event) {
     return;
   }
 
-  // API call to update password (when backend endpoint is ready)
-  // const result = await fetchAPI(`/auth/change-password`, {
-  //   method: 'POST',
-  //   body: JSON.stringify({ currentPassword: current, newPassword: newPass })
-  // });
+  if (newPass.length < 6) {
+    alert('New password must be at least 6 characters');
+    return;
+  }
 
-  alert('Password changed successfully!');
-  document.getElementById('password-form').reset();
+  const btn = event.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  const result = await fetchAPI('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Update Password';
+
+  if (result && result.success) {
+    alert('Password changed successfully!');
+    document.getElementById('password-form').reset();
+  } else {
+    alert(result?.message || 'Failed to change password. Please try again.');
+  }
 }
 
 // Calculate and populate week selector based on actual registration date
