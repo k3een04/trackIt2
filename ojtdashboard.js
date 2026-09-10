@@ -2743,6 +2743,16 @@ function updateSupervisorScheduleInfo(schedule) {
 }
 
 /**
+ * Client's UTC offset in minutes, east-positive (UTC+8 => 480, UTC-5 => -300).
+ * Browsers expose it west-positive, so negate getTimezoneOffset().
+ * Sent with geofence requests so the server validates the ±10-minute
+ * attendance window in the STUDENT's own timezone.
+ */
+function getClientTimezoneOffsetMinutes() {
+  return -new Date().getTimezoneOffset();
+}
+
+/**
  * Check whether now is inside the ±10-minute attendance window for an action.
  * With no supervisor schedule, the action is always allowed.
  * @param {Object|null} scheduleTimes - { startTime, endTime }
@@ -2801,6 +2811,7 @@ async function updateGeofenceStatus() {
       body: JSON.stringify({
         companyId,
         traineeCoordinates: currentCoordinates,
+        timezoneOffsetMinutes: getClientTimezoneOffsetMinutes(),
       }),
     });
 
@@ -2945,6 +2956,7 @@ async function recordTimeIn() {
       body: JSON.stringify({
         companyId,
         coordinates: currentCoordinates,
+        timezoneOffsetMinutes: getClientTimezoneOffsetMinutes(),
       }),
     });
 
@@ -3000,6 +3012,7 @@ async function recordTimeOut() {
       body: JSON.stringify({
         companyId,
         coordinates: currentCoordinates,
+        timezoneOffsetMinutes: getClientTimezoneOffsetMinutes(),
       }),
     });
 

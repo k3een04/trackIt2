@@ -78,13 +78,28 @@ function validateGeofence(traineeCoordinates, companyGeofence) {
  * @param {Object} schedule - { startTime, endTime, allowsOvertime, overtimeStartTime, overtimeEndTime }
  * @returns {Object} { isWithinSchedule, status, message }
  */
+/**
+ * Convert an absolute instant's time-of-day into the client's local
+ * wall-clock minutes (0-1439).
+ *
+ * timezoneOffsetMinutes is minutes EAST of UTC, i.e. equivalent to
+ * `-new Date().getTimezoneOffset()` in the browser:
+ *   UTC+8 (Philippines)  =>  480
+ *   UTC-5 (New York)     => -300
+ *
+ * To get the client wall clock from an instant, ADD the offset to the UTC
+ * time-of-day. (Previously this subtracted the offset, which produced the
+ * opposite meridian's time-of-day and broke the ±10-minute attendance window
+ * for any student not in the server's own timezone.)
+ */
 function getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes) {
   const offset = Number(timezoneOffsetMinutes);
   if (!Number.isFinite(offset) || Math.abs(offset) > 840) {
+    // No valid offset supplied → best effort with the server's local time
     return currentTime.getHours() * 60 + currentTime.getMinutes();
   }
 
-  const clientTime = new Date(currentTime.getTime() - offset * 60 * 1000);
+  const clientTime = new Date(currentTime.getTime() + offset * 60 * 1000);
   return clientTime.getUTCHours() * 60 + clientTime.getUTCMinutes();
 }
 
