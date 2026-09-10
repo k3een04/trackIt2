@@ -1197,7 +1197,7 @@ function saveCoordinatorProfile(event) {
   alert(`Profile updated!\nName: ${name}`);
 }
 
-function changeCoordinatorPassword(event) {
+async function changeCoordinatorPassword(event) {
   event.preventDefault();
   const current = document.getElementById('coord-current-pass').value;
   const newPass = document.getElementById('coord-new-pass').value;
@@ -1213,7 +1213,15 @@ function changeCoordinatorPassword(event) {
     return;
   }
 
-  alert('Password changed successfully!');
+  const result = await fetchAPI('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
+  });
+  if (!result?.success) {
+    alert(result?.message || 'Unable to change password.');
+    return;
+  }
+  alert(result.message);
   document.getElementById('coord-password-form').reset();
 }
 

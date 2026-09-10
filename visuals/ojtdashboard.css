@@ -1454,6 +1454,18 @@ body.light-mode #theme-toggle:hover {
   display: none !important;
 }
 
+@media (max-width: 640px) {
+  #journal-tooltip.mobile-dialog {
+    width: min(92vw, 420px) !important;
+    max-width: none !important;
+    max-height: 82vh !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    padding: 18px !important;
+    z-index: 200;
+  }
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

@@ -1479,7 +1479,7 @@ function saveSupervisorProfile(event) {
   });
 }
 
-function changeSupervisorPassword(event) {
+async function changeSupervisorPassword(event) {
   event.preventDefault();
   const current = document.getElementById('sup-current-pass').value;
   const newPass = document.getElementById('sup-new-pass').value;
@@ -1495,7 +1495,15 @@ function changeSupervisorPassword(event) {
     return;
   }
 
-  alert('Password changed successfully!');
+  const result = await fetchAPI('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
+  });
+  if (!result?.success) {
+    alert(result?.message || 'Unable to change password.');
+    return;
+  }
+  alert(result.message);
   document.getElementById('sup-password-form').reset();
 }
 

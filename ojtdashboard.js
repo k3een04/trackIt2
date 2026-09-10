@@ -1629,7 +1629,7 @@ async function saveProfile(event) {
   }
 }
 
-function changePassword(event) {
+async function changePassword(event) {
   event.preventDefault();
   const current = document.getElementById('current-pass').value;
   const newPass = document.getElementById('new-pass').value;
@@ -1645,13 +1645,15 @@ function changePassword(event) {
     return;
   }
 
-  // API call to update password (when backend endpoint is ready)
-  // const result = await fetchAPI(`/auth/change-password`, {
-  //   method: 'POST',
-  //   body: JSON.stringify({ currentPassword: current, newPassword: newPass })
-  // });
-
-  alert('Password changed successfully!');
+  const result = await fetchAPI('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
+  });
+  if (!result?.success) {
+    alert(result?.message || 'Unable to change password.');
+    return;
+  }
+  alert(result.message);
   document.getElementById('password-form').reset();
 }
 
@@ -1977,10 +1979,13 @@ function showJournalTooltip(journal, sourceElement) {
     </div>
   `;
 
+  tooltip.classList.toggle('mobile-dialog', window.innerWidth <= 640);
+
   // Position tooltip near the source element
   const rect = sourceElement.getBoundingClientRect();
-  tooltip.style.top = (rect.bottom + 10) + 'px';
-  tooltip.style.left = (rect.left) + 'px';
+  tooltip.style.top = window.innerWidth <= 640 ? '50%' : (rect.bottom + 10) + 'px';
+  tooltip.style.left = window.innerWidth <= 640 ? '50%' : (rect.left) + 'px';
+  tooltip.style.transform = window.innerWidth <= 640 ? 'translate(-50%, -50%)' : '';
   tooltip.classList.remove('hidden');
   tooltip.style.display = 'block';
 
@@ -2010,6 +2015,8 @@ function closeJournalTooltip() {
   const tooltip = document.getElementById('journal-tooltip');
   tooltip.classList.add('hidden');
   tooltip.style.display = 'none';
+  tooltip.classList.remove('mobile-dialog');
+  tooltip.style.transform = '';
   tooltip.dataset.keepOpen = 'false';
 }
 
