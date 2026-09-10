@@ -2790,6 +2790,21 @@ function getScheduleWindowState(scheduleTimes, action) {
 }
 
 /**
+ * Set an attendance button's enabled/locked state.
+ * - unlocked (allowed) → .btn-attendance-enabled (bright + pulse)
+ * - locked (blocked)   → .btn-attendance-disabled (dark + pulse)
+ * Never touches `display`, so visibility stays managed separately.
+ */
+function setAttendanceButtonState(btn, allowed) {
+  if (!btn) return;
+  const on = !!allowed;
+  btn.classList.remove(on ? 'btn-attendance-disabled' : 'btn-attendance-enabled');
+  btn.classList.add(on ? 'btn-attendance-enabled' : 'btn-attendance-disabled');
+  btn.disabled = !on;
+  btn.style.cursor = on ? 'pointer' : 'not-allowed';
+}
+
+/**
  * Validate geofence and update UI
  */
 async function updateGeofenceStatus() {
@@ -2821,6 +2836,7 @@ async function updateGeofenceStatus() {
     }
 
     const { geofence, schedule, scheduleTimes } = response.data;
+    window.supervisorScheduleTimes = scheduleTimes;
 
     // Show the supervisor-set time on the DTR tab (time out, or time in after clocking out)
     updateSupervisorScheduleInfo(scheduleTimes);
@@ -2840,12 +2856,10 @@ async function updateGeofenceStatus() {
     const timeOutWindow = getScheduleWindowState(scheduleTimes, 'time-out');
 
     if (timeInBtn && timeInBtn.style.display !== 'none') {
-      timeInBtn.disabled = !timeInWindow.allowed;
-      timeInBtn.style.cursor = timeInWindow.allowed ? 'pointer' : 'not-allowed';
+      setAttendanceButtonState(timeInBtn, timeInWindow.allowed);
     }
     if (timeOutBtn && timeOutBtn.style.display !== 'none') {
-      timeOutBtn.disabled = !timeOutWindow.allowed;
-      timeOutBtn.style.cursor = timeOutWindow.allowed ? 'pointer' : 'not-allowed';
+      setAttendanceButtonState(timeOutBtn, timeOutWindow.allowed);
     }
   } catch (error) {
     console.error('[Geofence] Error updating status:', error);
@@ -2876,8 +2890,8 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       indicator.classList.add('in-range');
       statusText.classList.add('in-range');
       statusText.textContent = '✓ In Range';
-      timeInBtn.disabled = false;
-      timeInBtn.style.cursor = 'pointer';
+      // Button enable/lock is handled by the schedule-window logic AFTER
+      // this call; do NOT force-enable here.
       geofenceInfo.style.display = 'none';
       break;
 
@@ -2885,8 +2899,8 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       indicator.classList.add('out-of-range');
       statusText.classList.add('out-of-range');
       statusText.textContent = '✗ Out of Range';
-      timeInBtn.disabled = true;
-      timeInBtn.style.cursor = 'not-allowed';
+      setAttendanceButtonState(timeInBtn, false);
+      setAttendanceButtonState(timeOutBtn, false);
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
       break;
@@ -2938,6 +2952,14 @@ async function recordTimeIn() {
     return;
   }
 
+  // Guard: never allow clocking outside the ±10-minute window, even if the
+  // button was somehow force-clicked while disabled.
+  const timeInWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-in');
+  if (!timeInWindow.allowed) {
+    showNotification('Locked', timeInWindow.message || 'Time in is currently locked', 'error');
+    return;
+  }
+
   try {
     const companyId = await getUserCompanyId();
     if (!companyId) {
@@ -2974,9 +2996,8 @@ async function recordTimeIn() {
     // Update UI to show time out button
     btn.style.display = 'none';
     document.getElementById('time-out-btn').style.display = 'block';
-    document.getElementById('time-out-btn').disabled = false;
 
-    // Refresh DTR records
+    // Refresh DTR records / re-apply the correct locked state
     await loadDTRRecords();
     loadTodayDTRSummary();
   } catch (error) {
@@ -2991,6 +3012,14 @@ async function recordTimeIn() {
 async function recordTimeOut() {
   if (!currentCoordinates) {
     showNotification('Error', 'Unable to get your location', 'error');
+    return;
+  }
+
+  // Guard: never allow clocking outside the ±10-minute window, even if the
+  // button was somehow force-clicked while disabled.
+  const timeOutWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-out');
+  if (!timeOutWindow.allowed) {
+    showNotification('Locked', timeOutWindow.message || 'Time out is currently locked', 'error');
     return;
   }
 
@@ -3029,10 +3058,9 @@ async function recordTimeOut() {
 
     // Update UI to show time in button again
     document.getElementById('time-in-btn').style.display = 'block';
-    document.getElementById('time-in-btn').disabled = false;
     btn.style.display = 'none';
 
-    // Refresh DTR records
+    // Refresh DTR records / re-apply the correct locked state
     await loadDTRRecords();
     loadTodayDTRSummary();
   } catch (error) {
@@ -3054,6 +3082,7 @@ async function loadTodayDTRSummary() {
 
     // Show the supervisor-set time on the DTR tab (time out, or time in after clocking out)
     updateSupervisorScheduleInfo(schedule);
+    window.supervisorScheduleTimes = schedule?.startTime || schedule?.endTime ? schedule : window.supervisorScheduleTimes;
 
     if (dtr) {
       document.getElementById('today-time-in').textContent = dtr.timeIn ? new Date(dtr.timeIn).toLocaleTimeString() : '—';
@@ -3061,19 +3090,24 @@ async function loadTodayDTRSummary() {
       document.getElementById('today-hours').textContent = dtr.hoursRendered?.toFixed(2) || '0';
     }
 
-    // Update button visibility
+    // Update button visibility AND apply the correct locked/enabled state
     const timeInBtn = document.getElementById('time-in-btn');
     const timeOutBtn = document.getElementById('time-out-btn');
-    
+
+    // Determine which button is visible (in-range state was already checked by updateGeofenceStatus)
+    const showTimeIn = !hasTimedIn || hasTimedOut;
+    timeInBtn.style.display = showTimeIn ? 'block' : 'none';
+    timeOutBtn.style.display = (showTimeIn ? 'none' : 'block');
+
+    // Apply the schedule-window lock to whichever button is visible
+    const timeInWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-in');
+    const timeOutWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-out');
+
+    if (!hasTimedIn || hasTimedOut) {
+      setAttendanceButtonState(timeInBtn, timeInWindow.allowed);
+    }
     if (hasTimedIn && !hasTimedOut) {
-      timeInBtn.style.display = 'none';
-      timeOutBtn.style.display = 'block';
-    } else if (hasTimedOut) {
-      timeInBtn.style.display = 'block';
-      timeOutBtn.style.display = 'none';
-    } else {
-      timeInBtn.style.display = 'block';
-      timeOutBtn.style.display = 'none';
+      setAttendanceButtonState(timeOutBtn, timeOutWindow.allowed);
     }
   } catch (error) {
     console.error('[Geofence] Error loading today status:', error);

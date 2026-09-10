@@ -551,23 +551,56 @@ nav {
   font-size: 0.85rem;
 }
 
-/* Attendance Time In/Out buttons: dark red + pulse animation when disabled (not allowed yet) */
-.btn-attendance-disabled {
-  background: rgba(127, 29, 29, 0.4) !important;
-  border-color: rgba(127, 29, 29, 0.85) !important;
-  color: #fca5a5 !important;
-  cursor: not-allowed !important;
-  animation: attendanceDisabledPulse 2s ease-in-out infinite;
+/* Attendance Time In/Out buttons
+   - LOCKED (outside the ±10-minute window): dark green (time in) / dark red (time out), subtle pulse
+   - UNLOCKED (inside the window): bright green (time in) / bright red (time out), stronger pulse
+   The color is driven by --attend-accent / --attend-soft set per button. */
+.btn-attendance-disabled,
+.btn-attendance-enabled {
+  border: 1px solid var(--attend-accent);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.2s;
 }
 
-@keyframes attendanceDisabledPulse {
+/* LOCKED state: dark color + slow subtle pulse */
+.btn-attendance-disabled {
+  background: var(--attend-dark) !important;
+  border-color: var(--attend-border) !important;
+  color: var(--attend-dim) !important;
+  cursor: not-allowed !important;
+  animation: attendanceLockedPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes attendanceLockedPulse {
   0%, 100% {
-    background: rgba(127, 29, 29, 0.35);
-    box-shadow: 0 0 0 0 rgba(127, 29, 29, 0);
+    background: var(--attend-dark);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
   }
   50% {
-    background: rgba(127, 29, 29, 0.6);
-    box-shadow: 0 0 0 6px rgba(127, 29, 29, 0.15);
+    background: var(--attend-dark-pulse);
+    box-shadow: 0 0 0 5px var(--attend-accent-soft);
+  }
+}
+
+/* UNLOCKED state: bright color + faster pulse */
+.btn-attendance-enabled {
+  background: var(--attend-bright) !important;
+  border-color: var(--attend-accent) !important;
+  color: var(--attend-fg) !important;
+  cursor: pointer !important;
+  animation: attendanceUnlockedPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes attendanceUnlockedPulse {
+  0%, 100% {
+    background: var(--attend-bright);
+    box-shadow: 0 0 0 0 var(--attend-accent-soft);
+  }
+  50% {
+    background: var(--attend-bright-pulse);
+    box-shadow: 0 0 0 7px var(--attend-accent-soft);
   }
 }
 
