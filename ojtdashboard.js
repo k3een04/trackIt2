@@ -1916,22 +1916,20 @@ function showJournalTooltip(journal) {
     </div>
   `;
 
-  tooltip.classList.add('mobile-dialog');
-  tooltip.style.top = '50%';
-  tooltip.style.left = '50%';
-  tooltip.style.transform = 'translate(-50%, -50%)';
+  // Positioning, centering, and the full-screen backdrop are handled entirely
+  // by .journal-detail-modal CSS (fixed inset-0, flex-centered). Inline
+  // overrides here previously shrank the backdrop (making it overlap page
+  // content) and squashed the card into a tall column on mobile.
+  tooltip.style.display = ''; // clear any leftover inline display
   tooltip.classList.remove('hidden');
-  tooltip.style.display = 'block';
 }
 
 // Close journal tooltip
 function closeJournalTooltip() {
   const tooltip = document.getElementById('journal-tooltip');
+  if (!tooltip) return;
   tooltip.classList.add('hidden');
-  tooltip.style.display = 'none';
-  tooltip.classList.remove('mobile-dialog');
-  tooltip.style.transform = '';
-  tooltip.dataset.keepOpen = 'false';
+  tooltip.style.display = ''; // clear inline display so the modal can reopen
 }
 
 function setupJournalPhotoUpload() {
