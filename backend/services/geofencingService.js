@@ -88,6 +88,13 @@ function getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes) {
   return clientTime.getUTCHours() * 60 + clientTime.getUTCMinutes();
 }
 
+function formatTime12Hour(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const suffix = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 || 12;
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+}
+
 function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
   if (!schedule) {
     return {
@@ -122,7 +129,7 @@ function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
     return {
       isWithinSchedule: true,
       status: 'within_hours',
-      message: `Within scheduled hours (${schedule.startTime} - ${schedule.endTime})`,
+      message: `Within scheduled hours (${formatTime12Hour(schedule.startTime)} - ${formatTime12Hour(schedule.endTime)})`,
     };
   }
 
@@ -135,7 +142,7 @@ function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
       return {
         isWithinSchedule: true,
         status: 'within_overtime',
-        message: `Within overtime window (${schedule.overtimeStartTime} - ${schedule.overtimeEndTime})`,
+        message: `Within overtime window (${formatTime12Hour(schedule.overtimeStartTime)} - ${formatTime12Hour(schedule.overtimeEndTime)})`,
       };
     }
   }
@@ -143,7 +150,7 @@ function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
   return {
     isWithinSchedule: false,
     status: 'outside_schedule',
-    message: `Outside scheduled hours (${schedule.startTime} - ${schedule.endTime}). Overtime allowed: ${schedule.allowsOvertime}`,
+    message: `Outside scheduled hours (${formatTime12Hour(schedule.startTime)} - ${formatTime12Hour(schedule.endTime)}). Overtime allowed: ${schedule.allowsOvertime}`,
   };
 }
 

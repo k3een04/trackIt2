@@ -2861,9 +2861,22 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
   const timeOutAllowed = scheduleData?.attendanceWindows?.timeOut?.allowed !== false;
   const timeOutWindow = scheduleData?.attendanceWindows?.timeOut;
 
+  const formatTime12Hour = (timeValue) => {
+    if (!timeValue) return '—';
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    return `${hours % 12 || 12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  };
+
+  const setTimeOutButtonState = (disabled) => {
+    timeOutBtn.disabled = disabled;
+    timeOutBtn.classList.toggle('waiting-window', disabled);
+    timeOutBtn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+  };
+
   if (timeOutSchedule) {
     if (timeOutWindow?.hasSchedule) {
-      timeOutSchedule.textContent = `Scheduled time-out: ${timeOutWindow.scheduledTime} (valid until ${timeOutWindow.windowEndTime})`;
+      timeOutSchedule.textContent = `Scheduled time-out: ${formatTime12Hour(timeOutWindow.scheduledTime)} (valid until ${formatTime12Hour(timeOutWindow.windowEndTime)})`;
       timeOutSchedule.classList.toggle('window-active', timeOutAllowed);
     } else {
       timeOutSchedule.textContent = 'Scheduled time-out: Not configured';
@@ -2883,7 +2896,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.textContent = '✓ In Range';
       timeInBtn.disabled = !timeInAllowed;
       timeInBtn.style.cursor = 'pointer';
-      timeOutBtn.disabled = !timeOutAllowed;
+      setTimeOutButtonState(!timeOutAllowed);
       geofenceInfo.style.display = 'none';
       break;
 
@@ -2892,7 +2905,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.classList.add('out-of-range');
       statusText.textContent = '✗ Out of Range';
       timeInBtn.disabled = true;
-      timeOutBtn.disabled = true;
+      setTimeOutButtonState(true);
       timeInBtn.style.cursor = 'not-allowed';
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
@@ -2903,7 +2916,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.classList.add('out-of-range');
       statusText.textContent = '⏰ Outside Schedule';
       timeInBtn.disabled = true;
-      timeOutBtn.disabled = true;
+      setTimeOutButtonState(true);
       timeInBtn.style.cursor = 'not-allowed';
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
@@ -2912,7 +2925,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
     case 'locating':
       statusText.textContent = message;
       timeInBtn.disabled = true;
-      timeOutBtn.disabled = true;
+      setTimeOutButtonState(true);
       geofenceInfo.style.display = 'none';
       break;
 
@@ -2920,7 +2933,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
     default:
       statusText.textContent = '⚠ Error';
       timeInBtn.disabled = true;
-      timeOutBtn.disabled = true;
+      setTimeOutButtonState(true);
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
   }
