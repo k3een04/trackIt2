@@ -494,6 +494,24 @@ nav {
   background: var(--border);
 }
 
+.dtr-schedule-hint {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-align: center;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.dtr-schedule-hint.window-active {
+  color: #22c55e;
+  animation: schedulePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes schedulePulse {
+  0%, 100% { opacity: 0.72; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
 /* Profile photo upload */
 .profile-photo-upload {
   border: 2px dashed var(--border);

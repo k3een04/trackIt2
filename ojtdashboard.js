@@ -2856,8 +2856,20 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
   const timeOutBtn = document.getElementById('time-out-btn');
   const geofenceInfo = document.getElementById('geofence-info');
   const geofenceMessage = document.getElementById('geofence-message');
+  const timeOutSchedule = document.getElementById('time-out-schedule');
   const timeInAllowed = scheduleData?.attendanceWindows?.timeIn?.allowed !== false;
   const timeOutAllowed = scheduleData?.attendanceWindows?.timeOut?.allowed !== false;
+  const timeOutWindow = scheduleData?.attendanceWindows?.timeOut;
+
+  if (timeOutSchedule) {
+    if (timeOutWindow?.hasSchedule) {
+      timeOutSchedule.textContent = `Scheduled time-out: ${timeOutWindow.scheduledTime} (valid until ${timeOutWindow.windowEndTime})`;
+      timeOutSchedule.classList.toggle('window-active', timeOutAllowed);
+    } else {
+      timeOutSchedule.textContent = 'Scheduled time-out: Not configured';
+      timeOutSchedule.classList.remove('window-active');
+    }
+  }
 
   // Reset classes
   indicator.classList.remove('in-range', 'out-of-range');

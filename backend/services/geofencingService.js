@@ -149,7 +149,7 @@ function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
 
 function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetMinutes) {
   if (!schedule) {
-    return { allowed: true, message: 'No schedule configured - time tracking allowed' };
+    return { allowed: true, hasSchedule: false, message: 'No schedule configured - time tracking allowed' };
   }
 
   const parseTime = (timeStr) => {
@@ -161,7 +161,7 @@ function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetM
   const startMinutes = parseTime(schedule.startTime);
   const endMinutes = parseTime(schedule.endTime);
   if (startMinutes == null || endMinutes == null) {
-    return { allowed: true, message: 'Schedule format invalid - time tracking allowed' };
+    return { allowed: true, hasSchedule: false, message: 'Schedule format invalid - time tracking allowed' };
   }
 
   const currentMinutes = getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes);
@@ -172,6 +172,11 @@ function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetM
 
   return {
     allowed,
+    hasSchedule: true,
+    scheduledMinutes: windowStart,
+    windowEndMinutes: windowEnd,
+    scheduledTime: `${String(Math.floor(windowStart / 60)).padStart(2, '0')}:${String(windowStart % 60).padStart(2, '0')}`,
+    windowEndTime: `${String(Math.floor(windowEnd / 60)).padStart(2, '0')}:${String(windowEnd % 60).padStart(2, '0')}`,
     message: allowed
       ? `Within ${label} window (${String(Math.floor(windowStart / 60)).padStart(2, '0')}:${String(windowStart % 60).padStart(2, '0')} - ${String(Math.floor(windowEnd / 60)).padStart(2, '0')}:${String(windowEnd % 60).padStart(2, '0')})`
       : `Outside ${label} window. Allowed for 5 minutes from the scheduled ${label === 'time-in' ? 'start' : 'end'} time.`,
