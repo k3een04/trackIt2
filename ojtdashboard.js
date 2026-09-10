@@ -1736,33 +1736,20 @@ async function loadPreviousJournals() {
 
     // Add each journal to the list
     journals.forEach(journal => {
-      const dateValue = journal.submittedAt || journal.createdAt;
-      const date = dateValue ? new Date(dateValue).toLocaleDateString('en-US', {
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-      }) : 'Date unavailable';
-      
       const journalEl = document.createElement('div');
       journalEl.className = 'p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-teal-400/50 transition group';
       journalEl.innerHTML = `
         <div class="flex items-start justify-between mb-2">
           <div>
-            <p class="font-semibold text-sm text-teal-400">${journal.week}</p>
-            <p class="text-xs text-slate-500">${date}</p>
+            <p class="font-semibold text-sm text-teal-400">${journal.week || 'Week unavailable'}</p>
+            <p class="text-xs text-slate-400">Day covered: ${journal.dayCovered || 'Not specified'}</p>
           </div>
           <span class="px-2 py-1 rounded text-xs font-medium ${
             journal.status === 'reviewed' ? 'bg-green-500/20 text-green-400' :
             journal.status === 'submitted' ? 'bg-blue-500/20 text-blue-400' :
             'bg-slate-500/20 text-slate-400'
-          }">${journal.status}</span>
+          }">${journal.status || 'unknown'}</span>
         </div>
-        ${journal.summary ? `
-          <p class="text-sm text-slate-300 mb-2">
-            <strong>Summary:</strong> ${journal.summary.substring(0, 100)}...
-          </p>
-        ` : ''}
-        <p class="text-xs text-slate-400 group-hover:text-teal-300">${journal.identifiedTheories?.length > 0 ? 'Theories identified: ' + journal.identifiedTheories.length : 'No theories identified'}</p>
         <p class="text-xs text-slate-500 mt-2 group-hover:text-slate-400">Click to view full content</p>
       `;
       
