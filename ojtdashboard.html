@@ -515,6 +515,12 @@
       </div>
 
       <!-- Journal detail modal (opened by clicking a previous journal) -->
+      <div id="journal-tooltip" class="journal-detail-modal hidden" role="dialog" aria-modal="true" aria-labelledby="journal-tooltip-title">
+        <div class="journal-detail-card">
+          <button type="button" onclick="closeJournalTooltip()" class="journal-detail-close" aria-label="Close journal details">&times;</button>
+          <div id="journal-tooltip-content"></div>
+        </div>
+      </div>
     </div>
 
     <!-- DUTY LOG TAB -->
