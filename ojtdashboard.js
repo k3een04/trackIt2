@@ -2699,6 +2699,42 @@ function handleGeolocationError(error) {
 }
 
 /**
+ * Format a 24h "HH:MM" schedule time as a 12-hour display string.
+ * e.g. "17:00" -> "5:00 PM"
+ */
+function formatScheduleTime(hhmm) {
+  if (!hhmm || typeof hhmm !== 'string') return hhmm || '—';
+  const match = hhmm.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return hhmm;
+  let hour = parseInt(match[1], 10);
+  const minute = match[2];
+  const period = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  return `${hour}:${minute} ${period}`;
+}
+
+/**
+ * Show the time out (schedule end time) set by the supervisor on the DTR tab.
+ * Hides the info box when no schedule has been configured yet.
+ */
+function updateSupervisorTimeOutInfo(schedule) {
+  const infoBox = document.getElementById('supervisor-time-out-info');
+  const valueEl = document.getElementById('supervisor-time-out-value');
+  if (!infoBox || !valueEl) return;
+
+  const endTime = schedule?.endTime;
+  if (!endTime) {
+    infoBox.style.display = 'none';
+    valueEl.textContent = '—';
+    return;
+  }
+
+  valueEl.textContent = formatScheduleTime(endTime);
+  infoBox.style.display = 'flex';
+}
+
+/**
  * Validate geofence and update UI
  */
 async function updateGeofenceStatus() {
@@ -2728,8 +2764,11 @@ async function updateGeofenceStatus() {
       return;
     }
 
-    const { geofence, schedule } = response.data;
-    
+    const { geofence, schedule, scheduleTimes } = response.data;
+
+    // Show the supervisor-set time out (end time) on the DTR tab
+    updateSupervisorTimeOutInfo(scheduleTimes);
+
     // Update UI based on geofence status
     if (geofence.isInRange && schedule.isWithinSchedule) {
       updateGeofenceStatusUI('in-range', geofence.message, geofence, schedule);
@@ -2948,8 +2987,11 @@ async function loadTodayDTRSummary() {
     const response = await fetchAPI('/geofence/today-status');
     if (!response || !response.success) return;
 
-    const { hasTimedIn, hasTimedOut, dtr } = response.data;
-    
+    const { hasTimedIn, hasTimedOut, dtr, schedule } = response.data;
+
+    // Show the supervisor-set time out (end time) on the DTR tab
+    updateSupervisorTimeOutInfo(schedule);
+
     if (dtr) {
       document.getElementById('today-time-in').textContent = dtr.timeIn ? new Date(dtr.timeIn).toLocaleTimeString() : '—';
       document.getElementById('today-time-out').textContent = dtr.timeOut ? new Date(dtr.timeOut).toLocaleTimeString() : '—';
