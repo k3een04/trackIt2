@@ -494,34 +494,6 @@ nav {
   background: var(--border);
 }
 
-.dtr-schedule-hint {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 0.75rem;
-  text-align: center;
-  transition: color 0.2s ease, transform 0.2s ease;
-}
-
-.dtr-schedule-hint.window-active {
-  color: #22c55e;
-  animation: schedulePulse 1.6s ease-in-out infinite;
-}
-
-#time-out-btn.waiting-window {
-  animation: timeOutWaiting 1.8s ease-in-out infinite;
-  filter: saturate(0.65);
-}
-
-@keyframes timeOutWaiting {
-  0%, 100% { opacity: 0.58; box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
-  50% { opacity: 0.88; box-shadow: 0 0 14px rgba(239, 68, 68, 0.24); }
-}
-
-@keyframes schedulePulse {
-  0%, 100% { opacity: 0.72; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.02); }
-}
-
 /* Profile photo upload */
 .profile-photo-upload {
   border: 2px dashed var(--border);
@@ -577,6 +549,26 @@ nav {
 .journal-photo-placeholder {
   color: #94a3b8;
   font-size: 0.85rem;
+}
+
+/* Attendance Time In/Out buttons: dark red + pulse animation when disabled (not allowed yet) */
+.btn-attendance-disabled {
+  background: rgba(127, 29, 29, 0.4) !important;
+  border-color: rgba(127, 29, 29, 0.85) !important;
+  color: #fca5a5 !important;
+  cursor: not-allowed !important;
+  animation: attendanceDisabledPulse 2s ease-in-out infinite;
+}
+
+@keyframes attendanceDisabledPulse {
+  0%, 100% {
+    background: rgba(127, 29, 29, 0.35);
+    box-shadow: 0 0 0 0 rgba(127, 29, 29, 0);
+  }
+  50% {
+    background: rgba(127, 29, 29, 0.6);
+    box-shadow: 0 0 0 6px rgba(127, 29, 29, 0.15);
+  }
 }
 
 /* Journal download modal */
@@ -679,60 +671,6 @@ nav {
 .download-modal-actions {
   display: flex;
   gap: 10px;
-}
-
-/* Layout preview overlay */
-.layout-preview {
-  position: fixed;
-  inset: 0;
-  background: rgba(8, 15, 28, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 90;
-  padding: 20px;
-}
-
-.layout-preview.hidden {
-  display: none;
-}
-
-.layout-preview-card {
-  width: min(1000px, 96vw);
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.6);
-}
-
-.layout-preview-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.layout-preview-close {
-  background: transparent;
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.layout-preview-content {
-  background: #0b1220;
-  border-radius: 12px;
-  padding: 12px;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
 }
 
 /* Responsive */
@@ -1441,42 +1379,7 @@ body.light-mode #theme-toggle:hover {
   background: rgba(0, 200, 170, 0.5);
 }
 
-/* Journal Tooltip */
-#journal-tooltip {
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 200, 170, 0.3);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-  animation: slideIn 0.2s ease-out;
-}
-
-#journal-tooltip.hidden {
-  display: none !important;
-}
-
-@media (max-width: 640px) {
-  #journal-tooltip.mobile-dialog {
-    width: min(92vw, 420px) !important;
-    max-width: none !important;
-    max-height: 82vh !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
-    padding: 18px !important;
-    z-index: 200;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Journal Tooltip (removed — entries are shown inline in Previous Journals) */
 
 /* Journal list item hover effect */
 .space-y-3>div {

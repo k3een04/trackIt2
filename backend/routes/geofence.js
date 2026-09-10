@@ -176,6 +176,11 @@ router.post('/validate', authenticateToken, async (req, res) => {
         }
       : { timeIn: { allowed: true }, timeOut: { allowed: true } };
 
+    // Raw supervisor-set schedule times (for showing the set time out on the DTR page)
+    const scheduleTimes = trainee?.schedule?.startTime && trainee?.schedule?.endTime
+      ? { startTime: trainee.schedule.startTime, endTime: trainee.schedule.endTime }
+      : null;
+
     res.status(200).json({
       success: true,
       message: 'Geofence validation complete',
@@ -183,6 +188,7 @@ router.post('/validate', authenticateToken, async (req, res) => {
         geofence: geofenceValidation,
         schedule: scheduleValidation,
         attendanceWindows,
+        scheduleTimes,
         canTimeIn: geofenceValidation.isInRange && scheduleValidation.isWithinSchedule,
       },
     });
@@ -452,6 +458,12 @@ router.get('/today-status', authenticateToken, async (req, res) => {
       date: { $gte: startOfDay, $lte: endOfDay },
     });
 
+    // Include the trainee's schedule so the client can show the expected time-out
+    const trainee = await User.findById(traineeId).select('schedule');
+    const schedule = trainee?.schedule?.startTime && trainee?.schedule?.endTime
+      ? { startTime: trainee.schedule.startTime, endTime: trainee.schedule.endTime }
+      : null;
+
     if (!dtr) {
       return res.status(200).json({
         success: true,
@@ -459,6 +471,7 @@ router.get('/today-status', authenticateToken, async (req, res) => {
           hasTimedIn: false,
           hasTimedOut: false,
           dtr: null,
+          schedule,
         },
       });
     }
@@ -476,6 +489,7 @@ router.get('/today-status', authenticateToken, async (req, res) => {
           geofenceValidated: dtr.geofenceValidated,
           companyName: dtr.companyName,
         },
+        schedule,
       },
     });
   } catch (error) {

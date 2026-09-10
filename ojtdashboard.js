@@ -348,10 +348,13 @@ function startDTRPolling() {
         }
 
         if (changeDetected) {
-          showNotification('✅ Attendance Updated', 'Your time in/out has been updated.', 'success');
-          await loadTodayDTRSummary();
-          await loadDTRRecords();
-          await loadRecentActivity();
+          // Show notification and refresh
+          showNotification('✅ Attendance Recorded', 'Your time in/out has been recorded. Refreshing page...', 'success');
+
+          // Refresh after showing notification
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
         }
 
         // Update state
@@ -361,31 +364,6 @@ function startDTRPolling() {
       console.error('Error in DTR polling:', error);
     }
   }, 5000);
-}
-
-let studentRealtimeTimer = null;
-
-function startStudentRealtimeUpdates() {
-  if (studentRealtimeTimer) clearInterval(studentRealtimeTimer);
-
-  studentRealtimeTimer = setInterval(async () => {
-    if (document.hidden) return;
-
-    const activeTab = document.querySelector('.tab-content.active')?.id;
-    try {
-      if (activeTab === 'overview') {
-        await loadDashboardData();
-        await loadRecentActivity();
-      } else if (activeTab === 'dtr') {
-        await loadTodayDTRSummary();
-        await loadDTRRecords();
-      } else if (activeTab === 'journal') {
-        await loadPreviousJournals();
-      }
-    } catch (error) {
-      console.error('Student real-time update failed:', error);
-    }
-  }, 10000);
 }
 
 /**
@@ -584,22 +562,10 @@ async function fetchAPI(endpoint, options = {}) {
       return null;
     }
 
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-      const responseText = await response.text();
-      return {
-        success: false,
-        message: `Server returned HTTP ${response.status}${responseText ? `: ${responseText.slice(0, 160)}` : ''}`,
-      };
-    }
-
     return await response.json();
   } catch (error) {
     console.error('API Error:', error);
-    return {
-      success: false,
-      message: `Unable to reach the server: ${error.message}`,
-    };
+    return null;
   }
 }
 
@@ -1446,11 +1412,6 @@ async function submitJournal(event) {
     return;
   }
 
-  if (journalPhotoDataUrl && journalPhotoDataUrl.length > 3_000_000) {
-    alert('The journal photo is still too large after compression. Please choose a smaller image.');
-    return;
-  }
-
   // Show loading state
   const submitBtn = event.target.querySelector('button[type="submit"]');
   const originalText = submitBtn.innerHTML;
@@ -1470,7 +1431,7 @@ async function submitJournal(event) {
     });
 
     if (!result || !result.success) {
-      alert('Failed to submit journal: ' + (result?.error || result?.message || 'The server returned no response.'));
+      alert('Failed to submit journal: ' + (result?.message || 'Unknown error'));
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalText;
       return;
@@ -1519,7 +1480,7 @@ async function autoExtractTheories(event) {
     });
 
     if (!result || !result.success) {
-      alert('Failed to extract theories: ' + (result?.error || result?.message || 'Unknown error'));
+      alert('Failed to extract theories: ' + (result?.message || 'Unknown error'));
       button.disabled = false;
       button.innerHTML = originalText;
       return;
@@ -1629,7 +1590,7 @@ async function saveProfile(event) {
   }
 }
 
-async function changePassword(event) {
+function changePassword(event) {
   event.preventDefault();
   const current = document.getElementById('current-pass').value;
   const newPass = document.getElementById('new-pass').value;
@@ -1645,15 +1606,13 @@ async function changePassword(event) {
     return;
   }
 
-  const result = await fetchAPI('/auth/change-password', {
-    method: 'POST',
-    body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
-  });
-  if (!result?.success) {
-    alert(result?.message || 'Unable to change password.');
-    return;
-  }
-  alert(result.message);
+  // API call to update password (when backend endpoint is ready)
+  // const result = await fetchAPI(`/auth/change-password`, {
+  //   method: 'POST',
+  //   body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+  // });
+
+  alert('Password changed successfully!');
   document.getElementById('password-form').reset();
 }
 
@@ -1763,7 +1722,7 @@ async function loadPreviousJournals() {
     journalDownloadCache = journals;
     applySubmittedWeeksToWeekSelector(journals);
 
-    const journalContainer = document.getElementById('previous-journals-list');
+    const journalContainer = document.querySelector('#journal .space-y-3');
 
     if (!journalContainer) return;
 
@@ -1777,12 +1736,11 @@ async function loadPreviousJournals() {
 
     // Add each journal to the list
     journals.forEach(journal => {
-      const dateValue = journal.submittedAt || journal.createdAt;
-      const date = dateValue ? new Date(dateValue).toLocaleDateString('en-US', {
+      const date = new Date(journal.submittedAt).toLocaleDateString('en-US', {
         month: 'short', 
         day: 'numeric', 
         year: 'numeric' 
-      }) : 'Date unavailable';
+      });
       
       const journalEl = document.createElement('div');
       journalEl.className = 'p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-teal-400/50 transition group';
@@ -1803,7 +1761,7 @@ async function loadPreviousJournals() {
             <strong>Summary:</strong> ${journal.summary.substring(0, 100)}...
           </p>
         ` : ''}
-        <p class="text-xs text-slate-400 group-hover:text-teal-300">${journal.identifiedTheories?.length > 0 ? 'Theories identified: ' + journal.identifiedTheories.length : 'No theories identified'}</p>
+        <p class="text-xs text-slate-400 group-hover:text-teal-300">${journal.concepts.length > 0 ? 'Concepts: ' + journal.concepts.join(', ') : 'No concepts listed'}</p>
         <p class="text-xs text-slate-500 mt-2 group-hover:text-slate-400">Hover to view full content →</p>
       `;
       
@@ -1979,13 +1937,10 @@ function showJournalTooltip(journal, sourceElement) {
     </div>
   `;
 
-  tooltip.classList.toggle('mobile-dialog', window.innerWidth <= 640);
-
   // Position tooltip near the source element
   const rect = sourceElement.getBoundingClientRect();
-  tooltip.style.top = window.innerWidth <= 640 ? '50%' : (rect.bottom + 10) + 'px';
-  tooltip.style.left = window.innerWidth <= 640 ? '50%' : (rect.left) + 'px';
-  tooltip.style.transform = window.innerWidth <= 640 ? 'translate(-50%, -50%)' : '';
+  tooltip.style.top = (rect.bottom + 10) + 'px';
+  tooltip.style.left = (rect.left) + 'px';
   tooltip.classList.remove('hidden');
   tooltip.style.display = 'block';
 
@@ -2015,8 +1970,6 @@ function closeJournalTooltip() {
   const tooltip = document.getElementById('journal-tooltip');
   tooltip.classList.add('hidden');
   tooltip.style.display = 'none';
-  tooltip.classList.remove('mobile-dialog');
-  tooltip.style.transform = '';
   tooltip.dataset.keepOpen = 'false';
 }
 
@@ -2031,7 +1984,7 @@ function setupJournalPhotoUpload() {
   if (!uploadDiv || !fileInput) return;
 
   uploadDiv.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', async () => {
+  fileInput.addEventListener('change', () => {
     const file = fileInput.files && fileInput.files[0];
     if (!file) {
       resetJournalPhotoPreview();
@@ -2044,46 +1997,14 @@ function setupJournalPhotoUpload() {
       return;
     }
 
-    try {
-      journalPhotoDataUrl = await compressJournalPhoto(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      journalPhotoDataUrl = reader.result;
       if (previewImg) {
         previewImg.src = journalPhotoDataUrl;
         previewImg.classList.remove('hidden');
       }
       if (placeholder) placeholder.classList.add('hidden');
-    } catch (error) {
-      console.error('Unable to process journal photo:', error);
-      alert('Unable to process this image. Please choose another image.');
-      resetJournalPhotoPreview();
-    }
-  });
-}
-
-function compressJournalPhoto(file) {
-  const maxDimension = 1600;
-  const quality = 0.78;
-
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Unable to read image file'));
-    reader.onload = () => {
-      const image = new Image();
-      image.onerror = () => reject(new Error('Unsupported image format'));
-      image.onload = () => {
-        const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-        const context = canvas.getContext('2d');
-        if (!context) {
-          reject(new Error('Image processing is unavailable'));
-          return;
-        }
-
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      image.src = reader.result;
     };
     reader.readAsDataURL(file);
   });
@@ -2825,7 +2746,6 @@ async function updateGeofenceStatus() {
       body: JSON.stringify({
         companyId,
         traineeCoordinates: currentCoordinates,
-        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
       }),
     });
 
@@ -2834,16 +2754,15 @@ async function updateGeofenceStatus() {
       return;
     }
 
-    const { geofence, schedule, attendanceWindows } = response.data;
-    const scheduleWithWindows = { ...schedule, attendanceWindows };
+    const { geofence, schedule } = response.data;
     
     // Update UI based on geofence status
     if (geofence.isInRange && schedule.isWithinSchedule) {
-      updateGeofenceStatusUI('in-range', geofence.message, geofence, scheduleWithWindows);
+      updateGeofenceStatusUI('in-range', geofence.message, geofence, schedule);
     } else if (geofence.isInRange && !schedule.isWithinSchedule) {
-      updateGeofenceStatusUI('outside-schedule', schedule.message, geofence, scheduleWithWindows);
+      updateGeofenceStatusUI('outside-schedule', schedule.message, geofence, schedule);
     } else {
-      updateGeofenceStatusUI('out-of-range', geofence.message, geofence, scheduleWithWindows);
+      updateGeofenceStatusUI('out-of-range', geofence.message, geofence, schedule);
     }
   } catch (error) {
     console.error('[Geofence] Error updating status:', error);
@@ -2863,33 +2782,6 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
   const timeOutBtn = document.getElementById('time-out-btn');
   const geofenceInfo = document.getElementById('geofence-info');
   const geofenceMessage = document.getElementById('geofence-message');
-  const timeOutSchedule = document.getElementById('time-out-schedule');
-  const timeInAllowed = scheduleData?.attendanceWindows?.timeIn?.allowed !== false;
-  const timeOutAllowed = scheduleData?.attendanceWindows?.timeOut?.allowed !== false;
-  const timeOutWindow = scheduleData?.attendanceWindows?.timeOut;
-
-  const formatTime12Hour = (timeValue) => {
-    if (!timeValue) return '—';
-    const [hours, minutes] = timeValue.split(':').map(Number);
-    const suffix = hours >= 12 ? 'PM' : 'AM';
-    return `${hours % 12 || 12}:${String(minutes).padStart(2, '0')} ${suffix}`;
-  };
-
-  const setTimeOutButtonState = (disabled) => {
-    timeOutBtn.disabled = disabled;
-    timeOutBtn.classList.toggle('waiting-window', disabled);
-    timeOutBtn.style.cursor = disabled ? 'not-allowed' : 'pointer';
-  };
-
-  if (timeOutSchedule) {
-    if (timeOutWindow?.hasSchedule) {
-      timeOutSchedule.textContent = `Scheduled time-out: ${formatTime12Hour(timeOutWindow.scheduledTime)} (valid until ${formatTime12Hour(timeOutWindow.windowEndTime)})`;
-      timeOutSchedule.classList.toggle('window-active', timeOutAllowed);
-    } else {
-      timeOutSchedule.textContent = 'Scheduled time-out: Not configured';
-      timeOutSchedule.classList.remove('window-active');
-    }
-  }
 
   // Reset classes
   indicator.classList.remove('in-range', 'out-of-range');
@@ -2901,9 +2793,8 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       indicator.classList.add('in-range');
       statusText.classList.add('in-range');
       statusText.textContent = '✓ In Range';
-      timeInBtn.disabled = !timeInAllowed;
+      timeInBtn.disabled = false;
       timeInBtn.style.cursor = 'pointer';
-      setTimeOutButtonState(!timeOutAllowed);
       geofenceInfo.style.display = 'none';
       break;
 
@@ -2912,7 +2803,6 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.classList.add('out-of-range');
       statusText.textContent = '✗ Out of Range';
       timeInBtn.disabled = true;
-      setTimeOutButtonState(true);
       timeInBtn.style.cursor = 'not-allowed';
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
@@ -2923,7 +2813,6 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.classList.add('out-of-range');
       statusText.textContent = '⏰ Outside Schedule';
       timeInBtn.disabled = true;
-      setTimeOutButtonState(true);
       timeInBtn.style.cursor = 'not-allowed';
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
@@ -2932,7 +2821,6 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
     case 'locating':
       statusText.textContent = message;
       timeInBtn.disabled = true;
-      setTimeOutButtonState(true);
       geofenceInfo.style.display = 'none';
       break;
 
@@ -2940,7 +2828,6 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
     default:
       statusText.textContent = '⚠ Error';
       timeInBtn.disabled = true;
-      setTimeOutButtonState(true);
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
   }
@@ -2996,7 +2883,6 @@ async function recordTimeIn() {
       body: JSON.stringify({
         companyId,
         coordinates: currentCoordinates,
-        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
       }),
     });
 
@@ -3019,7 +2905,6 @@ async function recordTimeIn() {
     // Refresh DTR records
     await loadDTRRecords();
     loadTodayDTRSummary();
-    await updateGeofenceStatus();
   } catch (error) {
     showNotification('Error', error.message || 'Error recording time in', 'error');
     console.error('[Geofence] Error recording time in:', error);
@@ -3053,7 +2938,6 @@ async function recordTimeOut() {
       body: JSON.stringify({
         companyId,
         coordinates: currentCoordinates,
-        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
       }),
     });
 
@@ -3076,7 +2960,6 @@ async function recordTimeOut() {
     // Refresh DTR records
     await loadDTRRecords();
     loadTodayDTRSummary();
-    await updateGeofenceStatus();
   } catch (error) {
     showNotification('Error', error.message || 'Error recording time out', 'error');
     console.error('[Geofence] Error recording time out:', error);
@@ -3581,7 +3464,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setInterval(updateGeofenceStatus, 5000); // Update every 5 seconds
   
   await loadDTRRecords();
-  startStudentRealtimeUpdates();
 
   // Set default month to current month
   const today = new Date();

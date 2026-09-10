@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
-const { initializeOpenRouter } = require('./services/summaryService');
+const { initializeGoogleAI } = require('./services/summaryService');
 
 const app = express();
 
@@ -13,8 +13,8 @@ app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(cors());
 
-// Initialize OpenRouter
-initializeOpenRouter();
+// Initialize Google GenAI
+initializeGoogleAI();
 
 // Middleware to ensure DB connection for API routes
 app.use(async (req, res, next) => {

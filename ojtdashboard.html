@@ -267,13 +267,18 @@
 
             <!-- Time In/Out Buttons -->
             <div style="display: flex; gap: 8px; flex-direction: column;">
-              <button id="time-in-btn" onclick="recordTimeIn()" style="padding: 12px; background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.5); border-radius: 6px; color: #22c55e; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" disabled>
+              <button id="time-in-btn" onclick="recordTimeIn()" class="btn-attendance-disabled" style="padding: 12px; background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.5); border-radius: 6px; color: #22c55e; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;" disabled>
                 ⏱ Time In
               </button>
-              <button id="time-out-btn" onclick="recordTimeOut()" style="padding: 12px; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.5); border-radius: 6px; color: #ef4444; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" disabled>
+              <button id="time-out-btn" onclick="recordTimeOut()" class="btn-attendance-disabled" style="padding: 12px; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.5); border-radius: 6px; color: #ef4444; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: none;" disabled>
                 ⏱ Time Out
               </button>
-              <p id="time-out-schedule" class="dtr-schedule-hint">Scheduled time-out: —</p>
+
+              <!-- Supervisor-set time out (shown alongside the Time Out button) -->
+              <div id="supervisor-time-out-info" style="display: none; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 6px; background: rgba(239,68,68,0.08); border: 1px dashed rgba(239,68,68,0.35);">
+                <span style="font-size: 11px; color: #94a3b8;">⏰ Time out set by supervisor</span>
+                <span id="supervisor-time-out-value" style="font-size: 13px; font-weight: 700; color: #f87171;">—</span>
+              </div>
             </div>
 
             <!-- Geofence Info Box -->
@@ -501,18 +506,15 @@
 
         <!-- Previous Journals -->
         <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-6">Previous Journals</h3>
+          <h3 class="font-display font-700 mb-1">Previous Journals</h3>
+          <p class="text-xs text-slate-500 mb-6">Click a journal to view its full content</p>
           <div id="previous-journals-list" class="space-y-3">
             <p class="text-slate-500 text-sm text-center py-4">No journals submitted yet</p>
           </div>
         </div>
       </div>
 
-      <!-- Journal Content Tooltip -->
-      <div id="journal-tooltip" class="hidden fixed bg-slate-900 border border-teal-400/30 rounded-lg shadow-lg p-6 max-w-md max-h-96 overflow-y-auto z-50" style="display: none;">
-        <button onclick="closeJournalTooltip()" class="absolute top-2 right-2 text-slate-400 hover:text-white text-xl">✕</button>
-        <div id="journal-tooltip-content"></div>
-      </div>
+      <!-- Journal detail modal (opened by clicking a previous journal) -->
     </div>
 
     <!-- DUTY LOG TAB -->
@@ -707,9 +709,6 @@
           <h1>Documents</h1>
           <p class="text-slate-400">Download your reports and forms</p>
         </div>
-        <button onclick="toggleJournalLayoutPreview()" class="btn-ghost text-xs md:text-sm">
-          Preview Layout
-        </button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -861,6 +860,23 @@
 
   </div>
 
+  <!-- Journal Detail Modal (view full content of a previous journal) -->
+  <div id="journal-detail-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
+      <div class="sticky top-0 bg-slate-900 p-6 border-b border-white/10 flex justify-between items-start gap-4">
+        <div>
+          <h2 id="journal-detail-title" class="font-display font-700 text-white">Journal Entry</h2>
+          <p id="journal-detail-date" class="text-xs text-slate-500 mt-1"></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="journal-detail-status" class="px-2 py-1 rounded text-xs font-medium"></span>
+          <button onclick="closeJournalDetail()" class="text-slate-400 hover:text-white text-2xl leading-none" aria-label="Close journal detail">×</button>
+        </div>
+      </div>
+      <div id="journal-detail-content" class="p-6 space-y-5"></div>
+    </div>
+  </div>
+
   <div id="journal-download-modal" class="download-modal hidden">
     <div class="download-modal-card">
       <div class="download-modal-header">
@@ -878,16 +894,6 @@
           <button id="journal-download-confirm" onclick="confirmJournalDownload()" class="btn-primary" disabled>Download PDF</button>
         </div>
       </div>
-    </div>
-  </div>
-
-  <div id="journal-layout-preview" class="layout-preview hidden">
-    <div class="layout-preview-card">
-      <div class="layout-preview-header">
-        <h3 class="font-display font-700">Weekly Journal Layout Preview</h3>
-        <button onclick="toggleJournalLayoutPreview()" class="layout-preview-close">×</button>
-      </div>
-      <div id="journal-layout-preview-content" class="layout-preview-content"></div>
     </div>
   </div>
 

@@ -88,13 +88,6 @@ function getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes) {
   return clientTime.getUTCHours() * 60 + clientTime.getUTCMinutes();
 }
 
-function formatTime12Hour(timeStr) {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  const suffix = hours >= 12 ? 'PM' : 'AM';
-  const hour12 = hours % 12 || 12;
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
-}
-
 function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
   if (!schedule) {
     return {
@@ -129,7 +122,7 @@ function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
     return {
       isWithinSchedule: true,
       status: 'within_hours',
-      message: `Within scheduled hours (${formatTime12Hour(schedule.startTime)} - ${formatTime12Hour(schedule.endTime)})`,
+      message: `Within scheduled hours (${schedule.startTime} - ${schedule.endTime})`,
     };
   }
 
@@ -142,7 +135,7 @@ function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
       return {
         isWithinSchedule: true,
         status: 'within_overtime',
-        message: `Within overtime window (${formatTime12Hour(schedule.overtimeStartTime)} - ${formatTime12Hour(schedule.overtimeEndTime)})`,
+        message: `Within overtime window (${schedule.overtimeStartTime} - ${schedule.overtimeEndTime})`,
       };
     }
   }
@@ -150,13 +143,13 @@ function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
   return {
     isWithinSchedule: false,
     status: 'outside_schedule',
-    message: `Outside scheduled hours (${formatTime12Hour(schedule.startTime)} - ${formatTime12Hour(schedule.endTime)}). Overtime allowed: ${schedule.allowsOvertime}`,
+    message: `Outside scheduled hours (${schedule.startTime} - ${schedule.endTime}). Overtime allowed: ${schedule.allowsOvertime}`,
   };
 }
 
 function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetMinutes) {
   if (!schedule) {
-    return { allowed: true, hasSchedule: false, message: 'No schedule configured - time tracking allowed' };
+    return { allowed: true, message: 'No schedule configured - time tracking allowed' };
   }
 
   const parseTime = (timeStr) => {
@@ -168,7 +161,7 @@ function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetM
   const startMinutes = parseTime(schedule.startTime);
   const endMinutes = parseTime(schedule.endTime);
   if (startMinutes == null || endMinutes == null) {
-    return { allowed: true, hasSchedule: false, message: 'Schedule format invalid - time tracking allowed' };
+    return { allowed: true, message: 'Schedule format invalid - time tracking allowed' };
   }
 
   const currentMinutes = getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes);
@@ -179,11 +172,6 @@ function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetM
 
   return {
     allowed,
-    hasSchedule: true,
-    scheduledMinutes: windowStart,
-    windowEndMinutes: windowEnd,
-    scheduledTime: `${String(Math.floor(windowStart / 60)).padStart(2, '0')}:${String(windowStart % 60).padStart(2, '0')}`,
-    windowEndTime: `${String(Math.floor(windowEnd / 60)).padStart(2, '0')}:${String(windowEnd % 60).padStart(2, '0')}`,
     message: allowed
       ? `Within ${label} window (${String(Math.floor(windowStart / 60)).padStart(2, '0')}:${String(windowStart % 60).padStart(2, '0')} - ${String(Math.floor(windowEnd / 60)).padStart(2, '0')}:${String(windowEnd % 60).padStart(2, '0')})`
       : `Outside ${label} window. Allowed for 5 minutes from the scheduled ${label === 'time-in' ? 'start' : 'end'} time.`,

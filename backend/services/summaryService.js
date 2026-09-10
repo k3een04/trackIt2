@@ -1,7 +1,7 @@
-// OpenRouter API Configuration
+// Google Generative AI SDK Configuration
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const MODEL = 'google/gemma-4-31b-it:free';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // BSIT Curriculum Knowledge Base
 const BSIT_CURRICULUM = {
@@ -87,7 +87,10 @@ const BSIT_CURRICULUM = {
   ],
 };
 
-function initializeOpenRouter() {
+/**
+ * Check whether the OpenRouter API is available/initialized
+ */
+function initializeGoogleAI() {
   if (!OPENROUTER_API_KEY) {
     console.warn('OPENROUTER_API_KEY not set in environment variables');
     return false;
@@ -95,6 +98,11 @@ function initializeOpenRouter() {
   return true;
 }
 
+/**
+ * Extract IT theories and practices from OJT narrative using keyword matching
+ * @param {String} narrative - The trainee's journal narrative
+ * @returns {Array} Array of identified theories with course mapping
+ */
 function extractTheoriesLocally(narrative) {
   const normalizedNarrative = String(narrative).toLowerCase();
   const matches = [];
@@ -133,7 +141,46 @@ async function summarizeText(text, maxLength = 50, concepts = []) {
 }
 
 /**
- * Extract IT theories and practices from OJT narrative using AI and curriculum mapping
+ * Call OpenRouter to generate a completion for the given prompt
+ * @param {String} prompt
+ * @returns {Promise<String>} The model's response text
+ */
+async function callOpenRouter(prompt, maxTokens) {
+  const budget = maxTokens || parseInt(process.env.OPENROUTER_MAX_TOKENS, 10) || 512;
+  const response = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'http://localhost:5000',
+      'X-Title': 'TrackIt3 OJT Journal',
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages: [
+        { role: 'system', content: 'You are an expert BSIT (Bachelor of Science in Information Technology) curriculum advisor. Always respond with valid JSON only.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: budget,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`OpenRouter API error ${response.status}: ${errorBody}`);
+  }
+
+  const data = await response.json();
+  const responseText = data?.choices?.[0]?.message?.content;
+  if (!responseText) {
+    throw new Error('Empty response text from OpenRouter');
+  }
+  return responseText;
+}
+
+/**
+ * Extract IT theories and practices from OJT narrative using OpenRouter AI
  * @param {String} narrative - The trainee's journal narrative
  * @returns {Promise<Array>} Array of identified theories with course mapping
  */
@@ -143,81 +190,53 @@ async function extractTheoriesFromNarrative(narrative) {
   }
 
   const localTheories = extractTheoriesLocally(narrative);
-  if (!initializeOpenRouter()) {
+  if (!initializeGoogleAI()) {
     console.warn('[TheoryExtractionService] OpenRouter unavailable; using local curriculum matching');
     return localTheories;
   }
 
   try {
-
-    const curriculumContext = JSON.stringify(BSIT_CURRICULUM, null, 2);
-
-    const prompt = `You are an expert BSIT (Bachelor of Science in Information Technology) curriculum advisor. 
-Analyze the following OJT (On-The-Job Training) journal entry and identify which IT theories, concepts, and practices were applied.
-
-BSIT Curriculum Reference:
-${curriculumContext}
-
-Journal Narrative:
-"${narrative}"
-
-Your task:
-1. Identify 2-5 key IT theories or practices mentioned or demonstrated in the narrative
-2. For each theory, map it to one of the BSIT courses above
-3. Return a JSON array with the following structure (return ONLY the JSON array, no other text):
-[
-  {
-    "course": "CITE1003",
-    "courseName": "Computer Programming",
-    "category": "Software Development",
-    "theory": "Used conditional statements to implement business logic"
-  }
-]
-
-If no clear IT theories are identified, return an empty array: []
-
-Remember: Be specific, match to actual curriculum courses, and extract real learning outcomes from the narrative.`;
-
-    console.log('[TheoryExtractionService] Calling OpenRouter to extract theories');
-
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': process.env.BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5000'),
-        'X-Title': 'TrackIT Theory Extractor',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        max_tokens: 2048,
-        temperature: 0.5, // Lower temperature for more consistent structured output
-      }),
+    // Compact curriculum context to keep prompt tokens low (critical for low-credit accounts)
+    const compactCurriculum = {};
+    Object.entries(BSIT_CURRICULUM).forEach(([category, courses]) => {
+      compactCurriculum[category] = courses.map((c) => ({
+        course: c.course,
+        courseName: c.courseName,
+        keywords: c.keywords.slice(0, 3),
+      }));
     });
+    const curriculumContext = JSON.stringify(compactCurriculum);
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(`OpenRouter API error: ${response.status} - ${errorData}`);
+    const prompt = `Analyze this OJT journal narrative and identify IT theories/practices applied, mapped to BSIT courses below.
+
+Courses: ${curriculumContext}
+
+Narrative: "${narrative}"
+
+Identify 2-5 theories. Return ONLY a JSON array (no other text):
+[{"course":"CITE1003","courseName":"Computer Programming","category":"Software Development","theory":"brief specific description"}]
+
+Return [] if none identified.`;
+
+    console.log(`[TheoryExtractionService] Calling OpenRouter (${OPENROUTER_MODEL}) to extract theories`);
+
+    let responseText;
+    try {
+      responseText = await callOpenRouter(prompt);
+    } catch (firstError) {
+      // If credits limit the completion budget, retry once with the affordable token count
+      const affordMatch = (firstError.message || '').match(/can only afford (\d+)/);
+      if (affordMatch) {
+        const affordable = Math.max(64, parseInt(affordMatch[1], 10) - 10);
+        console.warn(`[TheoryExtractionService] 402 credit limit; retrying with max_tokens=${affordable}`);
+        responseText = await callOpenRouter(prompt, affordable);
+      } else {
+        throw firstError;
+      }
     }
 
-    const data = await response.json();
-
-    if (!data.choices || data.choices.length === 0) {
-      throw new Error('Invalid response structure from OpenRouter');
-    }
-
-    const messageContent = data.choices[0].message.content;
-    const responseText = Array.isArray(messageContent)
-      ? messageContent.map((part) => part.text || '').join('')
-      : messageContent;
     if (!responseText) {
-      throw new Error('Empty response text from OpenRouter');
+      throw new Error('Empty response text from Google GenAI');
     }
 
     // Parse JSON response
@@ -250,7 +269,7 @@ Remember: Be specific, match to actual curriculum courses, and extract real lear
 }
 
 module.exports = {
-  initializeOpenRouter,
+  initializeGoogleAI,
   summarizeText, // deprecated
   extractTheoriesFromNarrative,
   extractTheoriesLocally,

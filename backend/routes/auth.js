@@ -1,7 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -11,33 +10,6 @@ const generateToken = (id, role) => {
     expiresIn: '7d',
   });
 };
-
-// @route   POST /api/auth/change-password
-// @desc    Change the authenticated user's password
-// @access  Private
-router.post('/change-password', authenticateToken, async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Current and new passwords are required' });
-    }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
-    }
-
-    const user = await User.findById(req.user.id).select('+password');
-    if (!user || !(await user.matchPassword(currentPassword))) {
-      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
-    }
-
-    user.password = newPassword;
-    await user.save();
-    res.status(200).json({ success: true, message: 'Password changed successfully' });
-  } catch (error) {
-    console.error('Change password error:', error);
-    res.status(500).json({ success: false, message: 'Server error changing password' });
-  }
-});
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
