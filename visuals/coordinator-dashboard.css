@@ -1174,3 +1174,209 @@ body.light-mode .tab-back-btn:hover {
   color: #ffffff;
   box-shadow: 0 0 26px rgba(0, 150, 125, 0.55);
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   DESCRIPTIVE ANALYTICS PANELS
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.analytics-kpi {
+  padding: 18px;
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-value-teal { color: var(--teal); }
+
+.kpi-value-gold { color: var(--gold); }
+
+.kpi-note {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.analytics-mini {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+}
+
+.analytics-mini-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.analytics-stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analytics-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.analytics-stat-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.analytics-table-wrap {
+  max-height: 380px;
+  overflow: auto;
+}
+
+.report-table {
+  font-size: 0.8rem;
+}
+
+/* Progress bars */
+.progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--teal);
+  transition: width 0.4s ease;
+}
+
+.progress-fill-complete { background: #22c55e; }
+
+.progress-fill-ontrack { background: var(--teal); }
+
+.progress-fill-behind { background: #f59e0b; }
+
+/* Automated summary */
+.analytics-narrative {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.narrative-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+}
+
+.narrative-index {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--navy);
+  background: var(--teal);
+}
+
+/* Needs attention list */
+.attention-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 3px solid var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.attention-high {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.attention-medium {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.attention-low {
+  border-left-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.attention-info {
+  border-left-color: #22c55e;
+  background: rgba(34, 197, 94, 0.06);
+}
+
+/* Report preview modal */
+.report-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+}
+
+.report-section {
+  margin-top: 8px;
+}
+
+/* Light mode overrides for the analytics panels */
+body.light-mode .analytics-mini,
+body.light-mode .narrative-item,
+body.light-mode .attention-item,
+body.light-mode .report-meta {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .kpi-value {
+  color: #0f172a;
+}
+
+body.light-mode .progress-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .report-modal-card {
+  background: #ffffff !important;
+}
+

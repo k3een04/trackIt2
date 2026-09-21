@@ -4,6 +4,10 @@ const User = require('../models/User');
 const DTR = require('../models/DTR');
 const Journal = require('../models/Journal');
 const Company = require('../models/Company');
+const {
+  buildCoordinatorAnalytics,
+  buildAutomatedReport,
+} = require('../services/coordinatorAnalyticsService');
 
 const router = express.Router();
 
@@ -66,165 +70,17 @@ router.get('/coordinator', authenticateToken, authorizeRole('coordinator'), asyn
 });
 
 // @route   GET /api/stats/coordinator/analytics
-// @desc    Get coordinator analytics for charts and summary cards
+// @desc    Get descriptive analytics for the coordinator dashboard
+//          (overall statistics, attendance/DTR, trainee progress,
+//          performance appraisals, and journal status)
 // @access  Private (Coordinator only)
 router.get('/coordinator/analytics', authenticateToken, authorizeRole('coordinator'), async (req, res) => {
   try {
-    const students = await User.find({ role: 'student' })
-      .select('_id fullName requiredHours companyName isActive')
-      .lean();
-
-    const studentIds = students.map(student => student._id);
-
-    const hoursByTrainee = await DTR.aggregate([
-      {
-        $match: {
-          traineeId: { $in: studentIds },
-          verifiedBySupervisor: true,
-          hoursRendered: { $gt: 0 },
-        },
-      },
-      {
-        $group: {
-          _id: '$traineeId',
-          totalHours: { $sum: '$hoursRendered' },
-        },
-      },
-    ]);
-
-    const hoursMap = new Map(
-      hoursByTrainee.map(item => [item._id.toString(), item.totalHours])
-    );
-
-    let completionSum = 0;
-    students.forEach(student => {
-      const requiredHours = student.requiredHours || 486;
-      const hours = hoursMap.get(student._id.toString()) || 0;
-      const rate = requiredHours > 0 ? hours / requiredHours : 0;
-      completionSum += rate;
-    });
-
-    const avgCompletionRate = students.length > 0
-      ? Math.round((completionSum / students.length) * 1000) / 10
-      : 0;
-
-    const topCompanyAgg = await User.aggregate([
-      {
-        $match: {
-          role: 'student',
-          isActive: true,
-          companyName: { $exists: true, $ne: null, $ne: '' },
-        },
-      },
-      {
-        $group: {
-          _id: '$companyName',
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { count: -1 } },
-      { $limit: 1 },
-    ]);
-
-    const topCompany = topCompanyAgg[0] || { _id: null, count: 0 };
-
-    const last30Days = new Date();
-    last30Days.setDate(last30Days.getDate() - 30);
-
-    const topConceptAgg = await Journal.aggregate([
-      {
-        $match: {
-          submittedAt: { $gte: last30Days },
-          concepts: { $exists: true, $ne: [] },
-        },
-      },
-      { $unwind: '$concepts' },
-      {
-        $match: {
-          concepts: { $ne: null, $ne: '' },
-        },
-      },
-      {
-        $group: {
-          _id: '$concepts',
-          count: { $sum: 1 },
-          trainees: { $addToSet: '$studentId' },
-        },
-      },
-      {
-        $project: {
-          count: 1,
-          traineeCount: { $size: '$trainees' },
-        },
-      },
-      { $sort: { count: -1 } },
-      { $limit: 1 },
-    ]);
-
-    const topConcept = topConceptAgg[0] || { _id: null, count: 0, traineeCount: 0 };
-
-    const last90Days = new Date();
-    last90Days.setDate(last90Days.getDate() - 90);
-    const recentMatch = { submittedAt: { $gte: last90Days } };
-
-    const [awaitingSupervisor, returnedToSupervisor, awaitingCoordinator, approved] = await Promise.all([
-      Journal.countDocuments({
-        ...recentMatch,
-        supervisorSigned: false,
-        $or: [
-          { coordinatorRemarks: { $exists: false } },
-          { coordinatorRemarks: null },
-        ],
-      }),
-      Journal.countDocuments({
-        ...recentMatch,
-        supervisorSigned: false,
-        coordinatorRemarks: { $exists: true, $ne: null },
-      }),
-      Journal.countDocuments({
-        ...recentMatch,
-        supervisorSigned: true,
-        coordinatorApproved: false,
-      }),
-      Journal.countDocuments({
-        ...recentMatch,
-        coordinatorApproved: true,
-      }),
-    ]);
-
-    const hoursByTraineeList = students.map(student => ({
-      name: student.fullName,
-      hours: Math.round((hoursMap.get(student._id.toString()) || 0) * 10) / 10,
-    }))
-      .sort((a, b) => b.hours - a.hours)
-      .slice(0, 8);
+    const data = await buildCoordinatorAnalytics();
 
     res.status(200).json({
       success: true,
-      data: {
-        summary: {
-          studentCount: students.length,
-          avgCompletionRate,
-          topCompany: {
-            name: topCompany._id || 'No company data',
-            count: topCompany.count || 0,
-          },
-          topConcept: {
-            name: topConcept._id || 'No concept data',
-            count: topConcept.count || 0,
-            traineeCount: topConcept.traineeCount || 0,
-          },
-        },
-        hoursByTrainee: hoursByTraineeList,
-        journalStatusBreakdown: {
-          awaitingSupervisor,
-          returnedToSupervisor,
-          awaitingCoordinator,
-          approved,
-        },
-        journalWindowDays: 90,
-        conceptWindowDays: 30,
-      },
+      data,
     });
   } catch (error) {
     console.error('Coordinator analytics error:', error);
@@ -234,6 +90,43 @@ router.get('/coordinator/analytics', authenticateToken, authorizeRole('coordinat
     });
   }
 });
+
+// @route   GET /api/stats/coordinator/report
+// @desc    Generate an automated descriptive report from the recorded data
+//          (?type=summary|trainees|attendance|journals)
+// @access  Private (Coordinator only)
+router.get('/coordinator/report', authenticateToken, authorizeRole('coordinator'), async (req, res) => {
+  try {
+    const coordinatorPromise = (async () => {
+      try {
+        return await User.findById(req.user.id)
+          .select('fullName email employeeId coordinatorDepartment')
+          .lean();
+      } catch (lookupError) {
+        return null;
+      }
+    })();
+
+    const [analytics, coordinator] = await Promise.all([buildCoordinatorAnalytics(), coordinatorPromise]);
+
+    const report = buildAutomatedReport(analytics, {
+      type: req.query.type,
+      generatedBy: coordinator,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: report,
+    });
+  } catch (error) {
+    console.error('Coordinator report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error generating coordinator report',
+    });
+  }
+});
+
 
 // @route   GET /api/stats/supervisor
 // @desc    Get supervisor overview stats from MongoDB

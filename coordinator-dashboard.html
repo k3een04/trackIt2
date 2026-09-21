@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=1">
+  <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=2">
 </head>
 <body>
   <script>
@@ -299,12 +299,65 @@
         <p class="text-slate-400">Descriptive analytics and performance insights</p>
       </div>
 
-      <!-- Stats -->
+      <!-- Generated timestamp + refresh -->
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <p class="text-xs text-slate-500">
+          Centralized view of attendance, DTR, journals, performance appraisals, and trainee records.
+          <span id="analytics-generated-at" class="text-teal-400">Loading analytics…</span>
+        </p>
+        <button onclick="loadAnalyticsData()" class="btn-ghost text-xs">Refresh Analytics</button>
+      </div>
+
+      <!-- Overall Statistics -->
+      <div class="kpi-grid mb-8">
+        <div class="glass-card analytics-kpi">
+          <p class="kpi-label">Total Trainees</p>
+          <div id="analytics-total-trainees" class="kpi-value">—</div>
+          <p id="analytics-total-trainees-note" class="kpi-note">Enrolled in the OJT program</p>
+        </div>
+        <div class="glass-card analytics-kpi">
+          <p class="kpi-label">Active Trainees</p>
+          <div id="analytics-active-trainees" class="kpi-value">—</div>
+          <p id="analytics-active-trainees-note" class="kpi-note">Currently deployed</p>
+        </div>
+        <div class="glass-card analytics-kpi">
+          <p class="kpi-label">Completed OJT</p>
+          <div id="analytics-completed-trainees" class="kpi-value">—</div>
+          <p id="analytics-completed-trainees-note" class="kpi-note">Reached required hours</p>
+        </div>
+        <div class="glass-card analytics-kpi">
+          <p class="kpi-label">Pending Submissions</p>
+          <div id="analytics-pending-submissions" class="kpi-value">—</div>
+          <p id="analytics-pending-submissions-note" class="kpi-note">DTR and journal items</p>
+        </div>
+        <div class="glass-card analytics-kpi">
+          <p class="kpi-label">Total Hours Completed</p>
+          <div id="analytics-total-hours" class="kpi-value">—</div>
+          <p id="analytics-total-hours-note" class="kpi-note">Supervisor-verified hours</p>
+        </div>
+        <div class="glass-card analytics-kpi">
+          <p class="kpi-label">Hours Remaining</p>
+          <div id="analytics-remaining-hours" class="kpi-value">—</div>
+          <p id="analytics-remaining-hours-note" class="kpi-note">Across all trainees</p>
+        </div>
+        <div class="glass-card analytics-kpi">
+          <p class="kpi-label">Avg Completion Rate</p>
+          <div id="analytics-avg-completion" class="kpi-value kpi-value-teal">—</div>
+          <p id="analytics-avg-completion-note" class="kpi-note">Based on verified hours</p>
+        </div>
+        <div class="glass-card analytics-kpi">
+          <p class="kpi-label">Avg Performance</p>
+          <div id="analytics-avg-performance" class="kpi-value kpi-value-gold">—</div>
+          <p id="analytics-avg-performance-note" class="kpi-note">From monthly appraisals</p>
+        </div>
+      </div>
+
+      <!-- Applied theory / partner company highlights -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="glass-card p-6">
-          <p class="text-slate-400 text-sm mb-3">Avg Completion Rate</p>
-          <div id="analytics-avg-completion" class="text-3xl font-display font-700 text-teal-400 mb-2">—</div>
-          <p id="analytics-avg-completion-note" class="text-xs text-slate-500">Based on verified hours</p>
+          <p class="text-slate-400 text-sm mb-3">Attendance Rate (Last 30 Days)</p>
+          <div id="analytics-attendance-rate" class="text-3xl font-display font-700 text-teal-400 mb-2">—</div>
+          <p id="analytics-attendance-rate-note" class="text-xs text-slate-500">Present and late vs all records</p>
         </div>
         <div class="glass-card p-6">
           <p class="text-slate-400 text-sm mb-3">Most Applied Theory</p>
@@ -318,62 +371,343 @@
         </div>
       </div>
 
-      <!-- Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-6">Hours Rendered per Trainee</h3>
-          <div style="position: relative; height: 300px;">
-            <canvas id="hoursChart"></canvas>
+      <!-- Attendance & DTR -->
+      <div class="glass-card p-6 mb-8">
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-6">
+          <div>
+            <h3 class="font-display font-700">Attendance &amp; DTR</h3>
+            <p class="text-xs text-slate-500">Hours completed and remaining, attendance status, and DTR records.</p>
+          </div>
+          <span class="status-badge status-present">Last 30 days</span>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <div class="analytics-mini">
+            <p class="kpi-label">Present Today</p>
+            <p id="analytics-today-present" class="analytics-mini-value">—</p>
+            <p class="kpi-note">Verified DTR stamped today</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">Absent Today</p>
+            <p id="analytics-today-absent" class="analytics-mini-value">—</p>
+            <p class="kpi-note">Active trainees without a DTR</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">Punctuality</p>
+            <p id="analytics-punctuality" class="analytics-mini-value">—</p>
+            <p class="kpi-note">Present vs present + late</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">Avg Hours / Day</p>
+            <p id="analytics-avg-daily-hours" class="analytics-mini-value">—</p>
+            <p id="analytics-avg-daily-hours-note" class="kpi-note">Verified hours per active day</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">DTR Records</p>
+            <p id="analytics-dtr-records" class="analytics-mini-value">—</p>
+            <p id="analytics-dtr-records-note" class="kpi-note">All time</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">Pending Verification</p>
+            <p id="analytics-pending-dtrs" class="analytics-mini-value">—</p>
+            <p id="analytics-pending-dtrs-note" class="kpi-note">Awaiting supervisor</p>
           </div>
         </div>
 
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-sm font-semibold mb-4">Attendance Status (Last 30 Days)</h4>
+            <div style="position: relative; height: 280px;">
+              <canvas id="attendanceStatusChart"></canvas>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold mb-4">Attendance Trend — Verified Hours (Last 8 Weeks)</h4>
+            <div style="position: relative; height: 280px;">
+              <canvas id="attendanceTrendChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent DTR Records -->
+      <div class="glass-card p-6 mb-8">
+        <h3 class="font-display font-700 mb-2">Recent DTR Records</h3>
+        <p class="text-xs text-slate-500 mb-6">Latest time in / time out entries recorded by trainees.</p>
+        <div class="analytics-table-wrap">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/10">
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Trainee</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Date</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Time In</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Time Out</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Hours</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Status</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Verified</th>
+              </tr>
+            </thead>
+            <tbody id="recent-dtr-body">
+              <tr><td colspan="7" class="py-6 text-center text-slate-500">Loading DTR records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Trainee Progress -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-6">Journal Status Breakdown (Last 90 Days)</h3>
-          <div style="position: relative; height: 300px;">
-            <canvas id="journalStatusChart"></canvas>
+          <h3 class="font-display font-700 mb-2">Trainee Progress — Completed vs Required Hours</h3>
+          <p class="text-xs text-slate-500 mb-6">Top trainees ranked by supervisor-verified hours.</p>
+          <div style="position: relative; height: 320px;">
+            <canvas id="traineeProgressChart"></canvas>
+          </div>
+        </div>
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-2">Hours Rendered per Trainee</h3>
+          <p class="text-xs text-slate-500 mb-6">Highest verified hour totals (top 8).</p>
+          <div style="position: relative; height: 320px;">
+            <canvas id="hoursChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trainee Progress Details -->
+      <div class="glass-card p-6 mb-8">
+        <h3 class="font-display font-700 mb-2">Trainee Progress Details</h3>
+        <p class="text-xs text-slate-500 mb-6">Each trainee's completed and remaining required OJT hours.</p>
+        <div class="analytics-table-wrap">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/10">
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Trainee</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Student ID</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Company</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Completed</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Remaining</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Progress</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Status</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Rating</th>
+              </tr>
+            </thead>
+            <tbody id="trainee-progress-body">
+              <tr><td colspan="8" class="py-6 text-center text-slate-500">Loading trainee progress...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Performance Appraisals -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-2">Performance Distribution</h3>
+          <p class="text-xs text-slate-500 mb-6">Trainees per appraisal rating band.</p>
+          <div style="position: relative; height: 280px;">
+            <canvas id="performanceChart"></canvas>
+          </div>
+        </div>
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-6">Appraisal Summary</h3>
+          <div class="analytics-stat-list">
+            <div class="analytics-stat-row">
+              <span>Average Performance</span>
+              <span id="analytics-performance-avg" class="font-semibold text-teal-400">—</span>
+            </div>
+            <div class="analytics-stat-row">
+              <span>Average Rating</span>
+              <span id="analytics-performance-rating" class="font-semibold">—</span>
+            </div>
+            <div class="analytics-stat-row">
+              <span>Rated Trainees</span>
+              <span id="analytics-performance-rated" class="font-semibold">—</span>
+            </div>
+            <div class="analytics-stat-row">
+              <span>Unrated Trainees</span>
+              <span id="analytics-performance-unrated" class="font-semibold">—</span>
+            </div>
+            <div class="analytics-stat-row">
+              <span>Most Recent Appraisal</span>
+              <span id="analytics-performance-last" class="font-semibold">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-2">Top Performers</h3>
+          <p class="text-xs text-slate-500 mb-6">Highest supervisor appraisal ratings.</p>
+          <div class="space-y-3" id="top-performers-list">
+            <p class="text-slate-500 text-sm text-center py-4">Loading appraisals...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Journal Status -->
+      <div class="glass-card p-6 mb-8">
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-6">
+          <div>
+            <h3 class="font-display font-700">Journal Status</h3>
+            <p class="text-xs text-slate-500">Submitted, pending, and incomplete weekly journals.</p>
+          </div>
+          <span class="status-badge status-pending">Last 90 days</span>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div class="analytics-mini">
+            <p class="kpi-label">Submitted</p>
+            <p id="analytics-journals-submitted" class="analytics-mini-value">—</p>
+            <p class="kpi-note">On file</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">Pending</p>
+            <p id="analytics-journals-pending" class="analytics-mini-value">—</p>
+            <p class="kpi-note">Awaiting review</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">Reviewed</p>
+            <p id="analytics-journals-reviewed" class="analytics-mini-value">—</p>
+            <p class="kpi-note">Supervisor signed</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">Incomplete</p>
+            <p id="analytics-journals-incomplete" class="analytics-mini-value">—</p>
+            <p class="kpi-note">Still in draft</p>
+          </div>
+          <div class="analytics-mini">
+            <p class="kpi-label">Completion Rate</p>
+            <p id="analytics-journal-completion" class="analytics-mini-value">—</p>
+            <p id="analytics-journal-completion-note" class="kpi-note">Vs expected submissions</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-sm font-semibold mb-4">Journal Status Breakdown</h4>
+            <div style="position: relative; height: 300px;">
+              <canvas id="journalStatusChart"></canvas>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-sm font-semibold mb-4">Weekly Journal Submissions (Last 8 Weeks)</h4>
+            <div style="position: relative; height: 300px;">
+              <canvas id="journalTrendChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Department Breakdown -->
-      <div class="glass-card p-6 mb-8">
-        <h3 class="font-display font-700 mb-6">Department Breakdown</h3>
-        <div style="position: relative; height: 300px; max-width: 500px;">
-          <canvas id="deptChart"></canvas>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-2">Department Breakdown</h3>
+          <p class="text-xs text-slate-500 mb-6">Trainees per department.</p>
+          <div style="position: relative; height: 300px;">
+            <canvas id="deptChart"></canvas>
+          </div>
+        </div>
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-2">Department Performance</h3>
+          <p class="text-xs text-slate-500 mb-6">Average completion and appraisal rating per department.</p>
+          <div class="analytics-table-wrap">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-white/10">
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Department</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Trainees</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Active</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Avg Completion</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Avg Rating</th>
+                  <th class="text-left py-3 px-4 text-slate-400 font-semibold">Verified Hours</th>
+                </tr>
+              </thead>
+              <tbody id="department-analytics-body">
+                <tr><td colspan="6" class="py-6 text-center text-slate-500">Loading departments...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Automated Findings -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="glass-card p-6">
+          <div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+            <div>
+              <h3 class="font-display font-700">Automated Summary</h3>
+              <p class="text-xs text-slate-500">Findings generated from the recorded data.</p>
+            </div>
+            <button onclick="loadAnalyticsData()" class="btn-ghost text-xs">Regenerate</button>
+          </div>
+          <div id="analytics-narrative" class="analytics-narrative">
+            <p class="text-slate-500 text-sm">Loading summary...</p>
+          </div>
+        </div>
+        <div class="glass-card p-6">
+          <h3 class="font-display font-700 mb-2">Needs Attention</h3>
+          <p class="text-xs text-slate-500 mb-6">Centralized list of records that require action.</p>
+          <div class="space-y-3" id="analytics-attention-list">
+            <p class="text-slate-500 text-sm text-center py-4">Loading attention list...</p>
+          </div>
         </div>
       </div>
 
       <!-- Report Generation -->
       <div class="glass-card p-6">
-        <h3 class="font-display font-700 mb-6">Generate Reports</h3>
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-6">
+          <div>
+            <h3 class="font-display font-700">Generate Reports</h3>
+            <p class="text-xs text-slate-500">Automated reports summarized from the recorded DTR, journal, appraisal, and trainee data.</p>
+          </div>
+          <span id="analytics-report-generated-at" class="status-badge status-verified">Not generated yet</span>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="p-4 rounded-lg bg-white/5 border border-white/10">
             <button onclick="generateSemesterReport()" class="btn-primary w-full mb-3">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
               Semester Summary
             </button>
-            <p class="text-xs text-slate-500">Last: Apr 25</p>
+            <p id="report-note-summary" class="text-xs text-slate-500">Full descriptive report preview</p>
           </div>
           <div class="p-4 rounded-lg bg-white/5 border border-white/10">
             <button onclick="exportTraineeData()" class="btn-primary w-full mb-3">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
               Trainee Data
             </button>
-            <p class="text-xs text-slate-500">Last: Apr 24</p>
+            <p id="report-note-trainees" class="text-xs text-slate-500">CSV of trainee hours and status</p>
           </div>
           <div class="p-4 rounded-lg bg-white/5 border border-white/10">
             <button onclick="exportAttendanceLogs()" class="btn-primary w-full mb-3">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
               Attendance Logs
             </button>
-            <p class="text-xs text-slate-500">Last: Apr 23</p>
+            <p id="report-note-attendance" class="text-xs text-slate-500">CSV of attendance per trainee</p>
           </div>
           <div class="p-4 rounded-lg bg-white/5 border border-white/10">
             <button onclick="exportJournalAnalytics()" class="btn-primary w-full mb-3">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
               Journal Analytics
             </button>
-            <p class="text-xs text-slate-500">Last: Apr 22</p>
+            <p id="report-note-journals" class="text-xs text-slate-500">Journal status preview and CSV</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORT PREVIEW MODAL -->
+    <div id="report-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
+      <div class="min-h-full flex items-start justify-center p-4">
+        <div class="glass-card report-modal-card w-full max-w-4xl my-8" style="background: rgba(15, 23, 42, 0.97);">
+          <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
+            <div>
+              <h3 id="report-modal-title" class="font-display font-700 text-lg">Report</h3>
+              <p id="report-modal-subtitle" class="text-xs text-slate-500"></p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="printReportPreview()" class="btn-ghost text-xs">Print / Save as PDF</button>
+              <button onclick="downloadReportCSV()" id="report-csv-btn" class="btn-primary text-xs">Download CSV</button>
+              <button onclick="closeReportModal()" class="btn-ghost text-xs">Close</button>
+            </div>
+          </div>
+          <div id="report-modal-body" class="p-6 space-y-6">
+            <p class="text-slate-500 text-sm text-center py-6">Generating report...</p>
           </div>
         </div>
       </div>
@@ -557,6 +891,6 @@
 
   </div>
 
-  <script src="coordinator-dashboard.js?v=1"></script>
+  <script src="coordinator-dashboard.js?v=2"></script>
 </body>
 </html>

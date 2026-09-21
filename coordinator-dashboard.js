@@ -948,46 +948,103 @@ function initCharts() {
   loadAnalyticsData();
 }
 
-function updateAnalyticsSummary(summary, windows) {
-  const avgCompletionEl = document.getElementById('analytics-avg-completion');
-  const avgCompletionNote = document.getElementById('analytics-avg-completion-note');
-  const topConceptEl = document.getElementById('analytics-top-concept');
-  const topConceptNote = document.getElementById('analytics-top-concept-note');
-  const topCompanyEl = document.getElementById('analytics-top-company');
-  const topCompanyNote = document.getElementById('analytics-top-company-note');
+// ────────────────────────────────────────────────────────────────────────────
+// DESCRIPTIVE ANALYTICS HELPERS
+// ────────────────────────────────────────────────────────────────────────────
 
-  if (avgCompletionEl) {
-    const rate = Number.isFinite(summary.avgCompletionRate) ? summary.avgCompletionRate : 0;
-    avgCompletionEl.textContent = `${rate.toFixed(1)}%`;
-  }
-  if (avgCompletionNote) {
-    const studentCount = summary.studentCount || 0;
-    avgCompletionNote.textContent = studentCount > 0
-      ? `Across ${studentCount} trainees (verified hours)`
-      : 'No trainee data available';
-  }
-
-  if (topConceptEl) {
-    topConceptEl.textContent = summary.topConcept?.name || 'No concept data';
-  }
-  if (topConceptNote) {
-    const traineeCount = summary.topConcept?.traineeCount || 0;
-    const conceptWindowDays = windows.conceptWindowDays || 30;
-    topConceptNote.textContent = traineeCount > 0
-      ? `${traineeCount} trainees in the last ${conceptWindowDays} days`
-      : `No journal concepts in the last ${conceptWindowDays} days`;
-  }
-
-  if (topCompanyEl) {
-    topCompanyEl.textContent = summary.topCompany?.name || 'No company data';
-  }
-  if (topCompanyNote) {
-    const count = summary.topCompany?.count || 0;
-    topCompanyNote.textContent = count > 0
-      ? `${count} active trainees`
-      : 'No active trainees yet';
-  }
+function analyticsHours(value) {
+  const numeric = Number(value) || 0;
+  return `${numeric.toLocaleString('en-US', { maximumFractionDigits: 1 })} h`;
 }
+
+function analyticsCount(value) {
+  return (Number(value) || 0).toLocaleString('en-US');
+}
+
+function analyticsPercent(value) {
+  return `${(Number(value) || 0).toFixed(1)}%`;
+}
+
+function setAnalyticsText(elementId, value) {
+  const element = document.getElementById(elementId);
+  if (element) element.textContent = value;
+}
+
+function analyticsDateTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function progressFillClass(rate) {
+  if (rate >= 100) return 'progress-fill progress-fill-complete';
+  if (rate >= 50) return 'progress-fill progress-fill-ontrack';
+  return 'progress-fill progress-fill-behind';
+}
+
+function traineeStatusBadge(status) {
+  if (status === 'Completed') return 'status-completed';
+  if (status === 'Inactive') return 'status-inactive';
+  return 'status-on-track';
+}
+
+function updateAnalyticsSummary(summary, windows, analytics = {}) {
+  const attendance = analytics.attendance || {};
+  const statusBreakdown = attendance.statusBreakdown || { present: 0, late: 0, absent: 0, excused: 0 };
+
+  // ── Overall statistics tiles ───────────────────────────────────────────
+  setAnalyticsText('analytics-total-trainees', analyticsCount(summary.studentCount));
+  setAnalyticsText('analytics-total-trainees-note',
+    `${analyticsCount(summary.activeTrainees)} active • ${analyticsCount(summary.behindTrainees)} below 50%`);
+  setAnalyticsText('analytics-active-trainees', analyticsCount(summary.activeTrainees));
+  setAnalyticsText('analytics-active-trainees-note', `${analyticsCount(summary.onTrackTrainees)} on track`);
+  setAnalyticsText('analytics-completed-trainees', analyticsCount(summary.completedTrainees));
+  setAnalyticsText('analytics-completed-trainees-note', `of ${analyticsCount(summary.studentCount)} enrolled trainees`);
+  setAnalyticsText('analytics-pending-submissions', analyticsCount(summary.pendingSubmissions));
+  setAnalyticsText('analytics-pending-submissions-note',
+    `${analyticsCount(summary.pendingDTRs)} DTR • ${analyticsCount(summary.pendingJournals)} journals`);
+  setAnalyticsText('analytics-total-hours', analyticsHours(summary.totalCompletedHours));
+  setAnalyticsText('analytics-total-hours-note', `of ${analyticsCount(summary.totalRequiredHours)} required hours`);
+  setAnalyticsText('analytics-remaining-hours', analyticsHours(summary.totalRemainingHours));
+  setAnalyticsText('analytics-remaining-hours-note', summary.projectedCompletionAt
+    ? `Projected completion ${formatShortDate(summary.projectedCompletionAt)}`
+    : 'No completion pace available yet');
+  setAnalyticsText('analytics-avg-completion', analyticsPercent(summary.avgCompletionRate));
+  setAnalyticsText('analytics-avg-completion-note', summary.studentCount > 0
+    ? `Across ${analyticsCount(summary.studentCount)} trainees (verified hours)`
+    : 'No trainee data available');
+  setAnalyticsText('analytics-avg-performance', summary.ratedCount > 0 ? analyticsPercent(summary.avgPerformancePercent) : '—');
+  setAnalyticsText('analytics-avg-performance-note', summary.ratedCount > 0
+    ? `${summary.avgPerformance} of 5 average rating`
+    : 'No appraisal recorded yet');
+
+  // ── Attendance highlight ──────────────────────────────────────────────
+  setAnalyticsText('analytics-attendance-rate', analyticsPercent(attendance.attendanceRate));
+  setAnalyticsText('analytics-attendance-rate-note',
+    `Present ${analyticsCount(statusBreakdown.present)} • Late ${analyticsCount(statusBreakdown.late)} • Absent ${analyticsCount(statusBreakdown.absent)}`);
+
+  // ── Most applied theory / top company ─────────────────────────────────
+  setAnalyticsText('analytics-top-concept', summary.topConcept?.name || 'No concept data');
+  const conceptTraineeCount = summary.topConcept?.traineeCount || 0;
+  const conceptWindowDays = windows.conceptWindowDays || 30;
+  setAnalyticsText('analytics-top-concept-note', conceptTraineeCount > 0
+    ? `${analyticsCount(conceptTraineeCount)} trainees in the last ${conceptWindowDays} days`
+    : `No journal concepts in the last ${conceptWindowDays} days`);
+
+  setAnalyticsText('analytics-top-company', summary.topCompany?.name || 'No company data');
+  const topCompanyCount = summary.topCompany?.count || 0;
+  setAnalyticsText('analytics-top-company-note', topCompanyCount > 0
+    ? `${analyticsCount(topCompanyCount)} trainee(s) deployed`
+    : 'No active trainees yet');
+}
+
 
 function renderHoursChart(hoursByTrainee) {
   const hoursCtx = document.getElementById('hoursChart');
@@ -1161,17 +1218,560 @@ function renderDepartmentChart() {
   window.deptChartInit = true;
 }
 
+function analyticsTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function renderAttendancePanel(attendance) {
+  const data = attendance || {};
+  const statusBreakdown = data.statusBreakdown || { present: 0, late: 0, absent: 0, excused: 0 };
+
+  setAnalyticsText('analytics-today-present', analyticsCount(data.todayPresent));
+  setAnalyticsText('analytics-today-absent', analyticsCount(data.todayAbsent));
+  setAnalyticsText('analytics-punctuality', analyticsPercent(data.punctualityRate));
+  setAnalyticsText('analytics-avg-daily-hours', analyticsHours(data.avgDailyHours));
+  setAnalyticsText('analytics-avg-daily-hours-note',
+    `${analyticsCount(data.activeDays)} active day(s) with verified records`);
+  setAnalyticsText('analytics-dtr-records', analyticsCount(data.records));
+  setAnalyticsText('analytics-dtr-records-note',
+    `${analyticsCount(data.verifiedRecords)} verified • ${analyticsCount(data.recordsWithHours)} with hours`);
+  setAnalyticsText('analytics-pending-dtrs', analyticsCount(data.pendingVerification));
+  setAnalyticsText('analytics-pending-dtrs-note',
+    `${analyticsCount(data.unverifiedRecords)} unverified record(s)`);
+
+  // Attendance status mix (last 30 days)
+  const statusCanvas = document.getElementById('attendanceStatusChart');
+  if (statusCanvas) {
+    const statusDataset = {
+      data: [
+        statusBreakdown.present || 0,
+        statusBreakdown.late || 0,
+        statusBreakdown.absent || 0,
+        statusBreakdown.excused || 0,
+      ],
+      backgroundColor: [
+        'rgba(34, 197, 94, 0.8)',
+        'rgba(245, 158, 11, 0.8)',
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(59, 130, 246, 0.8)',
+      ],
+      borderColor: [
+        'rgba(34, 197, 94, 1)',
+        'rgba(245, 158, 11, 1)',
+        'rgba(239, 68, 68, 1)',
+        'rgba(59, 130, 246, 1)',
+      ],
+      borderWidth: 2,
+    };
+    const statusLabels = ['Present', 'Late', 'Absent', 'Excused'];
+
+    if (window.analyticsCharts?.attendanceStatusChart) {
+      window.analyticsCharts.attendanceStatusChart.data.labels = statusLabels;
+      window.analyticsCharts.attendanceStatusChart.data.datasets = [statusDataset];
+      window.analyticsCharts.attendanceStatusChart.update();
+    } else {
+      window.analyticsCharts = window.analyticsCharts || {};
+      window.analyticsCharts.attendanceStatusChart = new Chart(statusCanvas, {
+        type: 'doughnut',
+        data: { labels: statusLabels, datasets: [statusDataset] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { color: 'rgba(203, 213, 225, 0.8)' },
+            },
+          },
+        },
+      });
+    }
+  }
+
+  // Weekly verified hours + present records trend
+  const trendCanvas = document.getElementById('attendanceTrendChart');
+  if (trendCanvas) {
+    const weeks = Array.isArray(data.weeklyHours) ? data.weeklyHours : [];
+    const labels = weeks.length > 0 ? weeks.map(week => week.label) : ['No data'];
+    const hoursDataset = {
+      type: 'bar',
+      label: 'Verified Hours',
+      data: weeks.length > 0 ? weeks.map(week => week.hours) : [0],
+      backgroundColor: 'rgba(0, 200, 170, 0.55)',
+      borderColor: 'rgba(0, 200, 170, 1)',
+      borderWidth: 2,
+      borderRadius: 6,
+      yAxisID: 'y',
+    };
+    const presentDataset = {
+      type: 'line',
+      label: 'Present Records',
+      data: weeks.length > 0 ? weeks.map(week => week.present) : [0],
+      borderColor: 'rgba(245, 200, 66, 1)',
+      backgroundColor: 'rgba(245, 200, 66, 0.2)',
+      borderWidth: 2,
+      tension: 0.35,
+      pointRadius: 3,
+      yAxisID: 'y1',
+    };
+
+    if (window.analyticsCharts?.attendanceTrendChart) {
+      window.analyticsCharts.attendanceTrendChart.data.labels = labels;
+      window.analyticsCharts.attendanceTrendChart.data.datasets = [hoursDataset, presentDataset];
+      window.analyticsCharts.attendanceTrendChart.update();
+    } else {
+      window.analyticsCharts = window.analyticsCharts || {};
+      window.analyticsCharts.attendanceTrendChart = new Chart(trendCanvas, {
+        type: 'bar',
+        data: { labels, datasets: [hoursDataset, presentDataset] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { labels: { color: 'rgba(203, 213, 225, 0.8)' } },
+            tooltip: {
+              callbacks: {
+                afterLabel: (context) => {
+                  const week = weeks[context.dataIndex];
+                  return week ? week.range : '';
+                },
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              position: 'left',
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: 'rgba(203, 213, 225, 0.6)' },
+              title: { display: true, text: 'Hours', color: 'rgba(203, 213, 225, 0.6)' },
+            },
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              grid: { display: false },
+              ticks: { color: 'rgba(203, 213, 225, 0.6)' },
+              title: { display: true, text: 'Records', color: 'rgba(203, 213, 225, 0.6)' },
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: 'rgba(203, 213, 225, 0.6)' },
+            },
+          },
+        },
+      });
+    }
+  }
+}
+
+function renderRecentDTRs(records) {
+  const tbody = document.getElementById('recent-dtr-body');
+  if (!tbody) return;
+
+  const items = Array.isArray(records) ? records : [];
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">No DTR records recorded yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map(record => {
+    const statusClass = record.status === 'absent'
+      ? 'status-absent'
+      : record.status === 'late'
+        ? 'status-behind'
+        : record.status === 'excused'
+          ? 'status-inactive'
+          : 'status-present';
+
+    return `
+      <tr class="border-b border-white/5">
+        <td class="py-3 px-4">
+          <span class="block text-white">${escapeHtml(record.traineeName)}</span>
+          <span class="block text-xs text-slate-500">${escapeHtml(record.company)}</span>
+        </td>
+        <td class="py-3 px-4 text-slate-300">${formatShortDate(record.date)}</td>
+        <td class="py-3 px-4 text-slate-300">${analyticsTime(record.timeIn)}</td>
+        <td class="py-3 px-4 text-slate-300">${analyticsTime(record.timeOut)}</td>
+        <td class="py-3 px-4 text-slate-300">${analyticsHours(record.hoursRendered)}</td>
+        <td class="py-3 px-4"><span class="status-badge ${statusClass}">${escapeHtml(record.status)}</span></td>
+        <td class="py-3 px-4">${record.verified
+          ? '<span class="status-badge status-verified">Verified</span>'
+          : '<span class="status-badge status-pending">Pending</span>'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderTraineeProgress(progress) {
+  const items = Array.isArray(progress) ? progress : [];
+  const tbody = document.getElementById('trainee-progress-body');
+
+  if (tbody) {
+    if (items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="py-6 text-center text-slate-500">No trainee records yet</td></tr>';
+    } else {
+      tbody.innerHTML = items.map(trainee => {
+        const rate = Number(trainee.completionRate) || 0;
+        const width = Math.min(rate, 100);
+        return `
+          <tr class="border-b border-white/5">
+            <td class="py-3 px-4">
+              <span class="block text-white">${escapeHtml(trainee.name)}</span>
+              <span class="block text-xs text-slate-500">${escapeHtml(trainee.department)}</span>
+            </td>
+            <td class="py-3 px-4 text-slate-300">${escapeHtml(trainee.studentId)}</td>
+            <td class="py-3 px-4 text-slate-300">${escapeHtml(trainee.company)}</td>
+            <td class="py-3 px-4 text-slate-300">${analyticsHours(trainee.completedHours)}</td>
+            <td class="py-3 px-4 text-slate-300">${analyticsHours(trainee.remainingHours)}</td>
+            <td class="py-3 px-4">
+              <div class="progress-track">
+                <div class="${progressFillClass(rate)}" style="width: ${width}%"></div>
+              </div>
+              <span class="text-xs text-slate-500">${analyticsPercent(rate)} of ${analyticsCount(trainee.requiredHours)} h</span>
+            </td>
+            <td class="py-3 px-4"><span class="status-badge ${traineeStatusBadge(trainee.status)}">${escapeHtml(trainee.status)}</span></td>
+            <td class="py-3 px-4 text-slate-300">${trainee.rating === null || trainee.rating === undefined
+              ? '<span class="text-xs text-slate-500">Not rated</span>'
+              : `${trainee.rating} / 5`}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  // Completed vs remaining hours per trainee (top 8 by verified hours)
+  const canvas = document.getElementById('traineeProgressChart');
+  if (!canvas) return;
+
+  const topTrainees = items.slice(0, 8);
+  const labels = topTrainees.length > 0 ? topTrainees.map(trainee => trainee.name.split(' ')[0]) : ['No data'];
+  const completedDatasets = {
+    label: 'Completed Hours',
+    data: topTrainees.length > 0 ? topTrainees.map(trainee => trainee.completedHours) : [0],
+    backgroundColor: 'rgba(0, 200, 170, 0.75)',
+    borderColor: 'rgba(0, 200, 170, 1)',
+    borderWidth: 2,
+    borderRadius: 6,
+    stack: 'hours',
+  };
+  const remainingDatasets = {
+    label: 'Remaining Hours',
+    data: topTrainees.length > 0 ? topTrainees.map(trainee => trainee.remainingHours) : [0],
+    backgroundColor: 'rgba(148, 163, 184, 0.35)',
+    borderColor: 'rgba(148, 163, 184, 0.7)',
+    borderWidth: 2,
+    borderRadius: 6,
+    stack: 'hours',
+  };
+
+  if (window.analyticsCharts?.traineeProgressChart) {
+    window.analyticsCharts.traineeProgressChart.data.labels = labels;
+    window.analyticsCharts.traineeProgressChart.data.datasets = [completedDatasets, remainingDatasets];
+    window.analyticsCharts.traineeProgressChart.update();
+    return;
+  }
+
+  window.analyticsCharts = window.analyticsCharts || {};
+  window.analyticsCharts.traineeProgressChart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets: [completedDatasets, remainingDatasets] },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: 'rgba(203, 213, 225, 0.8)' } },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          stacked: true,
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
+          title: { display: true, text: 'Hours', color: 'rgba(203, 213, 225, 0.6)' },
+        },
+        y: {
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
+        },
+      },
+    },
+  });
+}
+
+function renderPerformancePanel(performance) {
+  const data = performance || {};
+  const distribution = data.distribution || { excellent: 0, good: 0, satisfactory: 0, needsImprovement: 0, unrated: 0 };
+
+  setAnalyticsText('analytics-performance-avg', data.ratedCount > 0 ? analyticsPercent(data.averagePercent) : '—');
+  setAnalyticsText('analytics-performance-rating', data.ratedCount > 0 ? `${data.average} / 5` : 'No appraisals');
+  setAnalyticsText('analytics-performance-rated', analyticsCount(data.ratedCount));
+  setAnalyticsText('analytics-performance-unrated', analyticsCount(data.unratedCount));
+  setAnalyticsText('analytics-performance-last', data.lastAppraisalLabel || 'No appraisals yet');
+
+  // Rating distribution doughnut
+  const canvas = document.getElementById('performanceChart');
+  if (canvas) {
+    const labels = ['Excellent', 'Good', 'Satisfactory', 'Needs Improvement', 'Unrated'];
+    const dataset = {
+      data: [
+        distribution.excellent || 0,
+        distribution.good || 0,
+        distribution.satisfactory || 0,
+        distribution.needsImprovement || 0,
+        distribution.unrated || 0,
+      ],
+      backgroundColor: [
+        'rgba(34, 197, 94, 0.8)',
+        'rgba(0, 200, 170, 0.8)',
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(148, 163, 184, 0.5)',
+      ],
+      borderColor: [
+        'rgba(34, 197, 94, 1)',
+        'rgba(0, 200, 170, 1)',
+        'rgba(59, 130, 246, 1)',
+        'rgba(239, 68, 68, 1)',
+        'rgba(148, 163, 184, 0.8)',
+      ],
+      borderWidth: 2,
+    };
+
+    if (window.analyticsCharts?.performanceChart) {
+      window.analyticsCharts.performanceChart.data.labels = labels;
+      window.analyticsCharts.performanceChart.data.datasets = [dataset];
+      window.analyticsCharts.performanceChart.update();
+    } else {
+      window.analyticsCharts = window.analyticsCharts || {};
+      window.analyticsCharts.performanceChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels, datasets: [dataset] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { color: 'rgba(203, 213, 225, 0.8)' },
+            },
+          },
+        },
+      });
+    }
+  }
+
+  // Top performers list
+  const list = document.getElementById('top-performers-list');
+  if (!list) return;
+
+  const performers = Array.isArray(data.topPerformers) ? data.topPerformers : [];
+  if (performers.length === 0) {
+    list.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">No performance appraisals recorded yet</p>';
+    return;
+  }
+
+  list.innerHTML = performers.map(performer => {
+    const rating = Number(performer.rating) || 0;
+    const percent = Math.min((rating / 5) * 100, 100);
+    return `
+      <div class="trainee-progress-item">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <p class="text-sm font-semibold text-white">${escapeHtml(performer.name)}</p>
+            <p class="text-xs text-slate-500">${escapeHtml(performer.company)} • ${analyticsHours(performer.completedHours)} completed</p>
+          </div>
+          <span class="text-sm font-semibold text-teal-400">${rating} / 5</span>
+        </div>
+        <div class="progress-track">
+          <div class="${progressFillClass(percent)}" style="width: ${percent}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderJournalPanel(journals) {
+  const data = journals || {};
+  const byStatus = data.byStatus || { submitted: 0, pending: 0, reviewed: 0, incomplete: 0 };
+
+  setAnalyticsText('analytics-journals-submitted', analyticsCount(byStatus.submitted));
+  setAnalyticsText('analytics-journals-pending', analyticsCount(byStatus.pending));
+  setAnalyticsText('analytics-journals-reviewed', analyticsCount(byStatus.reviewed));
+  setAnalyticsText('analytics-journals-incomplete', analyticsCount(byStatus.incomplete));
+  setAnalyticsText('analytics-journal-completion', analyticsPercent(data.completionRate));
+  setAnalyticsText('analytics-journal-completion-note',
+    `${analyticsCount(data.submittedTotal)} of ${analyticsCount(data.expectedSubmissions)} expected`);
+
+  // Weekly submissions trend
+  const canvas = document.getElementById('journalTrendChart');
+  if (!canvas) return;
+
+  const trend = Array.isArray(data.weeklyTrend) ? data.weeklyTrend : [];
+  const labels = trend.length > 0 ? trend.map(row => row.label) : ['No data'];
+  const submittedDataset = {
+    label: 'Submitted',
+    data: trend.length > 0 ? trend.map(row => row.submitted) : [0],
+    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+    borderColor: 'rgba(59, 130, 246, 1)',
+    borderWidth: 2,
+    borderRadius: 6,
+  };
+  const approvedDataset = {
+    label: 'Coordinator Approved',
+    data: trend.length > 0 ? trend.map(row => row.approved) : [0],
+    backgroundColor: 'rgba(34, 197, 94, 0.7)',
+    borderColor: 'rgba(34, 197, 94, 1)',
+    borderWidth: 2,
+    borderRadius: 6,
+  };
+
+  if (window.analyticsCharts?.journalTrendChart) {
+    window.analyticsCharts.journalTrendChart.data.labels = labels;
+    window.analyticsCharts.journalTrendChart.data.datasets = [submittedDataset, approvedDataset];
+    window.analyticsCharts.journalTrendChart.update();
+    return;
+  }
+
+  window.analyticsCharts = window.analyticsCharts || {};
+  window.analyticsCharts.journalTrendChart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets: [submittedDataset, approvedDataset] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: 'rgba(203, 213, 225, 0.8)' } },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
+        },
+      },
+    },
+  });
+}
+
+function renderDepartmentAnalytics(departments) {
+  const tbody = document.getElementById('department-analytics-body');
+  if (!tbody) return;
+
+  const items = Array.isArray(departments) ? departments : [];
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-500">No department data yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map(entry => `
+    <tr class="border-b border-white/5">
+      <td class="py-3 px-4 text-white">${escapeHtml(entry.department)}</td>
+      <td class="py-3 px-4 text-slate-300">${analyticsCount(entry.trainees)}</td>
+      <td class="py-3 px-4 text-slate-300">${analyticsCount(entry.active)}</td>
+      <td class="py-3 px-4 text-slate-300">${analyticsPercent(entry.avgCompletionRate)}</td>
+      <td class="py-3 px-4 text-slate-300">${entry.avgRating === null || entry.avgRating === undefined
+        ? '<span class="text-xs text-slate-500">Not rated</span>'
+        : `${entry.avgRating} / 5`}</td>
+      <td class="py-3 px-4 text-slate-300">${analyticsHours(entry.completedHours)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderAttentionList(attention) {
+  const container = document.getElementById('analytics-attention-list');
+  if (!container) return;
+
+  const items = Array.isArray(attention) ? attention : [];
+  if (items.length === 0) {
+    container.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Nothing needs attention right now</p>';
+    return;
+  }
+
+  const levelClasses = {
+    high: 'attention-high',
+    medium: 'attention-medium',
+    low: 'attention-low',
+    info: 'attention-info',
+  };
+
+  container.innerHTML = items.map(item => {
+    const levelClass = levelClasses[item.level] || 'attention-info';
+    const action = item.action
+      ? `<button onclick="switchTab('${item.action}')" class="text-xs text-teal-400 hover:underline mt-1">Open ${item.action === 'journal-review' ? 'Journal Review' : 'Trainees'}</button>`
+      : '';
+    return `
+      <div class="attention-item ${levelClass}">
+        <p class="text-sm font-semibold text-white">${escapeHtml(item.title)}</p>
+        <p class="text-xs text-slate-400 mt-1">${escapeHtml(item.detail)}</p>
+        ${action}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderNarrative(narrative) {
+  const container = document.getElementById('analytics-narrative');
+  if (!container) return;
+
+  const lines = Array.isArray(narrative) ? narrative : [];
+  if (lines.length === 0) {
+    container.innerHTML = '<p class="text-slate-500 text-sm">No recorded data available to summarize yet.</p>';
+    return;
+  }
+
+  container.innerHTML = lines.map((line, index) => `
+    <div class="narrative-item">
+      <span class="narrative-index">${index + 1}</span>
+      <p class="text-sm text-slate-300">${escapeHtml(line)}</p>
+    </div>
+  `).join('');
+}
+
 async function loadAnalyticsData() {
+  const refreshBtn = document.querySelector('#analytics .btn-ghost');
+  if (refreshBtn) refreshBtn.disabled = true;
+
   const result = await fetchAPI('/stats/coordinator/analytics');
+
+  if (refreshBtn) refreshBtn.disabled = false;
+
   if (!result || !result.success) {
-    updateAnalyticsSummary({}, { conceptWindowDays: 30 });
+    updateAnalyticsSummary({}, { conceptWindowDays: 30 }, {});
+    renderAttentionList([]);
+    renderNarrative([]);
+    showNotification('Analytics', 'Unable to load analytics data right now', 'error');
     return;
   }
 
   const analytics = result.data || {};
+  window.analyticsData = analytics;
+
+  setAnalyticsText('analytics-generated-at', `Generated ${analyticsDateTime(analytics.generatedAt)}`);
+
   updateAnalyticsSummary(analytics.summary || {}, {
     conceptWindowDays: analytics.conceptWindowDays || 30,
-  });
+  }, analytics);
+
+  renderAttendancePanel(analytics.attendance || {});
+  renderRecentDTRs(analytics.attendance?.recentRecords || []);
+  renderTraineeProgress(analytics.traineeProgress || []);
+  renderPerformancePanel(analytics.performance || {});
+  renderJournalPanel(analytics.journals || {});
+  renderDepartmentAnalytics(analytics.departments || []);
+  renderAttentionList(analytics.attention || []);
+  renderNarrative(analytics.narrative || []);
+
+  // Legacy charts kept from the previous dashboard version
   renderHoursChart(analytics.hoursByTrainee || []);
   renderJournalStatusChart(analytics.journalStatusBreakdown || {}, analytics.journalWindowDays || 90);
   renderDepartmentChart();
@@ -1181,20 +1781,198 @@ async function loadAnalyticsData() {
 // REPORT GENERATION
 // ────────────────────────────────────────────────────────────────────────────
 
+let currentReport = null;
+
+const REPORT_LABELS = {
+  summary: 'semester summary',
+  trainees: 'trainee data',
+  attendance: 'attendance log',
+  journals: 'journal analytics',
+};
+
+async function generateReport(type, mode = 'preview') {
+  showNotification('Reports', `Generating ${REPORT_LABELS[type] || type} report from recorded data...`, 'info');
+
+  const result = await fetchAPI(`/stats/coordinator/report?type=${encodeURIComponent(type)}`);
+  if (!result || !result.success) {
+    showNotification('Error', result?.message || 'Failed to generate the report', 'error');
+    return null;
+  }
+
+  currentReport = result.data;
+  markReportGenerated(type, currentReport.generatedAt);
+
+  if (mode === 'csv') {
+    downloadReportCSV();
+  }
+
+  openReportPreview();
+  return currentReport;
+}
+
+function markReportGenerated(type, generatedAt) {
+  const note = document.getElementById(`report-note-${type}`);
+  if (note) note.textContent = `Last generated ${analyticsDateTime(generatedAt)}`;
+  setAnalyticsText('analytics-report-generated-at', `Last report ${analyticsDateTime(generatedAt)}`);
+}
+
+function openReportPreview() {
+  const report = currentReport;
+  const modal = document.getElementById('report-modal');
+  const body = document.getElementById('report-modal-body');
+  if (!report || !modal || !body) return;
+
+  setAnalyticsText('report-modal-title', report.title);
+  setAnalyticsText('report-modal-subtitle', report.subtitle || '');
+
+  const highlights = (report.highlights || []).map(item => `
+    <div class="analytics-mini">
+      <p class="kpi-label">${escapeHtml(item.label)}</p>
+      <p class="analytics-mini-value">${escapeHtml(item.value)}</p>
+      <p class="kpi-note">${escapeHtml(item.hint)}</p>
+    </div>
+  `).join('');
+
+  const narrative = (report.narrative || []).map(line => `
+    <div class="narrative-item">
+      <p class="text-sm text-slate-300">${escapeHtml(line)}</p>
+    </div>
+  `).join('');
+
+  const sections = (report.sections || []).map(section => {
+    const columns = section.columns || [];
+    const head = columns.map(column => `<th class="text-left py-2 px-3 text-slate-400 font-semibold">${escapeHtml(column)}</th>`).join('');
+    const rows = (section.rows || []).length > 0
+      ? section.rows.map(row => `<tr class="border-b border-white/5">${row.map(cell => `<td class="py-2 px-3 text-slate-300">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')
+      : `<tr><td colspan="${columns.length}" class="py-4 text-center text-slate-500">${escapeHtml(section.emptyText || 'No data')}</td></tr>`;
+
+    return `
+      <div class="report-section">
+        <h4 class="font-display font-700 mb-1">${escapeHtml(section.title)}</h4>
+        <p class="text-xs text-slate-500 mb-3">${escapeHtml(section.description || '')}</p>
+        <div class="analytics-table-wrap">
+          <table class="w-full text-sm report-table">
+            <thead><tr class="border-b border-white/10">${head}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const generatedBy = report.generatedBy || {};
+  body.innerHTML = `
+    <div class="report-meta">
+      <p class="text-xs text-slate-400">Generated by ${escapeHtml(generatedBy.fullName || 'Coordinator')}${generatedBy.email ? ` (${escapeHtml(generatedBy.email)})` : ''}</p>
+      <p class="text-xs text-slate-400">Program period: ${escapeHtml(report.period?.label || '—')}</p>
+      <p class="text-xs text-slate-400">Generated at: ${escapeHtml(analyticsDateTime(report.generatedAt))}</p>
+    </div>
+    <div class="kpi-grid">${highlights}</div>
+    <div class="report-section">
+      <h4 class="font-display font-700 mb-3">Automated Findings</h4>
+      ${narrative || '<p class="text-slate-500 text-sm">No findings available.</p>'}
+    </div>
+    ${sections}
+  `;
+
+  modal.classList.remove('hidden');
+}
+
+function closeReportModal() {
+  const modal = document.getElementById('report-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function printReportPreview() {
+  const report = currentReport;
+  if (!report) {
+    showNotification('Reports', 'Generate a report first', 'error');
+    return;
+  }
+
+  const printWindow = window.open('', '_blank', 'width=1024,height=768');
+  if (!printWindow) {
+    showNotification('Reports', 'Allow pop-ups to print or save the report as PDF', 'error');
+    return;
+  }
+
+  const sectionsHtml = (report.sections || []).map(section => `
+    <h2>${escapeHtml(section.title)}</h2>
+    <table>
+      <thead><tr>${(section.columns || []).map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead>
+      <tbody>${(section.rows || []).map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+  `).join('');
+
+  printWindow.document.write(`<!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${escapeHtml(report.title)}</title>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; padding: 32px; }
+          h1 { font-size: 22px; margin: 0 0 4px; }
+          h2 { font-size: 15px; margin: 22px 0 6px; }
+          p { font-size: 12px; margin: 2px 0; line-height: 1.5; }
+          .meta { color: #475569; }
+          table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
+          th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top; }
+          th { background: #f1f5f9; }
+        </style>
+      </head>
+      <body>
+        <h1>${escapeHtml(report.title)}</h1>
+        <p class="meta">${escapeHtml(report.subtitle || '')}</p>
+        <p class="meta">Generated by ${escapeHtml(report.generatedBy?.fullName || 'Coordinator')} • Program period: ${escapeHtml(report.period?.label || '—')}</p>
+        <h2>Automated Findings</h2>
+        ${(report.narrative || []).map(line => `<p>• ${escapeHtml(line)}</p>`).join('')}
+        ${sectionsHtml}
+      </body>
+    </html>`);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+function downloadReportCSV() {
+  const report = currentReport;
+  if (!report || !report.csv) {
+    showNotification('Reports', 'No report generated yet', 'error');
+    return;
+  }
+
+  const csvEscape = (value) => `"${String(value === null || value === undefined ? '' : value).replace(/"/g, '""')}"`;
+  const lines = [report.csv.headers.map(csvEscape).join(',')];
+  report.csv.rows.forEach(row => lines.push(row.map(csvEscape).join(',')));
+
+  const blob = new Blob([`\uFEFF${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = report.csv.filename || 'TrackIT_Report.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showNotification('Reports', `${link.download} downloaded`, 'success');
+}
+
 function generateSemesterReport() {
-  alert('Generating semester summary report...\nFile: Semester_Summary_Report_2026.pdf');
+  generateReport('summary', 'preview');
 }
 
 function exportTraineeData() {
-  alert('Exporting trainee data...\nFile: Trainee_Data_2026.csv');
+  generateReport('trainees', 'csv');
 }
 
 function exportAttendanceLogs() {
-  alert('Exporting attendance logs...\nFile: Attendance_Logs_Apr2026.csv');
+  generateReport('attendance', 'csv');
 }
 
 function exportJournalAnalytics() {
-  alert('Exporting journal analytics...\nFile: Journal_Analytics_Apr2026.pdf');
+  generateReport('journals', 'preview');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1300,6 +2078,8 @@ function startCoordinatorRealtimeUpdates() {
         await loadTrainees();
       } else if (activeTab === 'journal-review') {
         await loadCoordinatorJournals(currentJournalFilter);
+      } else if (activeTab === 'analytics') {
+        await loadAnalyticsData();
       }
     } catch (error) {
       console.error('Coordinator real-time update failed:', error);
@@ -1367,5 +2147,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const sidebar = document.querySelector('.sidebar');
       sidebar.classList.remove('open');
     }
+  });
+
+  // Report preview modal: close on backdrop click or Escape
+  const reportModal = document.getElementById('report-modal');
+  if (reportModal) {
+    reportModal.addEventListener('click', (event) => {
+      if (event.target === reportModal) closeReportModal();
+    });
+  }
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeReportModal();
   });
 });
