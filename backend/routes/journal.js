@@ -98,10 +98,13 @@ router.post('/submit', authenticateToken, async (req, res) => {
       });
     }
 
-    if (photoDataUrl && photoDataUrl.length > 26_214_400) {
+    // MongoDB's BSON document limit is 16MB — keep the photo well under it
+    // (the frontend compresses photos, this is a server-side guardrail).
+    const MAX_PHOTO_CHARS = 10_485_760; // ~10MB base64 ≈ 7.5MB image
+    if (photoDataUrl && photoDataUrl.length > MAX_PHOTO_CHARS) {
       return res.status(400).json({
         success: false,
-        message: 'Photo is too large. Please upload an image under 25MB.',
+        message: 'Photo is too large. Please attach a smaller image (max ~7MB).',
       });
     }
 
@@ -129,10 +132,23 @@ router.post('/submit', authenticateToken, async (req, res) => {
       data: journal,
     });
   } catch (error) {
+    console.error('[Journal Submit] Error:', error);
+    console.error('[Journal Submit] Error name:', error.name);
+    console.error('[Journal Submit] Error code:', error.code);
+    console.error('[Journal Submit] Error details:', error.errors);
+    // Map the "document too large" MongoDB error to a clear user-facing message
+    const isTooLarge =
+      error?.code === 10334 ||
+      /BSONObjectTooLarge|offset.*out of range|ERR_OUT_OF_RANGE/i.test(
+        `${error?.message || ''} ${error?.code || ''}`
+      );
     res.status(500).json({
       success: false,
-      message: 'Error submitting journal',
+      message: isTooLarge
+        ? 'Journal photo is too large to store. Please attach a smaller image.'
+        : 'Error submitting journal',
       error: error.message,
+      code: error.code,
     });
   }
 });
@@ -228,10 +244,10 @@ router.put('/:journalId', authenticateToken, async (req, res) => {
           message: 'Photo must be an image data URL',
         });
       }
-      if (photoDataUrl.length > 26_214_400) {
+      if (photoDataUrl.length > 10_485_760) {
         return res.status(400).json({
           success: false,
-          message: 'Photo is too large. Please upload an image under 25MB.',
+          message: 'Photo is too large. Please attach a smaller image (max ~7MB).',
         });
       }
       journal.photoDataUrl = photoDataUrl;

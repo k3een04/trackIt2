@@ -2099,7 +2099,7 @@ function setupJournalPhotoUpload() {
   if (!uploadDiv || !fileInput) return;
 
   uploadDiv.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', () => {
+  fileInput.addEventListener('change', async () => {
     const file = fileInput.files && fileInput.files[0];
     if (!file) {
       resetJournalPhotoPreview();
@@ -2112,17 +2112,60 @@ function setupJournalPhotoUpload() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      journalPhotoDataUrl = reader.result;
+    // Compress/resize before storing so the payload stays well under
+    // MongoDB's 16MB document limit (raw phone photos can exceed it).
+    fileInput.disabled = true;
+    try {
+      journalPhotoDataUrl = await compressJournalPhoto(file);
       if (previewImg) {
         previewImg.src = journalPhotoDataUrl;
         previewImg.classList.remove('hidden');
       }
       if (placeholder) placeholder.classList.add('hidden');
-    };
+    } catch (err) {
+      console.error('Photo processing failed:', err);
+      alert('Could not process the image. Please try a different photo.');
+      resetJournalPhotoPreview();
+    } finally {
+      fileInput.disabled = false;
+    }
+  });
+}
+
+// Resize large photos and re-encode as JPEG so journal submissions stay small
+async function compressJournalPhoto(file, { maxDim = 1600, quality = 0.72 } = {}) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+
+  // Already small — keep as-is
+  if (file.size <= 300 * 1024) return dataUrl;
+
+  let img;
+  try {
+    img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = dataUrl;
+    });
+  } catch (e) {
+    // Browser cannot decode (e.g. HEIC); send original and let the server validate
+    return dataUrl;
+  }
+
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const compressed = canvas.toDataURL('image/jpeg', quality);
+
+  return compressed.length < dataUrl.length ? compressed : dataUrl;
 }
 
 function resetJournalPhotoPreview() {
