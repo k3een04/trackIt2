@@ -71,6 +71,17 @@
             <line class="sun-icon" x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
           </svg>
         </button>
+        <button id="notif-btn" onclick="toggleNotifications()" class="p-2 hover:bg-white/10 rounded-lg transition relative" title="Notifications">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <span id="notif-badge" class="notif-badge" style="display:none;"></span>
+        </button>
+        <div id="notif-popup" class="notif-popup" style="display:none;">
+          <div class="notif-header">
+            <h3>Notifications</h3>
+            <button onclick="clearAllNotifications()" class="text-xs text-teal-400 hover:text-teal-300">Mark all read</button>
+          </div>
+          <div id="notif-list" class="notif-list"></div>
+        </div>
         <button onclick="logout()" class="btn-ghost text-xs md:text-sm">Logout</button>
         <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>

@@ -73,6 +73,147 @@ if (!document.querySelector('style[data-notifications]')) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION BELL POPUP
+// ────────────────────────────────────────────────────────────────────────────
+
+let supervisorNotifications = [];
+let notifPopupOpen = false;
+
+function toggleNotifications() {
+  const popup = document.getElementById('notif-popup');
+  if (!popup) return;
+  
+  if (notifPopupOpen) {
+    popup.style.display = 'none';
+    notifPopupOpen = false;
+  } else {
+    popup.style.display = 'flex';
+    notifPopupOpen = true;
+    loadSupervisorNotifications();
+  }
+}
+
+function closeNotifications() {
+  const popup = document.getElementById('notif-popup');
+  if (popup) popup.style.display = 'none';
+  notifPopupOpen = false;
+}
+
+function clearAllNotifications() {
+  supervisorNotifications = [];
+  renderNotificationList();
+  updateNotifBadge();
+}
+
+function dismissNotification(id) {
+  supervisorNotifications = supervisorNotifications.filter(n => n.id !== id);
+  renderNotificationList();
+  updateNotifBadge();
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById('notif-badge');
+  if (!badge) return;
+  
+  const unreadCount = supervisorNotifications.filter(n => n.unread).length;
+  if (unreadCount > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function loadSupervisorNotifications() {
+  if (supervisorNotifications.length > 0) {
+    renderNotificationList();
+    return;
+  }
+  
+  try {
+    const result = await fetchAPI('/actions?type=all&limit=10');
+    if (result && result.success) {
+      supervisorNotifications = result.data || [];
+      renderNotificationList();
+      updateNotifBadge();
+    }
+  } catch (error) {
+    console.error('Error loading notifications:', error);
+  }
+}
+
+function renderNotificationList() {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  
+  if (supervisorNotifications.length === 0) {
+    list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+    return;
+  }
+  
+  list.innerHTML = supervisorNotifications.map(n => `
+    <div class="notif-item ${n.unread ? 'unread' : ''}" data-id="${n.id}">
+      <div class="notif-icon ${n.type || 'system'}">
+        ${getNotifIcon(n.type)}
+      </div>
+      <div class="notif-content">
+        <p class="notif-text">${escapeHtml(n.message || n.text || 'Notification')}</p>
+        <p class="notif-time">${timeAgo(n.createdAt || n.time)}</p>
+      </div>
+      <button class="notif-close" onclick="event.stopPropagation(); dismissNotification('${n.id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+  `).join('');
+  
+  // Click to mark as read
+  list.querySelectorAll('.notif-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const id = this.dataset.id;
+      const notif = supervisorNotifications.find(n => n.id === id);
+      if (notif) {
+        notif.unread = false;
+        updateNotifBadge();
+        renderNotificationList();
+      }
+    });
+  });
+}
+
+function getNotifIcon(type) {
+  const icons = {
+    journal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+    attendance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+    dtr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+  };
+  return icons[type] || icons.system;
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+  
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+// Close popup when clicking outside
+document.addEventListener('click', function(e) {
+  const notifBtn = document.getElementById('notif-btn');
+  const notifPopup = document.getElementById('notif-popup');
+  if (notifBtn && notifPopup && notifPopupOpen) {
+    if (!notifBtn.contains(e.target) && !notifPopup.contains(e.target)) {
+      closeNotifications();
+    }
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // AUTHENTICATION & API UTILITIES
 // ────────────────────────────────────────────────────────────────────────────
 
