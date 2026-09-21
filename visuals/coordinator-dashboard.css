@@ -1198,9 +1198,9 @@ body.light-mode .tab-back-btn:hover {
 }
 
 .kpi-value {
-  font-family: 'Syne', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 1.6rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #e2e8f0;
   line-height: 1.2;
 }
