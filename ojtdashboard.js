@@ -1572,7 +1572,9 @@ async function submitJournal(event) {
     });
 
     if (!result || !result.success) {
-      alert('Failed to submit journal: ' + (result?.message || 'Unknown error'));
+      const detail = result?.error || result?.message || 'Unknown error';
+      const code = result?.code ? ` (code: ${result.code})` : '';
+      alert('Failed to submit journal: ' + detail + code);
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalText;
       return;
@@ -1627,7 +1629,18 @@ async function autoExtractTheories(event) {
       return;
     }
 
-    const identifiedTheories = result.data.identifiedTheories || [];
+    const rawTheories = result.data.identifiedTheories || [];
+    // Sanitize AI/local output defensively: Mongoose subdocs reject nulls and
+    // unexpected shapes, which would otherwise fail the later /journal/submit.
+    const identifiedTheories = (Array.isArray(rawTheories) ? rawTheories : [])
+      .filter((t) => t && typeof t === 'object')
+      .map((t) => ({
+        course: typeof t.course === 'string' ? t.course : '',
+        courseName: typeof t.courseName === 'string' ? t.courseName : '',
+        category: typeof t.category === 'string' ? t.category : '',
+        theory: typeof t.theory === 'string' ? t.theory : '',
+      }))
+      .filter((t) => t.course || t.courseName || t.category || t.theory);
     window.currentIdentifiedTheories = identifiedTheories;
 
     const theoriesResult = document.getElementById('theories-result');

@@ -84,14 +84,14 @@ router.post('/submit', authenticateToken, async (req, res) => {
     const { week, dayCovered, narrative, identifiedTheories = [], photoDataUrl } = req.body;
     const studentId = req.user.id;
 
-    if (!week || !narrative) {
+    if (!week || !narrative || !String(narrative).trim()) {
       return res.status(400).json({
         success: false,
         message: 'Week and narrative are required',
       });
     }
 
-    if (photoDataUrl && !photoDataUrl.startsWith('data:image/')) {
+    if (photoDataUrl != null && photoDataUrl !== '' && !String(photoDataUrl).startsWith('data:image/')) {
       return res.status(400).json({
         success: false,
         message: 'Photo must be an image data URL',
@@ -101,28 +101,47 @@ router.post('/submit', authenticateToken, async (req, res) => {
     // MongoDB's BSON document limit is 16MB — keep the photo well under it
     // (the frontend compresses photos, this is a server-side guardrail).
     const MAX_PHOTO_CHARS = 10_485_760; // ~10MB base64 ≈ 7.5MB image
-    if (photoDataUrl && photoDataUrl.length > MAX_PHOTO_CHARS) {
+    if (photoDataUrl && String(photoDataUrl).length > MAX_PHOTO_CHARS) {
       return res.status(400).json({
         success: false,
         message: 'Photo is too large. Please attach a smaller image (max ~7MB).',
       });
     }
 
+    // dayCovered is an optional enum — only set it when it is a valid weekday.
+    // Mongoose rejects an explicit null for enum paths, so omit it otherwise.
+    const VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const cleanDayCovered = VALID_DAYS.includes(dayCovered) ? dayCovered : undefined;
+
+    // Sanitize theories: drop null/empty entries so a stray item can't fail validation
+    const cleanTheories = Array.isArray(identifiedTheories)
+      ? identifiedTheories
+          .filter((t) => t && (t.course || t.courseName || t.category || t.theory))
+          .map((t) => ({
+            course: t.course || '',
+            courseName: t.courseName || '',
+            category: t.category || '',
+            theory: t.theory || '',
+          }))
+      : [];
+
     // Get student info to find supervisor
     const User = require('../models/User');
     const student = await User.findById(studentId).select('supervisorId');
 
-    const journal = new Journal({
+    const journalData = {
       studentId,
-      supervisorId: student?.supervisorId || null,
       week,
-      dayCovered: dayCovered || null,
       narrative,
-      identifiedTheories: identifiedTheories || [],
-      photoDataUrl: photoDataUrl || null,
+      identifiedTheories: cleanTheories,
       theoriesExtractedAt: new Date(),
       status: 'submitted',
-    });
+    };
+    if (cleanDayCovered) journalData.dayCovered = cleanDayCovered;
+    if (student?.supervisorId) journalData.supervisorId = student.supervisorId;
+    if (photoDataUrl) journalData.photoDataUrl = photoDataUrl;
+
+    const journal = new Journal(journalData);
 
     await journal.save();
 
@@ -142,13 +161,20 @@ router.post('/submit', authenticateToken, async (req, res) => {
       /BSONObjectTooLarge|offset.*out of range|ERR_OUT_OF_RANGE/i.test(
         `${error?.message || ''} ${error?.code || ''}`
       );
-    res.status(500).json({
+    const details =
+      error?.name === 'ValidationError' && error?.errors
+        ? Object.values(error.errors).map((e) => e?.message).filter(Boolean)
+        : undefined;
+    res.status(error?.name === 'ValidationError' ? 400 : 500).json({
       success: false,
       message: isTooLarge
         ? 'Journal photo is too large to store. Please attach a smaller image.'
-        : 'Error submitting journal',
+        : details?.length
+          ? `Journal validation failed: ${details.join('; ')}`
+          : 'Error submitting journal',
       error: error.message,
       code: error.code,
+      details,
     });
   }
 });
