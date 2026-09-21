@@ -1010,12 +1010,6 @@ function updateAnalyticsSummary(summary, windows, analytics = {}) {
   setAnalyticsText('analytics-pending-submissions', analyticsCount(summary.pendingSubmissions));
   setAnalyticsText('analytics-pending-submissions-note',
     `${analyticsCount(summary.pendingDTRs)} DTR • ${analyticsCount(summary.pendingJournals)} journals`);
-  setAnalyticsText('analytics-total-hours', analyticsHours(summary.totalCompletedHours));
-  setAnalyticsText('analytics-total-hours-note', `of ${analyticsCount(summary.totalRequiredHours)} required hours`);
-  setAnalyticsText('analytics-remaining-hours', analyticsHours(summary.totalRemainingHours));
-  setAnalyticsText('analytics-remaining-hours-note', summary.projectedCompletionAt
-    ? `Projected completion ${formatShortDate(summary.projectedCompletionAt)}`
-    : 'No completion pace available yet');
   setAnalyticsText('analytics-avg-completion', analyticsPercent(summary.avgCompletionRate));
   setAnalyticsText('analytics-avg-completion-note', summary.studentCount > 0
     ? `Across ${analyticsCount(summary.studentCount)} trainees (verified hours)`
