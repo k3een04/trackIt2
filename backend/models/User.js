@@ -167,6 +167,29 @@ const userSchema = new mongoose.Schema(
       type: String,
       sparse: true,
     },
+
+    // Two-factor authentication with an authenticator app.
+    // Students and coordinators must confirm a 6-digit app code after signup.
+    twoFactorSecret: {
+      type: String,
+      sparse: true,
+      select: false, // never included in normal queries/responses
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+      sparse: true,
+    },
+    // True while a new signup still has to confirm a code from their app
+    twoFactorPending: {
+      type: Boolean,
+      default: false,
+      sparse: true,
+    },
+    twoFactorVerifiedAt: {
+      type: Date,
+      sparse: true,
+    },
   },
   {
     timestamps: true,

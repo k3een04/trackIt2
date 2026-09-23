@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
 
+// Purpose claim used by the short-lived token issued for the
+// authenticator-app verification step
+const TWO_FACTOR_SETUP_PURPOSE = '2fa-setup';
+
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -20,7 +24,40 @@ const authenticateToken = (req, res, next) => {
       });
     }
 
+    // Tokens issued for the authenticator setup step must never be accepted by
+    // the regular protected routes.
+    if (user.purpose) {
+      return res.status(401).json({
+        success: false,
+        message: 'This verification token can only be used to confirm your authenticator app code.',
+      });
+    }
+
     req.user = user;
+    next();
+  });
+};
+
+// Middleware for the authenticator-app confirmation step only
+const authenticateTwoFactorToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  const reject = () => res.status(401).json({
+    success: false,
+    message: 'Your verification session has expired. Please sign up or sign in again.',
+  });
+
+  if (!token) {
+    return reject();
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here', (err, payload) => {
+    if (err || !payload || payload.purpose !== TWO_FACTOR_SETUP_PURPOSE) {
+      return reject();
+    }
+
+    req.user = payload;
     next();
   });
 };
@@ -38,4 +75,9 @@ const authorizeRole = (...roles) => {
   };
 };
 
-module.exports = { authenticateToken, authorizeRole };
+module.exports = {
+  authenticateToken,
+  authenticateTwoFactorToken,
+  authorizeRole,
+  TWO_FACTOR_SETUP_PURPOSE,
+};

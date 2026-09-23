@@ -29,6 +29,7 @@
 #### Authentication Routes (`/api/auth`)
 ```
 POST /api/auth/register    - Register new user (student/coordinator/supervisor)
+POST /api/auth/verify-2fa  - Confirm the authenticator app code to activate a new account
 POST /api/auth/login       - Login and get JWT token
 ```
 
@@ -40,7 +41,28 @@ POST /api/auth/login       - Login and get JWT token
 - Role
 - Student ID (for students)
 - Department (for students)
-- Company Name (for students)
+- Section (for students)
+
+**Student & coordinator registration response instead includes** (the account stays
+inactive until the code is confirmed, so no JWT is issued yet):
+- `requiresTwoFactor: true`
+- `setupToken` - short-lived (30 min) token that only works on `/api/auth/verify-2fa`
+- `setupKey` - base32 secret to type into the authenticator app by hand
+- `otpauthUrl` and `qrCode` (PNG data URL) - to scan with the app
+
+Signing in before that code is confirmed returns `403` with `requiresTwoFactorSetup: true`
+plus a fresh setup payload, so the setup screen can be shown again on the login page.
+
+**School email rule:** students and coordinators must register with the STI email given
+by the school (for example `delacruz.873612@ortigas-cainta.edu.ph`). Any `*.edu.ph` or
+`*.sti.ph` host is accepted by default; pin an exact list with `STI_EMAIL_DOMAINS` in
+`backend/.env`:
+
+```
+STI_EMAIL_DOMAINS=sti.edu.ph,ortigas-cainta.edu.ph
+```
+
+Supervisors keep their company email address and do not go through the app step.
 
 #### Dashboard Routes (`/api/dashboard`)
 ```
@@ -68,6 +90,9 @@ PUT  /api/dashboard/profile             - Update user profile (Protected)
 - Role-based authorization (students can only access student dashboard)
 - Password hashing with bcryptjs (10 salt rounds)
 - CORS enabled for frontend-backend communication
+- Authenticator-app verification (TOTP / RFC 6238) for student and coordinator signups
+- Short-lived setup tokens are rejected by every regular protected route
+- Only whitelisted role fields are accepted on registration (no mass assignment)
 - Environment variables for sensitive data (`.env` file)
 
 ### 6. **User Flow** 🔄

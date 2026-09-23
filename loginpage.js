@@ -98,6 +98,14 @@ if (loginForm) {
       const data = await res.json();
 
       if (!res.ok) {
+        // The account exists but its authenticator app was never confirmed
+        if (data.requiresTwoFactorSetup) {
+          if (submitBtn) submitBtn.disabled = false;
+          if (submitText) submitText.textContent = 'Sign In';
+          startLoginVerification(data);
+          return;
+        }
+
         throw new Error(data.message || 'Login failed. Please check your credentials.');
       }
 
@@ -149,4 +157,144 @@ function redirectToDashboard(role) {
     supervisor:  'supervisor-dashboard.html'
   };
   window.location.href = map[role] || 'landingpage.html';
+}
+
+// ── Authenticator app verification ────────────────────────────────────────
+// Shown when sign-in reports that a signup never confirmed its authenticator app.
+let loginTwoFactorToken = null;
+
+function startLoginVerification(setup) {
+  loginTwoFactorToken = setup.setupToken || null;
+
+  const qrEl = document.getElementById('loginTotpQr');
+  if (qrEl) qrEl.src = setup.qrCode || '';
+
+  const keyEl = document.getElementById('loginTotpKey');
+  if (keyEl) keyEl.textContent = setup.setupKey || '';
+
+  const accountEl = document.getElementById('loginVerifyAccount');
+  if (accountEl && setup.account && setup.account.email) {
+    accountEl.textContent = setup.account.email;
+  }
+
+  setLoginVerifyMessage('');
+
+  const form = document.getElementById('loginForm');
+  if (form) form.classList.add('hidden');
+
+  const panel = document.getElementById('loginStepVerify');
+  if (panel) panel.classList.remove('hidden');
+
+  const codeInput = document.getElementById('loginTotpCode');
+  if (codeInput) {
+    codeInput.value = '';
+    codeInput.focus();
+  }
+}
+
+function cancelLoginVerification() {
+  loginTwoFactorToken = null;
+
+  const panel = document.getElementById('loginStepVerify');
+  if (panel) panel.classList.add('hidden');
+
+  const form = document.getElementById('loginForm');
+  if (form) form.classList.remove('hidden');
+
+  const password = document.getElementById('loginPassword');
+  if (password) password.value = '';
+}
+
+function setLoginVerifyMessage(message, isSuccess = false) {
+  const el = document.getElementById('loginTotpError');
+  if (!el) return;
+
+  if (!message) {
+    el.classList.add('hidden');
+    el.textContent = '';
+    return;
+  }
+
+  el.className = 'mb-4 p-3.5 rounded-xl text-sm border ' + (isSuccess
+    ? 'bg-teal-500/10 border-teal-500/30 text-teal-300'
+    : 'bg-red-500/10 border-red-500/30 text-red-300');
+  el.textContent = message;
+}
+
+async function submitLoginVerificationCode() {
+  const codeInput = document.getElementById('loginTotpCode');
+  const code = codeInput ? codeInput.value.replace(/\D/g, '') : '';
+  const btn = document.getElementById('loginVerifyBtn');
+  const textEl = document.getElementById('loginVerifyText');
+  const spinner = document.getElementById('loginVerifySpinner');
+
+  if (code.length !== 6) {
+    setLoginVerifyMessage('Enter the 6-digit code shown in your authenticator app.');
+    return;
+  }
+
+  if (!loginTwoFactorToken) {
+    setLoginVerifyMessage('Your verification session has expired. Please sign in again.');
+    return;
+  }
+
+  btn.disabled = true;
+  textEl.textContent = 'Verifying…';
+  spinner.classList.remove('hidden');
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/verify-2fa`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${loginTwoFactorToken}`
+      },
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || 'Could not verify that code.');
+    }
+
+    setLoginVerifyMessage('✅ ' + (data.message || 'Authenticator app confirmed!') + ' You can sign in now.', true);
+    textEl.textContent = 'Verified';
+    spinner.classList.add('hidden');
+
+    setTimeout(() => {
+      cancelLoginVerification();
+      const emailInput = document.getElementById('loginEmail');
+      if (emailInput) emailInput.focus();
+    }, 2200);
+  } catch (err) {
+    setLoginVerifyMessage(err.message);
+    btn.disabled = false;
+    textEl.textContent = 'Verify & Activate Account';
+    spinner.classList.add('hidden');
+    if (codeInput) codeInput.select();
+  }
+}
+
+const loginVerifyBtn = document.getElementById('loginVerifyBtn');
+if (loginVerifyBtn) {
+  loginVerifyBtn.addEventListener('click', submitLoginVerificationCode);
+}
+
+const loginVerifyCancel = document.getElementById('loginVerifyCancel');
+if (loginVerifyCancel) {
+  loginVerifyCancel.addEventListener('click', cancelLoginVerification);
+}
+
+// Authenticator code field: digits only, Enter submits
+const loginTotpCodeInput = document.getElementById('loginTotpCode');
+if (loginTotpCodeInput) {
+  loginTotpCodeInput.addEventListener('input', () => {
+    loginTotpCodeInput.value = loginTotpCodeInput.value.replace(/\D/g, '').slice(0, 6);
+  });
+  loginTotpCodeInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      submitLoginVerificationCode();
+    }
+  });
 }
