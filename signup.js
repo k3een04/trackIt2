@@ -82,10 +82,11 @@ const API_BASE = (window.location.hostname === 'localhost' || window.location.ho
   : '/api';
 
 // ── School email policy ───────────────────────────────────────────────────
-// STI accounts look like delacruz.873612@ortigas-cainta.edu.ph (older ones
-// used @sti.ph). The server is the final authority; this check is for UX.
+// STI accounts look like delacruz.873612@wnu.sti.edu.ph. The server is the
+// final authority (it pins the exact campus domain), so this pattern only
+// catches obviously wrong addresses early.
 const SCHOOL_EMAIL_PATTERN = /@([a-z0-9-]+\.)*(edu\.ph|sti\.ph)$/i;
-const SCHOOL_EMAIL_MESSAGE = 'Please use your STI email address (example: delacruz.873612@ortigas-cainta.edu.ph).';
+const SCHOOL_EMAIL_MESSAGE = 'Please use your STI email address (example: delacruz.873612@wnu.sti.edu.ph).';
 
 function requiresSchoolEmail(role) {
   return role === 'student' || role === 'coordinator';

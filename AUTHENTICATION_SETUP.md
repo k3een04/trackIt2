@@ -54,12 +54,11 @@ Signing in before that code is confirmed returns `403` with `requiresTwoFactorSe
 plus a fresh setup payload, so the setup screen can be shown again on the login page.
 
 **School email rule:** students and coordinators must register with the STI email given
-by the school (for example `delacruz.873612@ortigas-cainta.edu.ph`). Any `*.edu.ph` or
-`*.sti.ph` host is accepted by default; pin an exact list with `STI_EMAIL_DOMAINS` in
-`backend/.env`:
+by the school. The campus domain `wnu.sti.edu.ph` is the only one accepted by default;
+to allow more (or a different) domain, set `STI_EMAIL_DOMAINS` in `backend/.env`:
 
 ```
-STI_EMAIL_DOMAINS=sti.edu.ph,ortigas-cainta.edu.ph
+STI_EMAIL_DOMAINS=wnu.sti.edu.ph,sti.edu.ph
 ```
 
 Supervisors keep their company email address and do not go through the app step.

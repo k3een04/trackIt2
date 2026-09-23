@@ -4,17 +4,15 @@ const validator = require('validator');
  * School email policy for students and coordinators.
  *
  * STI issues campus-based Microsoft 365 accounts, e.g.
- * delacruz.873612@ortigas-cainta.edu.ph  (the FAQ sample uses the
- * "@campus.edu.ph" pattern, and the older accounts used "@sti.ph").
- *
- * By default any "*.edu.ph" / "*.sti.ph" host is accepted so every campus works.
- * To lock it down to specific domains, set STI_EMAIL_DOMAINS in backend/.env,
- * for example: STI_EMAIL_DOMAINS=sti.edu.ph,ortigas-cainta.edu.ph
+ * delacruz.873612@wnu.sti.edu.ph — that campus domain is the only one accepted
+ * by default. To allow more (or a different) domain, set STI_EMAIL_DOMAINS in
+ * backend/.env, for example:
+ *   STI_EMAIL_DOMAINS=wnu.sti.edu.ph,sti.edu.ph
  */
 
-const DEFAULT_ALLOWED_HOSTS = [/(^|\.)edu\.ph$/i, /(^|\.)sti\.ph$/i];
+const DEFAULT_ALLOWED_HOSTS = ['wnu.sti.edu.ph'];
 
-const SCHOOL_EMAIL_EXAMPLE = 'delacruz.873612@ortigas-cainta.edu.ph';
+const SCHOOL_EMAIL_EXAMPLE = 'delacruz.873612@wnu.sti.edu.ph';
 const SCHOOL_EMAIL_HINT = `Students and coordinators must sign up with the STI email given by the school (example: ${SCHOOL_EMAIL_EXAMPLE}).`;
 
 // The exact hosts allowed, from STI_EMAIL_DOMAINS when configured
