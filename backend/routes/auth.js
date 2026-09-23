@@ -47,10 +47,10 @@ router.post('/register', async (req, res) => {
 
     // Validate role-specific required fields
     if (role === 'student') {
-      if (!roleSpecificData.studentId || !roleSpecificData.department) {
+      if (!roleSpecificData.studentId || !roleSpecificData.department || !roleSpecificData.section) {
         return res.status(400).json({
           success: false,
-          message: 'Student role requires: studentId and department',
+          message: 'Student role requires: studentId, department, and section',
         });
       }
       
@@ -109,6 +109,7 @@ router.post('/register', async (req, res) => {
         role: user.role,
         studentId: user.studentId,
         department: user.department,
+        section: user.section,
         companyName: user.companyName,
         companyPosition: user.companyPosition,
       },
@@ -188,6 +189,7 @@ router.post('/login', async (req, res) => {
         role: user.role,
         studentId: user.studentId,
         department: user.department,
+        section: user.section,
         companyName: user.companyName,
         companyPosition: user.companyPosition,
       },

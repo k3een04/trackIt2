@@ -57,9 +57,20 @@ const userSchema = new mongoose.Schema(
     },
     department: {
       type: String,
+      // 'CS' and 'CICT' are the department choices offered to students
+      // and coordinators on the signup form. The legacy values are kept in
+      // the enum so older records still validate when they are saved.
       enum: {
-        values: ['CICT', 'COE', 'CAS', 'CED', 'Other'],
+        values: ['CS', 'CICT', 'COE', 'CAS', 'CED', 'Other'],
         message: 'Invalid department selection',
+      },
+      sparse: true,
+    },
+    section: {
+      type: String,
+      enum: {
+        values: ['4A', '4B', '4C', '4D', '4E', '4F', '4G', '4H'],
+        message: 'Invalid section selection',
       },
       sparse: true,
     },

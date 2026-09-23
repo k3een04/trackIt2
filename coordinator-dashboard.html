@@ -183,7 +183,7 @@
 
       <!-- Filters & Search -->
       <div class="glass-card p-6 mb-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-2">Search Trainee</label>
             <input type="text" id="trainee-search" placeholder="Name or ID..." class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
@@ -191,11 +191,23 @@
           <div>
             <label class="block text-sm font-semibold mb-2">Department</label>
             <select id="dept-filter" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
-              <option>All Departments</option>
-              <option>CICT</option>
-              <option>COE</option>
-              <option>CAS</option>
-              <option>CED</option>
+              <option value="">All Departments</option>
+              <option value="CS">CS</option>
+              <option value="CICT">CICT</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-2">Section</label>
+            <select id="section-filter" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              <option value="">All Sections</option>
+              <option value="4A">4A</option>
+              <option value="4B">4B</option>
+              <option value="4C">4C</option>
+              <option value="4D">4D</option>
+              <option value="4E">4E</option>
+              <option value="4F">4F</option>
+              <option value="4G">4G</option>
+              <option value="4H">4H</option>
             </select>
           </div>
         </div>
@@ -206,22 +218,29 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-white/10">
-              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Name</th>
-              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Student ID</th>
-              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Department</th>
+              <th onclick="sortTrainees('name')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Name<span class="ml-1 text-teal-400" data-sort-indicator="name"></span></th>
+              <th onclick="sortTrainees('studentId')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Student ID<span class="ml-1 text-teal-400" data-sort-indicator="studentId"></span></th>
+              <th onclick="sortTrainees('department')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Department<span class="ml-1 text-teal-400" data-sort-indicator="department"></span></th>
+              <th onclick="sortTrainees('section')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Section<span class="ml-1 text-teal-400" data-sort-indicator="section"></span></th>
               <th class="text-left py-3 px-4 text-slate-400 font-semibold">Company</th>
               <th class="text-left py-3 px-4 text-slate-400 font-semibold">Supervisor</th>
-              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Hours</th>
+              <th onclick="sortTrainees('hours')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Hours<span class="ml-1 text-teal-400" data-sort-indicator="hours"></span></th>
               <th class="text-left py-3 px-4 text-slate-400 font-semibold">Action</th>
             </tr>
           </thead>
           <tbody id="trainees-table-body">
             <!-- Dynamically populated by JS -->
             <tr>
-              <td colspan="7" class="py-8 text-center text-slate-500">Loading trainees...</td>
+              <td colspan="8" class="py-8 text-center text-slate-500">Loading trainees...</td>
             </tr>
           </tbody>
         </table>
+
+        <!-- Preview footer: shows only the first 5 trainees, with a link to view everyone -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mt-6 pt-6 border-t border-white/10">
+          <p id="trainees-count-label" class="text-xs text-slate-400">Loading trainees...</p>
+          <button id="see-all-trainees-link" onclick="openAllTraineesModal()" class="hidden text-sm font-semibold text-teal-400 hover:text-teal-300 hover:underline transition">See all students</button>
+        </div>
       </div>
 
       <!-- Assign Supervisor Modal -->
@@ -254,6 +273,50 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
               Assign
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALL STUDENTS MODAL (paginated, 10 students per page) -->
+      <div id="all-trainees-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
+        <div class="min-h-full flex items-start justify-center p-4">
+          <div class="glass-card w-full max-w-5xl my-8" style="background: rgba(15, 23, 42, 0.97);">
+            <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
+              <div>
+                <h3 class="font-display font-700 text-lg">All Students</h3>
+                <p id="all-trainees-subtitle" class="text-xs text-slate-500"></p>
+              </div>
+              <button onclick="closeAllTraineesModal()" class="btn-ghost text-xs">Close</button>
+            </div>
+
+            <div class="p-6">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-white/10">
+                      <th onclick="sortTrainees('name')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Name<span class="ml-1 text-teal-400" data-sort-indicator="name"></span></th>
+                      <th onclick="sortTrainees('studentId')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Student ID<span class="ml-1 text-teal-400" data-sort-indicator="studentId"></span></th>
+                      <th onclick="sortTrainees('department')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Department<span class="ml-1 text-teal-400" data-sort-indicator="department"></span></th>
+                      <th onclick="sortTrainees('section')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Section<span class="ml-1 text-teal-400" data-sort-indicator="section"></span></th>
+                      <th class="text-left py-3 px-4 text-slate-400 font-semibold">Company</th>
+                      <th class="text-left py-3 px-4 text-slate-400 font-semibold">Supervisor</th>
+                      <th onclick="sortTrainees('hours')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Hours<span class="ml-1 text-teal-400" data-sort-indicator="hours"></span></th>
+                      <th class="text-left py-3 px-4 text-slate-400 font-semibold">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="all-trainees-table-body">
+                    <tr>
+                      <td colspan="8" class="py-8 text-center text-slate-500">Loading students...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-3 mt-6 pt-6 border-t border-white/10">
+                <p id="all-trainees-count-label" class="text-xs text-slate-400"></p>
+                <div id="all-trainees-pagination" class="flex flex-wrap items-center gap-2"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

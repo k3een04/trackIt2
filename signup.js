@@ -109,6 +109,7 @@ document.getElementById('signupForm')?.addEventListener('submit', async function
   if (selectedRole === 'student') {
     body.studentId   = document.getElementById('studentId').value;
     body.department  = document.getElementById('department-student').value;
+    body.section     = document.getElementById('section').value;
   }
   if (selectedRole === 'coordinator') {
     body.department  = document.getElementById('department-coordinator').value;

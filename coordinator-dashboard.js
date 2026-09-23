@@ -497,59 +497,91 @@ function goBackTab() {
 // Cache for supervisors list
 let supervisorsCache = [];
 
+// Trainee list returned by the API — every render below reads from this cache
+let traineesCache = [];
+
+// How many trainees the Trainees tab previews before "See all students"
+const TRAINEES_PREVIEW_LIMIT = 5;
+
+// How many trainees are listed per page inside the "All Students" modal
+const ALL_TRAINEES_PAGE_SIZE = 10;
+
+// Shared sort state, so the Trainees tab and the "All Students" modal always
+// show the same ordering (clicking a header in either place updates both)
+let traineeSort = { key: 'name', dir: 'asc' };
+
+// Current page of the "All Students" modal
+let allTraineesPage = 1;
+
 async function loadTrainees() {
   const tbody = document.getElementById('trainees-table-body');
   if (!tbody) return;
 
-  tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-500">Loading trainees...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">Loading trainees...</td></tr>';
 
   const result = await fetchAPI('/coordinator/trainees');
 
   if (!result || !result.success) {
-    tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-500">Failed to load trainees. Make sure the server is running.</td></tr>';
+    traineesCache = [];
+    tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">Failed to load trainees. Make sure the server is running.</td></tr>';
+    updateTraineesCountLabel(0, 0);
     return;
   }
 
-  if (result.data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-500">No trainees registered yet.</td></tr>';
-    return;
-  }
+  traineesCache = Array.isArray(result.data) ? result.data : [];
+  addMissingFilterOptions();
+  applyTraineeFilters();
+}
 
-  tbody.innerHTML = result.data.map(trainee => {
-    const supervisorName = trainee.supervisorId
-      ? `<span class="text-teal-400 font-semibold">${trainee.supervisorId.fullName}</span><br><span class="text-xs text-slate-500">${trainee.supervisorId.companyName || ''}</span>`
-      : '<span class="text-yellow-400/70 text-xs">Unassigned</span>';
+// Escape a value so it can be safely embedded inside an inline onclick="" argument
+function jsStringArg(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'");
+}
 
-    const completedHours = trainee.completedHours || 0;
-    const requiredHours = trainee.requiredHours || 486;
-    const remainingHours = Math.max(0, requiredHours - completedHours);
-    const hoursPercentage = Math.round((completedHours / requiredHours) * 100);
+// Build one trainee row — shared by the Trainees tab and the "All Students" modal
+function buildTraineeRowHtml(trainee) {
+  const supervisorName = trainee.supervisorId
+    ? `<span class="text-teal-400 font-semibold">${escapeHtml(trainee.supervisorId.fullName)}</span><br><span class="text-xs text-slate-500">${escapeHtml(trainee.supervisorId.companyName || '')}</span>`
+    : '<span class="text-yellow-400/70 text-xs">Unassigned</span>';
 
-    return `
-      <tr class="border-b border-white/10 hover:bg-white/5 transition">
-        <td class="py-3 px-4">${trainee.fullName}</td>
-        <td class="py-3 px-4">${trainee.studentId || '—'}</td>
-        <td class="py-3 px-4">${trainee.department || '—'}</td>
-        <td class="py-3 px-4">${trainee.companyName || '—'}</td>
-        <td class="py-3 px-4">${supervisorName}</td>
-        <td class="py-3 px-4">
-          <div class="text-sm">
-            <div class="font-semibold text-white mb-1">${completedHours.toFixed(1)}/${requiredHours} hrs</div>
-            <div class="text-xs text-slate-400">${remainingHours.toFixed(1)} hrs left</div>
-            <div class="w-20 h-2 bg-white/10 rounded-full mt-2 overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-teal-400 to-teal-500" style="width: ${hoursPercentage}%"></div>
-            </div>
+  const completedHours = trainee.completedHours || 0;
+  const requiredHours = trainee.requiredHours || 486;
+  const remainingHours = Math.max(0, requiredHours - completedHours);
+  const hoursPercentage = requiredHours > 0
+    ? Math.min(100, Math.round((completedHours / requiredHours) * 100))
+    : 0;
+
+  return `
+    <tr class="border-b border-white/10 hover:bg-white/5 transition">
+      <td class="py-3 px-4">${escapeHtml(trainee.fullName)}</td>
+      <td class="py-3 px-4">${escapeHtml(trainee.studentId) || '—'}</td>
+      <td class="py-3 px-4">${escapeHtml(trainee.department) || '—'}</td>
+      <td class="py-3 px-4">${escapeHtml(trainee.section) || '—'}</td>
+      <td class="py-3 px-4">${escapeHtml(trainee.companyName) || '—'}</td>
+      <td class="py-3 px-4">${supervisorName}</td>
+      <td class="py-3 px-4">
+        <div class="text-sm">
+          <div class="font-semibold text-white mb-1">${completedHours.toFixed(1)}/${requiredHours} hrs</div>
+          <div class="text-xs text-slate-400">${remainingHours.toFixed(1)} hrs left</div>
+          <div class="w-20 h-2 bg-white/10 rounded-full mt-2 overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-teal-400 to-teal-500" style="width: ${hoursPercentage}%"></div>
           </div>
-        </td>
-        <td class="py-3 px-4">
-          <button onclick="openAssignModal('${trainee._id}', '${trainee.fullName.replace(/'/g, "\\'")}')"
-            class="text-teal-400 hover:text-teal-300 text-xs font-semibold">
-            ${trainee.supervisorId ? 'Reassign' : 'Assign Supervisor'}
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+        </div>
+      </td>
+      <td class="py-3 px-4">
+        <button onclick="openAssignModal('${trainee._id}', '${jsStringArg(trainee.fullName)}')"
+          class="text-teal-400 hover:text-teal-300 text-xs font-semibold">
+          ${trainee.supervisorId ? 'Reassign' : 'Assign Supervisor'}
+        </button>
+      </td>
+    </tr>
+  `;
 }
 
 async function loadSupervisors() {
@@ -634,36 +666,282 @@ function closeAssignModal() {
   document.getElementById('assign-supervisor-modal').classList.add('hidden');
 }
 
-function applyTraineeFilters() {
-  const search = document.getElementById('trainee-search').value.toLowerCase();
-  const dept = document.getElementById('dept-filter').value;
+// Trainees matching the current search + department/section filters, ordered
+// by the shared sort state (used by both the tab and the modal)
+function getFilteredTrainees() {
+  const search = (document.getElementById('trainee-search')?.value || '').trim().toLowerCase();
+  const department = document.getElementById('dept-filter')?.value || '';
+  const section = document.getElementById('section-filter')?.value || '';
 
-  const rows = document.querySelectorAll('#trainees-table-body tr');
-  rows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    if (cells.length < 5) return; // skip the "loading" row
-
-    const name = cells[0].textContent.toLowerCase();
-    const studentId = cells[1].textContent.toLowerCase();
-    const department = cells[2].textContent;
-
-    let show = true;
-    if (search && !name.includes(search) && !studentId.includes(search)) show = false;
-    if (dept !== 'All Departments' && department !== dept) show = false;
-
-    row.style.display = show ? '' : 'none';
+  const filtered = traineesCache.filter(trainee => {
+    if (search) {
+      const name = (trainee.fullName || '').toLowerCase();
+      const studentId = (trainee.studentId || '').toLowerCase();
+      if (!name.includes(search) && !studentId.includes(search)) return false;
+    }
+    if (department && (trainee.department || '') !== department) return false;
+    if (section && (trainee.section || '') !== section) return false;
+    return true;
   });
+
+  return sortTraineeList(filtered);
+}
+
+function getTraineeSortValue(trainee, key) {
+  switch (key) {
+    case 'studentId': return trainee.studentId || '';
+    case 'department': return trainee.department || '';
+    case 'section': return trainee.section || '';
+    case 'hours': return Number(trainee.completedHours) || 0;
+    case 'name':
+    default: return trainee.fullName || '';
+  }
+}
+
+function sortTraineeList(list) {
+  const { key, dir } = traineeSort;
+  const factor = dir === 'desc' ? -1 : 1;
+
+  return list.slice().sort((a, b) => {
+    const aValue = getTraineeSortValue(a, key);
+    const bValue = getTraineeSortValue(b, key);
+
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return (aValue - bValue) * factor;
+    }
+
+    const compare = String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' });
+    if (compare !== 0) return compare * factor;
+
+    // Stable tie-breaker so equal values keep a predictable order
+    return String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' });
+  });
+}
+
+// Clicking a sortable header in the tab OR in the modal updates the same state
+function sortTrainees(key) {
+  if (traineeSort.key === key) {
+    traineeSort = { key, dir: traineeSort.dir === 'asc' ? 'desc' : 'asc' };
+  } else {
+    traineeSort = { key, dir: 'asc' };
+  }
+
+  allTraineesPage = 1;
+  renderTraineeViews();
+}
+
+function updateTraineeSortIndicators() {
+  document.querySelectorAll('[data-sort-indicator]').forEach(indicator => {
+    const key = indicator.getAttribute('data-sort-indicator');
+    indicator.textContent = key === traineeSort.key
+      ? (traineeSort.dir === 'asc' ? '▲' : '▼')
+      : '';
+  });
+}
+
+function updateTraineesCountLabel(shown, total) {
+  const label = document.getElementById('trainees-count-label');
+  if (!label) return;
+
+  const totalCount = Number.isFinite(total) ? total : shown;
+  label.textContent = totalCount === 0
+    ? 'Showing 0 of 0 trainees'
+    : `Showing ${shown} of ${totalCount} trainee${totalCount === 1 ? '' : 's'}`;
+}
+
+// Re-render everything that depends on the trainee list, filters or sort
+function renderTraineeViews() {
+  renderTraineesTable();
+  renderAllTraineesTable();
+  updateTraineeSortIndicators();
+}
+
+// Trainees tab: only the first TRAINEES_PREVIEW_LIMIT matches are listed
+function renderTraineesTable() {
+  const tbody = document.getElementById('trainees-table-body');
+  if (!tbody) return;
+
+  const filtered = getFilteredTrainees();
+  const seeAllLink = document.getElementById('see-all-trainees-link');
+
+  if (filtered.length === 0) {
+    const emptyMessage = traineesCache.length === 0
+      ? 'No trainees registered yet.'
+      : 'No trainees match the selected filters.';
+    tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500">${emptyMessage}</td></tr>`;
+    updateTraineesCountLabel(0, 0);
+    if (seeAllLink) seeAllLink.classList.add('hidden');
+    return;
+  }
+
+  const preview = filtered.slice(0, TRAINEES_PREVIEW_LIMIT);
+  tbody.innerHTML = preview.map(buildTraineeRowHtml).join('');
+
+  updateTraineesCountLabel(preview.length, filtered.length);
+
+  if (seeAllLink) {
+    seeAllLink.classList.toggle('hidden', filtered.length <= TRAINEES_PREVIEW_LIMIT);
+  }
+}
+
+function applyTraineeFilters() {
+  allTraineesPage = 1;
+  renderTraineeViews();
+}
+
+// "All Students" modal: paginated, ALL_TRAINEES_PAGE_SIZE students per page
+function renderAllTraineesTable() {
+  const modal = document.getElementById('all-trainees-modal');
+  if (!modal || modal.classList.contains('hidden')) return;
+
+  const tbody = document.getElementById('all-trainees-table-body');
+  const label = document.getElementById('all-trainees-count-label');
+  const pagination = document.getElementById('all-trainees-pagination');
+  const subtitle = document.getElementById('all-trainees-subtitle');
+  if (!tbody) return;
+
+  const filtered = getFilteredTrainees();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ALL_TRAINEES_PAGE_SIZE));
+
+  if (allTraineesPage > totalPages) allTraineesPage = totalPages;
+  if (allTraineesPage < 1) allTraineesPage = 1;
+
+  const start = (allTraineesPage - 1) * ALL_TRAINEES_PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + ALL_TRAINEES_PAGE_SIZE);
+
+  tbody.innerHTML = pageItems.length === 0
+    ? '<tr><td colspan="8" class="py-8 text-center text-slate-500">No students match the selected filters.</td></tr>'
+    : pageItems.map(buildTraineeRowHtml).join('');
+
+  if (label) {
+    label.textContent = filtered.length === 0
+      ? 'No students to show'
+      : `Showing ${start + 1}-${start + pageItems.length} of ${filtered.length} students`;
+  }
+
+  if (subtitle) {
+    subtitle.textContent = `${filtered.length} student${filtered.length === 1 ? '' : 's'} · page ${allTraineesPage} of ${totalPages} · ${ALL_TRAINEES_PAGE_SIZE} per page`;
+  }
+
+  if (pagination) {
+    pagination.innerHTML = buildTraineesPaginationHtml(allTraineesPage, totalPages);
+  }
+}
+
+function buildTraineesPaginationHtml(currentPage, totalPages) {
+  if (totalPages <= 1) return '';
+
+  const baseClass = 'px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 transition';
+  const parts = [];
+
+  parts.push(currentPage === 1
+    ? `<button disabled class="${baseClass} text-slate-600 cursor-not-allowed">Prev</button>`
+    : `<button onclick="goAllTraineesPage(${currentPage - 1})" class="${baseClass} text-slate-300 hover:bg-white/10">Prev</button>`);
+
+  const windowSize = 2;
+  const firstPage = Math.max(1, currentPage - windowSize);
+  const lastPage = Math.min(totalPages, currentPage + windowSize);
+  const pageNumbers = [];
+
+  if (firstPage > 1) {
+    pageNumbers.push(1);
+    if (firstPage > 2) pageNumbers.push('ellipsis');
+  }
+  for (let page = firstPage; page <= lastPage; page++) pageNumbers.push(page);
+  if (lastPage < totalPages) {
+    if (lastPage < totalPages - 1) pageNumbers.push('ellipsis');
+    pageNumbers.push(totalPages);
+  }
+
+  pageNumbers.forEach(page => {
+    if (page === 'ellipsis') {
+      parts.push('<span class="px-1 text-slate-500">…</span>');
+      return;
+    }
+    parts.push(page === currentPage
+      ? `<button class="${baseClass} bg-teal-500/20 text-teal-300 border-teal-400/40">${page}</button>`
+      : `<button onclick="goAllTraineesPage(${page})" class="${baseClass} text-slate-300 hover:bg-white/10">${page}</button>`);
+  });
+
+  parts.push(currentPage === totalPages
+    ? `<button disabled class="${baseClass} text-slate-600 cursor-not-allowed">Next</button>`
+    : `<button onclick="goAllTraineesPage(${currentPage + 1})" class="${baseClass} text-slate-300 hover:bg-white/10">Next</button>`);
+
+  return parts.join('');
+}
+
+function goAllTraineesPage(page) {
+  allTraineesPage = page;
+  renderAllTraineesTable();
+}
+
+// Opens with the exact same search, filters and sort as the Trainees tab
+function openAllTraineesModal() {
+  const modal = document.getElementById('all-trainees-modal');
+  if (!modal) return;
+
+  allTraineesPage = 1;
+  modal.classList.remove('hidden');
+  renderAllTraineesTable();
+  updateTraineeSortIndicators();
+}
+
+function closeAllTraineesModal() {
+  const modal = document.getElementById('all-trainees-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+// Adds dropdown options for values that exist in the data but not in the markup
+// (e.g. legacy departments on older student records)
+function addMissingFilterOptions() {
+  addMissingSelectOptions('dept-filter', traineesCache.map(trainee => trainee.department));
+  addMissingSelectOptions('section-filter', traineesCache.map(trainee => trainee.section));
+}
+
+function addMissingSelectOptions(selectId, values) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  const existingValues = Array.from(select.options).map(option => option.value);
+  const missingValues = [...new Set(
+    values
+      .filter(value => value !== null && value !== undefined && String(value).trim() !== '')
+      .map(value => String(value))
+  )].filter(value => !existingValues.includes(value));
+
+  if (missingValues.length === 0) return;
+
+  missingValues
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+    .forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      select.appendChild(option);
+    });
 }
 
 function setupFilterListeners() {
   const searchInput = document.getElementById('trainee-search');
   const deptFilter = document.getElementById('dept-filter');
+  const sectionFilter = document.getElementById('section-filter');
+  const allTraineesModal = document.getElementById('all-trainees-modal');
 
   if (searchInput) {
     searchInput.addEventListener('input', applyTraineeFilters);
   }
   if (deptFilter) {
     deptFilter.addEventListener('change', applyTraineeFilters);
+  }
+  if (sectionFilter) {
+    sectionFilter.addEventListener('change', applyTraineeFilters);
+  }
+
+  // Close the "All Students" modal on backdrop click
+  if (allTraineesModal) {
+    allTraineesModal.addEventListener('click', (event) => {
+      if (event.target === allTraineesModal) closeAllTraineesModal();
+    });
   }
 }
 
@@ -2252,6 +2530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Setup filter listeners for auto-filtering
   setupFilterListeners();
+  updateTraineeSortIndicators();
 
   // Set user name
   const name = window.currentUser?.fullName?.split(' ')[0] || 'Coordinator';
