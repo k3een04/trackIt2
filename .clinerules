@@ -1,0 +1,39 @@
+# TrackIT Project Rules
+
+## Git workflow (standing instruction from the project owner)
+
+1. **After editing the main project files, commit the change and push it to the `main` branch.**
+   - Remote: `origin` -> https://github.com/k3een04/trackIt2.git
+   - Branch: `main` (this is the only working branch; there are no feature branches)
+   - Command sequence to use after a project edit:
+     ```
+     git add <changed project files>
+     git commit -m "<type>: <short description>"
+     git push origin main
+     ```
+
+2. Scope of "main project files" = the tracked files that make up the app:
+   - Root front-end pages/scripts: `*.html`, `*.js` (e.g. `index.html`, `ojtdashboard.js`,
+     `coordinator-dashboard.js`, `supervisor-dashboard.js`, `loginpage.js`, `signup.js`,
+     `landingpage.js`, `socket-client.js`, `socketService.js`)
+   - Backend: `backend/**` (`server.js`, `app.js`, `routes/**`, `models/**`, `services/**`, `middleware/**`)
+   - Config/manifest files: `package.json`, `vercel.json`, `.gitignore`
+   - Docs: `*.md`
+
+3. **Do NOT commit** scratch/throwaway artifacts unless asked: extra `test-*.js` /
+   `*api-test.js` probe scripts at repo root or in `backend/`, and `tmp_*` files.
+   Add them to `.gitignore` if they keep coming back.
+
+4. Commit messages follow the existing conventional style already used in this repo:
+   `feat: ...`, `fix: ...`, `chore: ...`, `refactor: ...`, `docs: ...`
+   (see `git log` -> e.g. "fix: handle omitted dayCovered and sanitize theories in journal submission").
+
+5. Never force-push `main` and never commit secrets (`.env`, `backend/.env` are gitignored - keep it that way).
+
+## Project conventions
+
+- Runtime: Node.js + Express, entry point `backend/server.js` (`npm start`, `npm run dev` with nodemon).
+- Database: MongoDB via Mongoose (`mongoose@^7`).
+- Front end: plain HTML + vanilla JS files per dashboard, no build step, no framework.
+- Auth: JWT (`jsonwebtoken`) + `bcryptjs`.
+- Validate changes with `node --check <file>` for backend JS before committing.
