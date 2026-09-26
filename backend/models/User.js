@@ -190,6 +190,30 @@ const userSchema = new mongoose.Schema(
       type: Date,
       sparse: true,
     },
+
+    // Emailed password-reset code (the code itself is never stored, only its
+    // bcrypt hash). Hidden from normal queries like the 2FA secret.
+    passwordResetCodeHash: {
+      type: String,
+      sparse: true,
+      select: false,
+    },
+    passwordResetExpiresAt: {
+      type: Date,
+      sparse: true,
+      select: false,
+    },
+    passwordResetAttempts: {
+      type: Number,
+      default: 0,
+      sparse: true,
+      select: false,
+    },
+    passwordResetRequestedAt: {
+      type: Date,
+      sparse: true,
+      select: false,
+    },
   },
   {
     timestamps: true,

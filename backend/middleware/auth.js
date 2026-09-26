@@ -4,6 +4,10 @@ const jwt = require('jsonwebtoken');
 // authenticator-app verification step
 const TWO_FACTOR_SETUP_PURPOSE = '2fa-setup';
 
+// Purpose claim used by the short-lived token issued after the emailed
+// password-reset code was accepted
+const PASSWORD_RESET_PURPOSE = 'password-reset';
+
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -62,6 +66,30 @@ const authenticateTwoFactorToken = (req, res, next) => {
   });
 };
 
+// Middleware for the password-reset step only (after the emailed code checks out)
+const authenticatePasswordResetToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  const reject = () => res.status(401).json({
+    success: false,
+    message: 'Your password reset session has expired. Request a new code and try again.',
+  });
+
+  if (!token) {
+    return reject();
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here', (err, payload) => {
+    if (err || !payload || payload.purpose !== PASSWORD_RESET_PURPOSE) {
+      return reject();
+    }
+
+    req.user = payload;
+    next();
+  });
+};
+
 // Middleware to verify specific user role
 const authorizeRole = (...roles) => {
   return (req, res, next) => {
@@ -78,6 +106,8 @@ const authorizeRole = (...roles) => {
 module.exports = {
   authenticateToken,
   authenticateTwoFactorToken,
+  authenticatePasswordResetToken,
   authorizeRole,
   TWO_FACTOR_SETUP_PURPOSE,
+  PASSWORD_RESET_PURPOSE,
 };

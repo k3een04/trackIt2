@@ -4,6 +4,7 @@ backend/node_modules/
 backend/.env
 .env.local
 .env.*.local
+tmp_*
 *.log
 .DS_Store
 .vercel

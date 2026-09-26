@@ -1,24 +1,34 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const validator = require('validator');
 const User = require('../models/User');
 const {
   authenticateToken,
   authenticateTwoFactorToken,
+  authenticatePasswordResetToken,
   TWO_FACTOR_SETUP_PURPOSE,
+  PASSWORD_RESET_PURPOSE,
 } = require('../middleware/auth');
 const totpService = require('../services/totpService');
 const schoolEmailService = require('../services/schoolEmailService');
+const passwordResetService = require('../services/passwordResetService');
 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
 const TWO_FACTOR_SETUP_TTL = '30m';
+const PASSWORD_RESET_TTL = '15m';
 
 // Generate JWT Token. A "purpose" marks the short-lived token that is only
-// valid for confirming the authenticator-app code.
+// valid for confirming the authenticator-app code or for finishing an emailed
+// password reset.
 const generateToken = (id, role, purpose) => {
   const payload = purpose ? { id, role, purpose } : { id, role };
-  const expiresIn = purpose === TWO_FACTOR_SETUP_PURPOSE ? TWO_FACTOR_SETUP_TTL : '7d';
+  const expiresIn = purpose === TWO_FACTOR_SETUP_PURPOSE
+    ? TWO_FACTOR_SETUP_TTL
+    : purpose === PASSWORD_RESET_PURPOSE
+      ? PASSWORD_RESET_TTL
+      : '7d';
 
   return jwt.sign(payload, JWT_SECRET, { expiresIn });
 };
@@ -452,6 +462,191 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while changing password',
+    });
+  }
+});
+
+// @route   POST /api/auth/forgot-password
+// @desc    Email a 6-digit reset code to the school Microsoft account on file
+// @access  Public
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter the email address you signed up with.',
+      });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid email address.',
+      });
+    }
+
+    const result = await passwordResetService.requestReset(email);
+
+    // Unknown address: answer exactly like a successful send so the endpoint
+    // cannot be used to discover which emails are registered.
+    if (result.status === 'unknown-account') {
+      return res.status(200).json({
+        success: true,
+        delivery: 'unknown',
+        message: `If ${email} is registered, a 6-digit code has been sent to it.`,
+      });
+    }
+
+    if (result.status === 'cooldown' || result.status === 'rate-limited') {
+      return res.status(429).json({
+        success: false,
+        retryAfterSeconds: result.retryAfterSeconds,
+        message: `A reset code was requested for that address very recently. Please wait ${result.retryAfterSeconds} more second(s) before asking for another one.`,
+      });
+    }
+
+    if (result.status === 'send-failed') {
+      return res.status(502).json({
+        success: false,
+        message: 'We could not send the reset email right now. Please try again in a few minutes.',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      delivery: result.delivery,
+      codeExpiresInMinutes: result.codeExpiresInMinutes,
+      // Present only when the mail transport is not configured (development)
+      devCode: result.devCode,
+      message: `We sent a 6-digit code to ${email}. Open that mailbox and enter the code here (check the junk folder if you do not see it).`,
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while creating your reset code',
+    });
+  }
+});
+
+// @route   POST /api/auth/verify-reset-code
+// @desc    Check the 6-digit code emailed for a password reset
+// @access  Public
+router.post('/verify-reset-code', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const code = String(req.body.code || '').replace(/\D/g, '');
+
+    if (!email || !validator.isEmail(email) || code.length !== passwordResetService.CODE_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `Enter the ${passwordResetService.CODE_LENGTH}-digit code we emailed to your school account.`,
+      });
+    }
+
+    const result = await passwordResetService.verifyResetCode({ email, code });
+
+    if (result.status === 'valid') {
+      return res.status(200).json({
+        success: true,
+        message: 'Code verified. Choose your new password.',
+        // Short-lived (15 min) token that only /reset-password accepts
+        resetToken: generateToken(result.user._id, result.user.role, PASSWORD_RESET_PURPOSE),
+        account: {
+          email: result.user.email,
+          fullName: result.user.fullName,
+        },
+      });
+    }
+
+    if (result.status === 'too-many-attempts') {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many incorrect codes. Request a new code to continue.',
+      });
+    }
+
+    if (result.status === 'expired' || result.status === 'no-code') {
+      return res.status(400).json({
+        success: false,
+        message: 'That code is no longer valid because it expired or a newer code was requested. Please request a new code.',
+      });
+    }
+
+    const attemptsLeft = result.attemptsLeft;
+    return res.status(400).json({
+      success: false,
+      attemptsLeft,
+      message: attemptsLeft
+        ? `That code is not correct. ${attemptsLeft} attempt(s) left before you need a new code.`
+        : 'That code is not correct.',
+    });
+  } catch (error) {
+    console.error('Verify reset code error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while checking your reset code',
+    });
+  }
+});
+
+// @route   POST /api/auth/reset-password
+// @desc    Set a new password using the token from /verify-reset-code
+// @access  Private (password-reset token only)
+router.post('/reset-password', authenticatePasswordResetToken, async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your new password',
+      });
+    }
+
+    // Same rule as /change-password and the User model
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters',
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Assign and save - the pre-save hook hashes the new password
+    user.password = newPassword;
+    await user.save();
+
+    // The code was single use: drop it so the same code cannot reset again
+    await passwordResetService.clearReset(user._id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated. You can sign in with your new password now.',
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', '),
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Server error while resetting your password',
     });
   }
 });

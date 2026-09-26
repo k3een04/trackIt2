@@ -196,6 +196,68 @@ curl -X GET http://localhost:5000/api/dashboard/student/USER_ID \
    - Auto-calculate hours from attendance
    - Generate PDF reports with libraries like jsPDF
 
+---
+
+## Forgot Password (emailed code)
+
+The "Forgot password?" link on `loginpage.html` opens a modal that walks the user
+through three steps:
+
+1. type the email they signed up with (the STI Microsoft account for students and
+   coordinators)
+2. type the 6-digit code that was emailed to that mailbox
+3. choose a new password
+
+### Endpoints
+
+```
+POST /api/auth/forgot-password   - { email }              -> emails a 6-digit code
+POST /api/auth/verify-reset-code - { email, code }        -> { resetToken } (15 min JWT)
+POST /api/auth/reset-password    - { newPassword } + Authorization: Bearer <resetToken>
+```
+
+For an unknown address `forgot-password` answers exactly like a successful send, so
+the endpoint cannot be used to discover which emails are registered. Sending again
+before `RESEND_COOLDOWN_SECONDS` (60s) returns `429` with `retryAfterSeconds`.
+
+### Email delivery (Microsoft Graph)
+
+`backend/services/emailService.js` sends through Microsoft Graph `sendMail` with an
+app-only token - no extra npm package needed. Add to `backend/.env`:
+
+```
+MS_TENANT_ID=          # Azure AD tenant id (or <tenant>.onmicrosoft.com)
+MS_CLIENT_ID=          # app registration (client) id
+MS_CLIENT_SECRET=      # app registration client secret
+MS_SENDER_EMAIL=no-reply@wnu.sti.edu.ph
+MS_SENDER_NAME=TrackIT
+```
+
+In Azure AD: register an app, add the **application** permission `Mail.Send` and
+grant admin consent. Because that permission covers the whole tenant, restrict it to
+the sending mailbox with an Application Access Policy:
+
+```powershell
+New-ApplicationAccessPolicy -AppId <client id> `
+  -PolicyScopeGroupId <mail-enabled security group> `
+  -AccessRight RestrictAccess -Description "TrackIT password reset mail"
+```
+
+**Development fallback:** when those variables are missing, the API logs the code on
+the server console (`[password-reset] ... Reset code for <email> is <code>`) and, while
+`NODE_ENV` is not `production`, also returns it as `devCode` so the modal can show it.
+Set `NODE_ENV=production` on the deployed server so codes are never sent to the browser.
+
+### Security notes
+
+- only a bcrypt hash of the code is stored (`passwordResetCodeHash`), together with a
+  10 minute expiry, an attempt counter (5 wrong tries invalidate the code) and the
+  last request time used for the resend cooldown
+- the reset token is a 15 minute JWT with `purpose: 'password-reset'`, which every
+  regular protected route rejects (`authenticateToken` refuses purpose-scoped tokens)
+- the code is single use: it is deleted as soon as the new password is saved
+- existing 7-day session tokens are not revoked by a reset (JWT is stateless)
+
 4. **Email Notifications**
    - Send verification emails
    - Notify supervisors of submissions
