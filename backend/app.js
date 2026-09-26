@@ -11,8 +11,16 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 const { initializeGoogleAI } = require('./services/summaryService');
+const { createRateLimiter, describe: describeRateLimiter } = require('./middleware/rateLimit');
 
 const app = express();
+
+// Behind a proxy (Vercel, nginx, ...) Express must be told to read the client
+// address from X-Forwarded-For, otherwise every request looks like it comes
+// from the proxy and the per-IP rate limits in /api/auth would lump all users
+// together. `1` trusts exactly one hop, so a client cannot spoof its own
+// address by sending its own X-Forwarded-For header.
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS) || 1);
 
 // Middleware
 app.use(express.json({ limit: '25mb' }));
@@ -67,6 +75,19 @@ apiRouter.use('/qr', qrRoutes);
 apiRouter.use('/journal', journalRoutes);
 apiRouter.use('/geofence', geofenceRoutes);
 apiRouter.use('/notifications', notificationRoutes);
+
+// Broad safety net for every API route. The limit is high on purpose - the
+// dashboard pages make many small calls - it only exists to blunt a runaway
+// script or a flood. The auth routes have their own, much tighter limits.
+apiRouter.use(
+  '/',
+  createRateLimiter({
+    name: 'api',
+    windowMs: (Number(process.env.API_RATE_WINDOW_SECONDS) || 900) * 1000,
+    max: Number(process.env.API_RATE_MAX) || 600,
+    message: 'You are making too many requests. Please slow down and try again shortly.',
+  }),
+);
 
 // Health check endpoint
 apiRouter.get('/health', async (req, res) => {

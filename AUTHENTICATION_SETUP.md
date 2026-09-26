@@ -321,6 +321,57 @@ New-ApplicationAccessPolicy -AppId <client id> `
   -AccessRight RestrictAccess -Description "TrackIT password reset mail"
 ```
 
+### Rate limiting and the daily e-mail budget
+
+The free Brevo plan allows **300 emails per day for the whole account** and then
+starts rejecting everything, which would lock every student out of the reset flow.
+Two independent layers prevent that:
+
+**1. Endpoint rate limits** (`backend/middleware/rateLimit.js`, applied in
+`backend/routes/auth.js`). All in-process, no dependency, keyed by client IP:
+
+| Endpoint | Limit | Purpose |
+| --- | --- | --- |
+| `POST /api/auth/login` | 10 failures / 15 min per IP **and** per account | credential stuffing. Only *failed* attempts count, so a student who types their password correctly is never locked out |
+| `POST /api/auth/register` | 5 / hour per IP | mass account creation |
+| `POST /api/auth/forgot-password` | 20 / hour per IP **and** 10 / hour per address | reset-mail flooding from one machine, and flooding of a single account from many machines |
+| `POST /api/auth/verify-reset-code` | 20 / 15 min per IP | brute-forcing the 6-digit code |
+| `POST /api/auth/verify-2fa` | 20 / 15 min per IP | same, for the authenticator code |
+| all `/api/*` | 600 / 15 min per IP | broad flood safety net (deliberately high - the dashboards make many small calls) |
+
+Every value is tunable through the environment, e.g. `LOGIN_MAX_FAILURES=20`,
+`FORGOT_MAX_PER_IP_HOUR=30`, `API_RATE_MAX=1000`. A rejected request gets HTTP 429
+with a `retryAfterSeconds` field.
+
+`backend/app.js` sets `app.set('trust proxy', 1)` so the client address is read
+from `X-Forwarded-For` behind Vercel/nginx. Without this every visitor would
+appear to come from the proxy and share one bucket. One hop is trusted, so a
+client cannot spoof its own address by sending its own `X-Forwarded-For`.
+
+**2. Daily e-mail budget** (`backend/services/emailQuotaService.js`). This is the
+authoritative cap, because the per-address limits above can be walked around with
+many different addresses. It counts the emails the app actually sent in MongoDB
+(one document per UTC day) and refuses to hand anything to the provider once the
+budget is spent, answering with HTTP 503 instead.
+
+```
+EMAIL_DAILY_LIMIT=200      # 200 of the 300/day, leaving headroom
+EMAIL_QUOTA_ENABLED=true   # 'false' disables the budget
+EMAIL_QUOTA_PAUSED=false   # 'true' = emergency kill switch, no mail at all
+EMAIL_QUOTA_FAIL_OPEN=false # 'true' sends anyway if the counter is unreadable
+```
+
+A slot is *reserved* before the SMTP call and *released* again if the send throws,
+so a provider outage never burns a real send. The increment is a conditional
+`findOneAndUpdate`, which MongoDB applies atomically, so parallel requests cannot
+overshoot the limit.
+
+Check what is left (coordinator only):
+
+```bash
+curl -H "Authorization: Bearer <coordinator token>" http://localhost:5000/api/auth/email-quota
+```
+
 **If no transport is configured:** the API logs the code on the server console
 (`[password-reset] ... Reset code for <email> is <code>`) and answers with the normal
 "we sent a code" message, but no email is actually delivered. The code is never returned

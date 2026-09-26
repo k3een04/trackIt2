@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const emailService = require('./emailService');
+const emailQuotaService = require('./emailQuotaService');
 
 const CODE_LENGTH = 6;
 const CODE_TTL_MINUTES = 10;
@@ -162,6 +163,8 @@ function buildResetEmail({ fullName, code }) {
  *   { status: 'unknown-account' }  - caller answers exactly like 'sent'
  *   { status: 'cooldown', retryAfterSeconds }
  *   { status: 'rate-limited', retryAfterSeconds }
+ *   { status: 'quota-exhausted', retryAfterSeconds }  - daily mail budget spent
+ *   { status: 'quota-unavailable' }                  - counter unreadable
  *   { status: 'send-failed' }
  */
 async function requestReset(email) {
@@ -203,6 +206,39 @@ async function requestReset(email) {
     };
   }
 
+  // Claim a slot from the global daily budget *before* handing anything to the
+  // mail provider. The per-account cooldown and hourly cap above can be walked
+  // around with many different addresses, so this is what actually protects
+  // the free-tier allowance.
+  let claim = null;
+  try {
+    claim = await emailQuotaService.reserve();
+  } catch (error) {
+    console.error(
+      '[password-reset] Could not read the daily email budget:',
+      error.message,
+    );
+    // Refuse by default so the budget can never be overrun, but allow an
+    // operator to opt out with EMAIL_QUOTA_FAIL_OPEN=true.
+    if (!emailQuotaService.failsOpen()) {
+      return { status: 'quota-unavailable' };
+    }
+  }
+
+  if (claim && !claim.allowed) {
+    // Drop the pending code so the user can simply retry tomorrow.
+    await clearReset(user._id);
+    console.warn(
+      `[password-reset] Daily email budget is spent (${claim.limit || '-'}/day), ` +
+        `so no reset mail was sent to ${normalized}. Reason: ${claim.reason}.`,
+    );
+    return {
+      status: 'quota-exhausted',
+      reason: claim.reason,
+      retryAfterSeconds: claim.retryAfterSeconds,
+    };
+  }
+
   try {
     const { subject, text, html } = buildResetEmail({ fullName: user.fullName, code });
     await emailService.sendMail({ to: normalized, subject, text, html });
@@ -211,6 +247,8 @@ async function requestReset(email) {
   } catch (error) {
     console.error('[password-reset] Could not send the reset email:', error.message);
     await clearReset(user._id);
+    // The provider never accepted the message, so hand the slot back
+    await emailQuotaService.release();
     return { status: 'send-failed' };
   }
 }

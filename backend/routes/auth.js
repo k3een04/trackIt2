@@ -6,12 +6,15 @@ const {
   authenticateToken,
   authenticateTwoFactorToken,
   authenticatePasswordResetToken,
+  authorizeRole,
   TWO_FACTOR_SETUP_PURPOSE,
   PASSWORD_RESET_PURPOSE,
 } = require('../middleware/auth');
+const { createRateLimiter } = require('../middleware/rateLimit');
 const totpService = require('../services/totpService');
 const schoolEmailService = require('../services/schoolEmailService');
 const passwordResetService = require('../services/passwordResetService');
+const emailQuotaService = require('../services/emailQuotaService');
 
 const router = express.Router();
 
@@ -35,6 +38,93 @@ const generateToken = (id, role, purpose) => {
 
 // Roles that must confirm a code from their authenticator app after signing up
 const TWO_FACTOR_ROLES = ['student', 'coordinator'];
+
+/**
+ * Abuse limits for the public auth endpoints.
+ *
+ * These protect the endpoints themselves (credential stuffing, mass signups,
+ * reset-mail flooding). The daily Brevo allowance is protected separately by
+ * emailQuotaService, which is the authoritative cap.
+ *
+ * Every limit can be tuned through the environment, e.g. LOGIN_MAX_FAILURES=20.
+ * The IP limits are deliberately generous because a campus network puts many
+ * students behind one public address.
+ */
+function limitFromEnv(name, fallback) {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
+}
+
+// Env overrides are given in seconds; the fallback is passed in milliseconds
+function windowFromEnv(name, fallbackMs) {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) * 1000 : fallbackMs;
+}
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+
+// Credential stuffing / brute force: only failed attempts are counted, so a
+// student who types their password correctly is never locked out.
+const loginLimiter = createRateLimiter({
+  name: 'login',
+  windowMs: windowFromEnv('LOGIN_RATE_WINDOW_MS', 15 * MINUTE),
+  max: limitFromEnv('LOGIN_MAX_FAILURES', 10),
+  skipSuccessful: true,
+  message:
+    'Too many failed sign-in attempts from this device. Please wait 15 minutes and try again.',
+});
+
+// Keep a single account from being sprayed with password guesses even when the
+// attacker rotates addresses.
+const loginAccountLimiter = createRateLimiter({
+  name: 'login-account',
+  windowMs: windowFromEnv('LOGIN_RATE_WINDOW_MS', 15 * MINUTE),
+  max: limitFromEnv('LOGIN_MAX_FAILURES', 10),
+  skipSuccessful: true,
+  keyFn: (req, ip) => {
+    const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+    return email ? `${ip}|${email}` : ip;
+  },
+  message: 'Too many failed sign-in attempts for this account. Please wait 15 minutes and try again.',
+});
+
+// Mass account creation
+const registerLimiter = createRateLimiter({
+  name: 'register',
+  windowMs: windowFromEnv('REGISTER_RATE_WINDOW_MS', HOUR),
+  max: limitFromEnv('REGISTER_MAX_PER_HOUR', 5),
+  message: 'Too many accounts created from this device. Please try again later.',
+});
+
+// Reset mail: per IP this stops one machine spraying hundreds of addresses...
+const forgotIpLimiter = createRateLimiter({
+  name: 'forgot-ip',
+  windowMs: windowFromEnv('FORGOT_RATE_WINDOW_MS', HOUR),
+  max: limitFromEnv('FORGOT_MAX_PER_IP_HOUR', 20),
+  message:
+    'Too many password reset requests from this device. Please wait before trying again.',
+});
+
+// ...and per address this stops one account being flooded from many machines.
+const forgotEmailLimiter = createRateLimiter({
+  name: 'forgot-email',
+  windowMs: windowFromEnv('FORGOT_RATE_WINDOW_MS', HOUR),
+  max: limitFromEnv('FORGOT_MAX_PER_EMAIL_HOUR', 10),
+  keyFn: (req, ip) => {
+    const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+    return email ? `${ip}|${email}` : ip;
+  },
+  message: 'Too many password reset requests for that address. Please wait before trying again.',
+});
+
+// Brute-forcing the 6-digit code (the service also caps this at 5 wrong tries)
+const codeLimiter = createRateLimiter({
+  name: 'code',
+  windowMs: windowFromEnv('CODE_RATE_WINDOW_MS', 15 * MINUTE),
+  max: limitFromEnv('CODE_MAX_ATTEMPTS', 20),
+  message: 'Too many code attempts. Please request a new code and wait a few minutes.',
+});
 
 // Only these role-specific fields may be written from the signup body, so a
 // client can never set fields such as twoFactorEnabled or completedHours.
@@ -81,7 +171,7 @@ async function buildTwoFactorSetupPayload(user) {
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   try {
     const { fullName, email, password, role, ...roleSpecificData } = req.body;
 
@@ -243,7 +333,7 @@ router.post('/register', async (req, res) => {
 // @route   POST /api/auth/login
 // @desc    Login user
 // @access  Public
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, loginAccountLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -323,7 +413,7 @@ router.post('/login', async (req, res) => {
 // @route   POST /api/auth/verify-2fa
 // @desc    Confirm a 6-digit code from the authenticator app to activate a new account
 // @access  Private (two-factor setup token only)
-router.post('/verify-2fa', authenticateTwoFactorToken, async (req, res) => {
+router.post('/verify-2fa', authenticateTwoFactorToken, codeLimiter, async (req, res) => {
   try {
     const { code } = req.body;
 
@@ -469,7 +559,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 // @route   POST /api/auth/forgot-password
 // @desc    Email a 6-digit reset code to the school Microsoft account on file
 // @access  Public
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotIpLimiter, forgotEmailLimiter, async (req, res) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
 
@@ -507,6 +597,24 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
 
+    // The provider's daily allowance is spent, so no mail was sent. This is a
+    // server-side condition, not something the user did wrong.
+    if (result.status === 'quota-exhausted') {
+      return res.status(503).json({
+        success: false,
+        retryAfterSeconds: result.retryAfterSeconds,
+        message: `We have reached today's limit for reset emails, so no code could be sent. Please try again in about ${emailQuotaService.describeHours()}.`,
+      });
+    }
+
+    if (result.status === 'quota-unavailable') {
+      return res.status(503).json({
+        success: false,
+        message:
+          'Reset emails are temporarily unavailable so we can protect our daily sending limit. Please try again in a few minutes.',
+      });
+    }
+
     if (result.status === 'send-failed') {
       return res.status(502).json({
         success: false,
@@ -535,7 +643,7 @@ router.post('/forgot-password', async (req, res) => {
 // @route   POST /api/auth/verify-reset-code
 // @desc    Check the 6-digit code emailed for a password reset
 // @access  Public
-router.post('/verify-reset-code', async (req, res) => {
+router.post('/verify-reset-code', codeLimiter, async (req, res) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
     const code = String(req.body.code || '').replace(/\D/g, '');
@@ -651,5 +759,42 @@ router.post('/reset-password', authenticatePasswordResetToken, async (req, res) 
     });
   }
 });
+
+// @route   GET /api/auth/email-quota
+// @desc    Show how much of the daily e-mail budget is left (coordinator only)
+// @access  Private (Coordinator only)
+//
+// Useful while the account is on the free Brevo tier: it makes it obvious how
+// much of the 300 emails/day is still available without opening the dashboard.
+router.get(
+  '/email-quota',
+  authenticateToken,
+  authorizeRole('coordinator'),
+  async (req, res) => {
+    try {
+      const status = await emailQuotaService.getStatus();
+
+      res.status(200).json({
+        success: true,
+        quota: {
+          ...status,
+          resetsInHours: emailQuotaService.describeHours(),
+          hint: status.paused
+            ? 'EMAIL_QUOTA_PAUSED=true - no email is being sent.'
+            : status.enabled
+              ? 'Reset emails stop once this budget is spent.'
+              : 'Budget disabled - every request is sent.',
+        },
+      });
+    } catch (error) {
+      console.error('Email quota lookup error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Could not read the e-mail budget',
+      });
+    }
+  },
+);
+
 
 module.exports = router;
