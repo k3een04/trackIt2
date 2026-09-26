@@ -394,12 +394,6 @@ function openForgotModal() {
   forgotSetMessage('forgotCodeError', '');
   forgotSetMessage('forgotResetError', '');
 
-  const devHint = document.getElementById('forgotDevHint');
-  if (devHint) {
-    devHint.className = 'hidden';
-    devHint.textContent = '';
-  }
-
   const emailEl = document.getElementById('forgotEmail');
   if (emailEl && !emailEl.value) {
     const typedEmail = document.getElementById('loginEmail');
@@ -470,19 +464,8 @@ async function forgotRequestCode(options = {}) {
     forgotSetMessage('forgotCodeError', data.message || `We sent a code to ${email}.`, true);
     startForgotResendTimer(RESEND_WAIT_SECONDS);
 
-    // Without Microsoft Graph credentials the API returns the code so the flow
-    // can still be exercised in development.
-    const devHint = document.getElementById('forgotDevHint');
-    if (devHint) {
-      if (data.devCode) {
-        devHint.className = 'mt-4 p-3.5 rounded-xl text-sm border bg-amber-500/10 border-amber-500/30 text-amber-300';
-        devHint.textContent = `Development mode: email delivery is not configured, so use this code: ${data.devCode}`;
-      } else {
-        devHint.className = 'hidden';
-        devHint.textContent = '';
-      }
-    }
-
+    // Codes are only ever delivered by email, so there is nothing extra to
+    // render here - the user should check their inbox (and junk folder).
     const codeEl = document.getElementById('forgotCode');
     if (codeEl) {
       codeEl.value = '';

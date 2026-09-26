@@ -1,5 +1,11 @@
-require('dotenv').config();
+// Load backend/.env explicitly instead of relying on the current working
+// directory. `npm start` runs `node backend/server.js` from the repository
+// root, where there is no .env file, so a bare dotenv.config() would silently
+// leave MONGODB_URI / SMTP_* undefined and disable email delivery.
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
@@ -47,6 +53,7 @@ const statsRoutes = require('./routes/stats');
 const qrRoutes = require('./routes/qr');
 const journalRoutes = require('./routes/journal');
 const geofenceRoutes = require('./routes/geofence');
+const notificationRoutes = require('./routes/notifications');
 
 // API Router
 const apiRouter = express.Router();
@@ -59,6 +66,7 @@ apiRouter.use('/stats', statsRoutes);
 apiRouter.use('/qr', qrRoutes);
 apiRouter.use('/journal', journalRoutes);
 apiRouter.use('/geofence', geofenceRoutes);
+apiRouter.use('/notifications', notificationRoutes);
 
 // Health check endpoint
 apiRouter.get('/health', async (req, res) => {

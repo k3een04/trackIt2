@@ -158,7 +158,7 @@ function buildResetEmail({ fullName, code }) {
 /**
  * Ask for a reset code.
  * Returns one of:
- *   { status: 'sent', delivery: 'email' | 'console', devCode?, codeExpiresInMinutes }
+ *   { status: 'sent', delivery: 'email' | 'console', codeExpiresInMinutes }
  *   { status: 'unknown-account' }  - caller answers exactly like 'sent'
  *   { status: 'cooldown', retryAfterSeconds }
  *   { status: 'rate-limited', retryAfterSeconds }
@@ -200,8 +200,6 @@ async function requestReset(email) {
       status: 'sent',
       delivery: 'console',
       codeExpiresInMinutes: CODE_TTL_MINUTES,
-      // Only surfaced outside production so the flow stays testable locally
-      devCode: process.env.NODE_ENV === 'production' ? undefined : code,
     };
   }
 

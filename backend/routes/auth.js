@@ -518,8 +518,9 @@ router.post('/forgot-password', async (req, res) => {
       success: true,
       delivery: result.delivery,
       codeExpiresInMinutes: result.codeExpiresInMinutes,
-      // Present only when the mail transport is not configured (development)
-      devCode: result.devCode,
+      // The code itself is never returned to the browser - it only ever
+      // reaches the user by email. The same generic message is used for
+      // unknown addresses so registered emails cannot be discovered.
       message: `We sent a 6-digit code to ${email}. Open that mailbox and enter the code here (check the junk folder if you do not see it).`,
     });
   } catch (error) {

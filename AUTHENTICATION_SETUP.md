@@ -321,10 +321,15 @@ New-ApplicationAccessPolicy -AppId <client id> `
   -AccessRight RestrictAccess -Description "TrackIT password reset mail"
 ```
 
-**Development fallback:** when neither transport is configured, the API logs the code on
-the server console (`[password-reset] ... Reset code for <email> is <code>`) and, while
-`NODE_ENV` is not `production`, also returns it as `devCode` so the modal can show it.
-Set `NODE_ENV=production` on the deployed server so codes are never sent to the browser.
+**If no transport is configured:** the API logs the code on the server console
+(`[password-reset] ... Reset code for <email> is <code>`) and answers with the normal
+"we sent a code" message, but no email is actually delivered. The code is never returned
+to the browser, so configure `SMTP_*` (or `MS_*`) to make the flow work end to end.
+
+> `npm start` runs `node backend/server.js` from the repository root. `backend/app.js`
+> therefore loads `backend/.env` by absolute path - if you ever see the
+> `[password-reset] No mail transport is configured` warning, the `SMTP_*` values are
+> missing from `backend/.env`.
 
 ### Security notes
 
