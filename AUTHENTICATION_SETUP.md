@@ -220,10 +220,31 @@ For an unknown address `forgot-password` answers exactly like a successful send,
 the endpoint cannot be used to discover which emails are registered. Sending again
 before `RESEND_COOLDOWN_SECONDS` (60s) returns `429` with `retryAfterSeconds`.
 
-### Email delivery (Microsoft Graph)
+### Email delivery
 
-`backend/services/emailService.js` sends through Microsoft Graph `sendMail` with an
-app-only token - no extra npm package needed. Add to `backend/.env`:
+`backend/services/emailService.js` can send the code two ways. The first one that is
+configured wins (`MAIL_TRANSPORT=smtp|graph` forces a specific one):
+
+**Option A - SMTP from the school mailbox (quickest).** Sign in with a real mailbox and
+let nodemailer deliver the mail. Add to `backend/.env`:
+
+```
+SMTP_HOST=smtp.office365.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=ojt-noreply@wnu.sti.edu.ph   # the mailbox that sends the codes
+SMTP_PASS=<mailbox password or app password>
+SMTP_FROM=ojt-noreply@wnu.sti.edu.ph
+SMTP_FROM_NAME=TrackIT
+```
+
+For a Microsoft 365 mailbox the tenant must allow SMTP AUTH for that account
+(`Set-CASMailbox -Identity <mailbox> -SmtpClientAuthenticationDisabled $false`) and, if
+MFA is enforced, an **app password** has to be used instead of the normal password.
+A Gmail account works too: `smtp.gmail.com`, port 587, with a 16-character app password.
+
+**Option B - Microsoft Graph (no mailbox password).** `backend/services/emailService.js`
+can also send through Graph `sendMail` with an app-only token:
 
 ```
 MS_TENANT_ID=          # Azure AD tenant id (or <tenant>.onmicrosoft.com)
@@ -243,7 +264,7 @@ New-ApplicationAccessPolicy -AppId <client id> `
   -AccessRight RestrictAccess -Description "TrackIT password reset mail"
 ```
 
-**Development fallback:** when those variables are missing, the API logs the code on
+**Development fallback:** when neither transport is configured, the API logs the code on
 the server console (`[password-reset] ... Reset code for <email> is <code>`) and, while
 `NODE_ENV` is not `production`, also returns it as `devCode` so the modal can show it.
 Set `NODE_ENV=production` on the deployed server so codes are never sent to the browser.

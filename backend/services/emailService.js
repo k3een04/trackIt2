@@ -1,12 +1,30 @@
 /**
  * Outbound email for TrackIT.
  *
- * The school issues Microsoft 365 (Outlook) mailboxes, so mail is sent through
- * Microsoft Graph `sendMail` with an app-only (client credentials) token. That
- * keeps the project dependency-free (Node's built-in fetch) and works in the
- * Vercel serverless runtime.
+ * Two transports are supported; the first one that is configured wins:
  *
- * Environment variables (backend/.env):
+ * 1. SMTP (`SMTP_*`) - sign in with a real mailbox (e.g. the school Microsoft
+ *    365 account) and let nodemailer deliver the message. This is the quickest
+ *    way to get codes into student inboxes.
+ * 2. Microsoft Graph (`MS_*`) - app-only token, no mailbox password involved.
+ *
+ * SMTP environment variables (backend/.env):
+ *   SMTP_HOST     - e.g. smtp.office365.com (or smtp.gmail.com)
+ *   SMTP_PORT     - 587 for STARTTLS (465 with SMTP_SECURE=true)
+ *   SMTP_SECURE   - 'true' for implicit TLS, default false
+ *   SMTP_USER     - mailbox login, e.g. ojt-noreply@wnu.sti.edu.ph
+ *   SMTP_PASS     - mailbox password / app password
+ *   SMTP_FROM     - From address (defaults to SMTP_USER)
+ *   SMTP_FROM_NAME- display name (defaults to TrackIT)
+ *   SMTP_REQUIRE_TLS - default true on port 587
+ *   SMTP_REJECT_UNAUTHORIZED - 'false' to accept a self-signed certificate
+ *   MAIL_TRANSPORT- 'smtp' | 'graph' to force one, default 'auto'
+ *
+ * Microsoft 365 notes: the tenant must allow SMTP AUTH for that mailbox
+ * (`Set-CASMailbox -Identity <mailbox> -SmtpClientAuthenticationDisabled $false`)
+ * and, when MFA is enforced, an app password has to be used.
+ *
+ * Graph environment variables:
  *   MS_TENANT_ID     - Azure AD tenant id (or the *.onmicrosoft.com domain)
  *   MS_CLIENT_ID     - app registration (client) id
  *   MS_CLIENT_SECRET - app registration client secret
@@ -22,14 +40,22 @@
  *     -AccessRight RestrictAccess `
  *     -Description "TrackIT password reset mail"
  *
- * When the variables above are missing, isConfigured() is false and callers
- * fall back to logging the message on the server console, so the
- * password-reset flow can still be exercised in development.
+ * When neither transport is configured, isConfigured() is false and callers fall
+ * back to logging the message on the server console, so the password-reset flow
+ * can still be exercised in development.
  */
+
+let nodemailer = null;
+try {
+  // Only needed for the SMTP transport
+  nodemailer = require('nodemailer');
+} catch (error) {
+  nodemailer = null;
+}
 
 let cachedToken = null; // { value, expiresAt }
 
-function getConfig() {
+function getGraphConfig() {
   const tenantId = String(process.env.MS_TENANT_ID || '').trim();
   const clientId = String(process.env.MS_CLIENT_ID || '').trim();
   const clientSecret = String(process.env.MS_CLIENT_SECRET || '').trim();
@@ -46,8 +72,70 @@ function getConfig() {
   };
 }
 
+function getSmtpConfig() {
+  const host = String(process.env.SMTP_HOST || '').trim();
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || port === 465;
+  const user = String(process.env.SMTP_USER || '').trim();
+  const pass = String(process.env.SMTP_PASS || '');
+  const fromAddress = String(process.env.SMTP_FROM || user).trim();
+  const fromName = String(process.env.SMTP_FROM_NAME || 'TrackIT').trim();
+  const requireTlsEnv = String(process.env.SMTP_REQUIRE_TLS || '').trim().toLowerCase();
+
+  return {
+    host,
+    port,
+    secure,
+    user,
+    pass,
+    fromAddress,
+    fromName,
+    // STARTTLS is required by Microsoft 365 / Gmail on port 587
+    requireTLS: requireTlsEnv ? requireTlsEnv === 'true' : (!secure && port === 587),
+    rejectUnauthorized: String(process.env.SMTP_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'false',
+    configured: Boolean(host && fromAddress),
+  };
+}
+
+function getConfig() {
+  const graph = getGraphConfig();
+  const smtp = getSmtpConfig();
+  const preference = String(process.env.MAIL_TRANSPORT || 'auto').trim().toLowerCase();
+
+  let transport = 'none';
+  if (preference === 'smtp') {
+    transport = smtp.configured ? 'smtp' : 'none';
+  } else if (preference === 'graph') {
+    transport = graph.configured ? 'graph' : 'none';
+  } else {
+    transport = smtp.configured ? 'smtp' : (graph.configured ? 'graph' : 'none');
+  }
+
+  return { graph, smtp, preference, transport, configured: transport !== 'none' };
+}
+
 function isConfigured() {
   return getConfig().configured;
+}
+
+// Small summary used in logs / diagnostics (never includes the password)
+function describeTransport() {
+  const config = getConfig();
+
+  if (config.transport === 'smtp') {
+    return {
+      transport: 'smtp',
+      sender: config.smtp.fromAddress,
+      server: `${config.smtp.host}:${config.smtp.port}`,
+      auth: Boolean(config.smtp.user),
+    };
+  }
+
+  if (config.transport === 'graph') {
+    return { transport: 'graph', sender: config.graph.senderEmail };
+  }
+
+  return { transport: 'none', sender: null };
 }
 
 // App-only token for Graph, cached until shortly before it expires
@@ -88,8 +176,9 @@ async function getAccessToken(config) {
 }
 
 /**
- * Send an email. Returns { delivered: false, reason: 'not-configured' } when the
- * Graph credentials are absent, and throws when Graph rejects the request.
+ * Send an email through whichever transport is configured.
+ * Returns { delivered: false, reason: 'not-configured' } when there is none, and
+ * throws when the transport rejects the message.
  */
 async function sendMail({ to, subject, text, html }) {
   const config = getConfig();
@@ -98,8 +187,52 @@ async function sendMail({ to, subject, text, html }) {
     return { delivered: false, reason: 'not-configured' };
   }
 
-  const accessToken = await getAccessToken(config);
-  const sendUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(config.senderEmail)}/sendMail`;
+  if (config.transport === 'smtp') {
+    await sendViaSmtp(config.smtp, { to, subject, text, html });
+    return { delivered: true, transport: 'smtp' };
+  }
+
+  await sendViaGraph(config.graph, { to, subject, text, html });
+  return { delivered: true, transport: 'graph' };
+}
+
+// SMTP delivery through nodemailer (school Microsoft 365 mailbox, Gmail, ...)
+async function sendViaSmtp(smtp, { to, subject, text, html }) {
+  if (!nodemailer) {
+    throw new Error(
+      'SMTP is configured but the nodemailer package is missing. Run "npm install" in the backend folder.',
+    );
+  }
+
+  const transport = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    requireTLS: smtp.requireTLS,
+    auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
+    tls: { rejectUnauthorized: smtp.rejectUnauthorized },
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
+  });
+
+  try {
+    await transport.sendMail({
+      from: `"${smtp.fromName}" <${smtp.fromAddress}>`,
+      to,
+      subject,
+      text,
+      html,
+    });
+  } finally {
+    transport.close();
+  }
+}
+
+// App-only Microsoft Graph sendMail (no mailbox password involved)
+async function sendViaGraph(graph, { to, subject, text, html }) {
+  const accessToken = await getAccessToken(graph);
+  const sendUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(graph.senderEmail)}/sendMail`;
 
   const response = await fetch(sendUrl, {
     method: 'POST',
@@ -114,7 +247,7 @@ async function sendMail({ to, subject, text, html }) {
           contentType: html ? 'HTML' : 'Text',
           content: html || text || '',
         },
-        toRecipients: [{ emailAddress: { address: to, name: config.senderName } }],
+        toRecipients: [{ emailAddress: { address: to, name: graph.senderName } }],
       },
       saveToSentItems: true,
     }),
@@ -128,8 +261,6 @@ async function sendMail({ to, subject, text, html }) {
       `${detail?.error?.message || 'unknown error'}`,
     );
   }
-
-  return { delivered: true };
 }
 
 // Minimal HTML escaping for values dropped into an email template
@@ -145,6 +276,7 @@ function escapeHtml(value) {
 module.exports = {
   getConfig,
   isConfigured,
+  describeTransport,
   sendMail,
   escapeHtml,
 };
