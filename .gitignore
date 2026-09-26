@@ -5,6 +5,7 @@ backend/.env
 .env.local
 .env.*.local
 tmp_*
+dev-mailbox/
 *.log
 .DS_Store
 .vercel

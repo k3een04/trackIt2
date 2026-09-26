@@ -225,6 +225,45 @@ before `RESEND_COOLDOWN_SECONDS` (60s) returns `429` with `retryAfterSeconds`.
 `backend/services/emailService.js` can send the code two ways. The first one that is
 configured wins (`MAIL_TRANSPORT=smtp|graph` forces a specific one):
 
+**Demo it with zero signup - bundled dev mailbox.** `backend/tools/devMailbox.js` is a
+dependency-free stand-in for Mailtrap: it accepts the mail over SMTP and shows it in a
+small web inbox.
+
+```bash
+cd backend
+npm run devmailbox          # SMTP on 127.0.0.1:2525, inbox on http://localhost:2526
+```
+
+Then in `backend/.env`:
+
+```
+MAIL_TRANSPORT=smtp
+SMTP_HOST=127.0.0.1
+SMTP_PORT=2525
+SMTP_REQUIRE_TLS=false
+SMTP_FROM=no-reply@wnu.sti.edu.ph
+```
+
+Restart the backend, trigger a reset from the login page and open
+<http://localhost:2526> - the 6-digit code is in the captured email. Every message is
+also appended to `backend/dev-mailbox/messages.log`.
+
+**Free relays (real outbound delivery).** Drop these into `backend/.env`:
+
+```
+# Mailtrap sandbox (catches mail, never reaches a real inbox)
+SMTP_HOST=sandbox.smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USER=<sandbox user>
+SMTP_PASS=<sandbox password>
+
+# Brevo (delivers to real inboxes; verify the sender address first)
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=<your Brevo login email>
+SMTP_PASS=<SMTP key>
+```
+
 **Option A - SMTP from the school mailbox (quickest).** Sign in with a real mailbox and
 let nodemailer deliver the mail. Add to `backend/.env`:
 
