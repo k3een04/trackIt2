@@ -127,7 +127,7 @@ router.post('/submit', authenticateToken, async (req, res) => {
 
     // Get student info to find supervisor
     const User = require('../models/User');
-    const student = await User.findById(studentId).select('supervisorId');
+    const student = await User.findById(studentId).select('fullName supervisorId companyName');
 
     const journalData = {
       studentId,
@@ -144,6 +144,13 @@ router.post('/submit', authenticateToken, async (req, res) => {
     const journal = new Journal(journalData);
 
     await journal.save();
+
+    try {
+      const { notifyJournalSubmitted } = require('../services/notificationService');
+      await notifyJournalSubmitted({ journal, trainee: student, week });
+    } catch (notifyError) {
+      console.error('[Journal Submit] Notification error:', notifyError.message);
+    }
 
     res.status(201).json({
       success: true,
