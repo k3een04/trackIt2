@@ -50,6 +50,28 @@ const userSchema = new mongoose.Schema(
       unique: true, // Ensure studentId is unique
       index: true,
     },
+    /**
+     * Attendance-derived activity label maintained by
+     * services/activityStatusService.js. The backend is the only writer, so a
+     * trainee can never mark themselves active from the browser. It is a
+     * materialised copy of the calculation, which stays authoritative so an
+     * interrupted sweep can never leave a stale label behind.
+     */
+    activityStatus: {
+      type: String,
+      enum: ['ACTIVE', 'INACTIVE'],
+      sparse: true,
+      index: true,
+    },
+    activityStatusUpdatedAt: {
+      type: Date,
+      sparse: true,
+    },
+    /** First day of the current missed-OJT-day streak, when INACTIVE. */
+    inactivityStartDate: {
+      type: String,
+      sparse: true,
+    },
     supervisorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

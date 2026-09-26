@@ -1774,6 +1774,8 @@ body.light-mode .qr-expiry-timer {
 .notif-icon.attendance { background: rgba(34,197,94,0.2); color: #22c55e; }
 .notif-icon.system { background: rgba(245,200,66,0.2); color: #f5c82; }
 .notif-icon.dtr { background: rgba(239,68,68,0.2); color: #ef4444; }
+.notif-icon.inactivity { background: rgba(239,68,68,0.2); color: #ef4444; }
+.notif-icon.activity { background: rgba(34,197,94,0.2); color: #22c55e; }
 .notif-content { flex: 1; min-width: 0; }
 .notif-text {
   font-size: 13px;

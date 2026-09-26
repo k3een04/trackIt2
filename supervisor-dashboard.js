@@ -76,8 +76,27 @@ if (!document.querySelector('style[data-notifications]')) {
 // NOTIFICATION BELL POPUP
 // ────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Escapes a value before it is interpolated into innerHTML. Notification
+ * titles/messages come from the database, so they must never be able to inject
+ * markup into the dashboard.
+ */
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 let supervisorNotifications = [];
 let notifPopupOpen = false;
+let notifLoading = false;
+let notifError = '';
+let notifUnreadCount = 0;
+let notifPollTimer = null;
 
 function toggleNotifications() {
   const popup = document.getElementById('notif-popup');
@@ -99,13 +118,31 @@ function closeNotifications() {
   notifPopupOpen = false;
 }
 
-function clearAllNotifications() {
-  supervisorNotifications = [];
+/** "Mark all read" - marks every notification read on the server. */
+async function clearAllNotifications() {
+  if (supervisorNotifications.length === 0) return;
+  try {
+    await fetchAPI('/notifications/read-all', { method: 'PATCH' });
+  } catch (error) {
+    console.error('Error marking all notifications read:', error);
+  }
+  supervisorNotifications = supervisorNotifications.map(n => ({ ...n, unread: false, read: true }));
+  notifUnreadCount = 0;
   renderNotificationList();
   updateNotifBadge();
 }
 
-function dismissNotification(id) {
+/** Dismisses one notification: persisted as read, then hidden locally. */
+async function dismissNotification(id) {
+  const target = supervisorNotifications.find(n => n.id === id);
+  if (target && target.unread) {
+    try {
+      await fetchAPI(`/notifications/${id}/read`, { method: 'PATCH' });
+    } catch (error) {
+      console.error('Error marking notification read:', error);
+    }
+    notifUnreadCount = Math.max(0, notifUnreadCount - 1);
+  }
   supervisorNotifications = supervisorNotifications.filter(n => n.id !== id);
   renderNotificationList();
   updateNotifBadge();
@@ -115,36 +152,67 @@ function updateNotifBadge() {
   const badge = document.getElementById('notif-badge');
   if (!badge) return;
   
-  const unreadCount = supervisorNotifications.filter(n => n.unread).length;
-  if (unreadCount > 0) {
+  if (notifUnreadCount > 0) {
     badge.style.display = 'flex';
-    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+    badge.textContent = notifUnreadCount > 9 ? '9+' : notifUnreadCount;
   } else {
     badge.style.display = 'none';
   }
 }
 
-async function loadSupervisorNotifications() {
-  if (supervisorNotifications.length > 0) {
+/**
+ * Loads the notifications that belong to the logged-in supervisor.
+ * The backend scopes every query to the JWT user id.
+ */
+async function loadSupervisorNotifications(options = {}) {
+  const { silent = false } = options;
+  if (notifLoading) return;
+  notifLoading = true;
+  if (!silent) {
+    notifError = '';
     renderNotificationList();
-    return;
   }
-  
+
   try {
-    const result = await fetchAPI('/actions?type=all&limit=10');
+    const result = await fetchAPI('/notifications?limit=20');
     if (result && result.success) {
       supervisorNotifications = result.data || [];
-      renderNotificationList();
-      updateNotifBadge();
+      notifUnreadCount = Number(result.unreadCount) || 0;
+      notifError = '';
+    } else {
+      notifError = (result && result.message) || 'Could not load notifications';
+      supervisorNotifications = [];
+      notifUnreadCount = 0;
     }
   } catch (error) {
     console.error('Error loading notifications:', error);
+    notifError = 'Could not load notifications';
+    supervisorNotifications = [];
+    notifUnreadCount = 0;
+  } finally {
+    notifLoading = false;
+    renderNotificationList();
+    updateNotifBadge();
   }
 }
 
 function renderNotificationList() {
   const list = document.getElementById('notif-list');
   if (!list) return;
+
+  if (notifLoading) {
+    list.innerHTML = '<div class="notif-empty">Loading notifications…</div>';
+    return;
+  }
+
+  if (notifError) {
+    list.innerHTML = `
+      <div class="notif-empty">
+        <p>${escapeHtml(notifError)}</p>
+        <button onclick="loadSupervisorNotifications()" class="text-xs text-teal-400 hover:underline mt-2">Retry</button>
+      </div>`;
+    return;
+  }
   
   if (supervisorNotifications.length === 0) {
     list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
@@ -153,11 +221,12 @@ function renderNotificationList() {
   
   list.innerHTML = supervisorNotifications.map(n => `
     <div class="notif-item ${n.unread ? 'unread' : ''}" data-id="${n.id}">
-      <div class="notif-icon ${n.type || 'system'}">
+      <div class="notif-icon ${escapeHtml(n.type || 'system')}">
         ${getNotifIcon(n.type)}
       </div>
       <div class="notif-content">
-        <p class="notif-text">${escapeHtml(n.message || n.text || 'Notification')}</p>
+        <p class="notif-text font-semibold">${escapeHtml(n.title || 'Notification')}</p>
+        <p class="notif-text">${escapeHtml(n.message || n.text || '')}</p>
         <p class="notif-time">${timeAgo(n.createdAt || n.time)}</p>
       </div>
       <button class="notif-close" onclick="event.stopPropagation(); dismissNotification('${n.id}')">
@@ -166,17 +235,39 @@ function renderNotificationList() {
     </div>
   `).join('');
   
-  // Click to mark as read
+  // Click to mark as read (persisted on the server, not just locally).
   list.querySelectorAll('.notif-item').forEach(item => {
     item.addEventListener('click', function() {
       const id = this.dataset.id;
       const notif = supervisorNotifications.find(n => n.id === id);
-      if (notif) {
-        notif.unread = false;
-        updateNotifBadge();
-        renderNotificationList();
+      if (notif && notif.unread) {
+        fetchAPI(`/notifications/${id}/read`, { method: 'PATCH' })
+          .then(() => {
+            notif.unread = false;
+            notif.read = true;
+            notifUnreadCount = Math.max(0, notifUnreadCount - 1);
+            updateNotifBadge();
+            renderNotificationList();
+          })
+          .catch(err => console.error('Error marking notification read:', err));
       }
     });
+  });
+}
+
+/** Polls the bell every minute and refetches when the tab regains focus. */
+function startNotificationPolling() {
+  if (notifPollTimer) clearInterval(notifPollTimer);
+  notifPollTimer = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      loadSupervisorNotifications({ silent: true });
+    }
+  }, 60000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      loadSupervisorNotifications({ silent: true });
+    }
   });
 }
 
@@ -2114,6 +2205,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load supervisor data and populate dashboard
   loadSupervisorData();
   startSupervisorRealtimeUpdates();
+
+  // Notifications: fetch on load so the badge is correct before the bell is
+  // ever clicked, then keep it fresh in the background.
+  loadSupervisorNotifications({ silent: true });
+  startNotificationPolling();
 
   // Load geofence settings for supervisor
   loadGeofenceSettings();

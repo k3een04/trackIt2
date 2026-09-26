@@ -120,6 +120,10 @@ function toggleTheme() {
 
 let coordinatorNotifications = [];
 let notifPopupOpen = false;
+let notifLoading = false;
+let notifError = '';
+let notifUnreadCount = 0;
+let notifPollTimer = null;
 
 function toggleNotifications() {
   const popup = document.getElementById('notif-popup');
@@ -131,6 +135,8 @@ function toggleNotifications() {
   } else {
     popup.style.display = 'flex';
     notifPopupOpen = true;
+    // Always refetch on open so a notification created while the dashboard was
+    // already loaded shows up without a full page refresh.
     loadCoordinatorNotifications();
   }
 }
@@ -141,13 +147,31 @@ function closeNotifications() {
   notifPopupOpen = false;
 }
 
-function clearAllNotifications() {
-  coordinatorNotifications = [];
+/** "Mark all read" - marks every notification read on the server. */
+async function clearAllNotifications() {
+  if (coordinatorNotifications.length === 0) return;
+  try {
+    await fetchAPI('/notifications/read-all', { method: 'PATCH' });
+  } catch (error) {
+    console.error('Error marking all notifications read:', error);
+  }
+  coordinatorNotifications = coordinatorNotifications.map(n => ({ ...n, unread: false, read: true }));
+  notifUnreadCount = 0;
   renderNotificationList();
   updateNotifBadge();
 }
 
-function dismissNotification(id) {
+/** Dismisses one notification: persisted as read, then hidden locally. */
+async function dismissNotification(id) {
+  const target = coordinatorNotifications.find(n => n.id === id);
+  if (target && target.unread) {
+    try {
+      await fetchAPI(`/notifications/${id}/read`, { method: 'PATCH' });
+    } catch (error) {
+      console.error('Error marking notification read:', error);
+    }
+    notifUnreadCount = Math.max(0, notifUnreadCount - 1);
+  }
   coordinatorNotifications = coordinatorNotifications.filter(n => n.id !== id);
   renderNotificationList();
   updateNotifBadge();
@@ -157,36 +181,68 @@ function updateNotifBadge() {
   const badge = document.getElementById('notif-badge');
   if (!badge) return;
   
-  const unreadCount = coordinatorNotifications.filter(n => n.unread).length;
-  if (unreadCount > 0) {
+  if (notifUnreadCount > 0) {
     badge.style.display = 'flex';
-    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+    badge.textContent = notifUnreadCount > 9 ? '9+' : notifUnreadCount;
   } else {
     badge.style.display = 'none';
   }
 }
 
-async function loadCoordinatorNotifications() {
-  if (coordinatorNotifications.length > 0) {
+/**
+ * Loads the notifications that belong to the logged-in coordinator.
+ * The backend scopes every query to the JWT user id, so a coordinator only ever
+ * sees their own notifications and never another user's.
+ */
+async function loadCoordinatorNotifications(options = {}) {
+  const { silent = false } = options;
+  if (notifLoading) return;
+  notifLoading = true;
+  if (!silent) {
+    notifError = '';
     renderNotificationList();
-    return;
   }
-  
+
   try {
-    const result = await fetchAPI('/actions?type=all&limit=10');
+    const result = await fetchAPI('/notifications?limit=20');
     if (result && result.success) {
       coordinatorNotifications = result.data || [];
-      renderNotificationList();
-      updateNotifBadge();
+      notifUnreadCount = Number(result.unreadCount) || 0;
+      notifError = '';
+    } else {
+      notifError = (result && result.message) || 'Could not load notifications';
+      coordinatorNotifications = [];
+      notifUnreadCount = 0;
     }
   } catch (error) {
     console.error('Error loading notifications:', error);
+    notifError = 'Could not load notifications';
+    coordinatorNotifications = [];
+    notifUnreadCount = 0;
+  } finally {
+    notifLoading = false;
+    renderNotificationList();
+    updateNotifBadge();
   }
 }
 
 function renderNotificationList() {
   const list = document.getElementById('notif-list');
   if (!list) return;
+
+  if (notifLoading) {
+    list.innerHTML = '<div class="notif-empty">Loading notifications…</div>';
+    return;
+  }
+
+  if (notifError) {
+    list.innerHTML = `
+      <div class="notif-empty">
+        <p>${escapeHtml(notifError)}</p>
+        <button onclick="loadCoordinatorNotifications()" class="text-xs text-teal-400 hover:underline mt-2">Retry</button>
+      </div>`;
+    return;
+  }
   
   if (coordinatorNotifications.length === 0) {
     list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
@@ -195,11 +251,12 @@ function renderNotificationList() {
   
   list.innerHTML = coordinatorNotifications.map(n => `
     <div class="notif-item ${n.unread ? 'unread' : ''}" data-id="${n.id}">
-      <div class="notif-icon ${n.type || 'system'}">
+      <div class="notif-icon ${escapeHtml(n.type || 'system')}">
         ${getNotifIcon(n.type)}
       </div>
       <div class="notif-content">
-        <p class="notif-text">${escapeHtml(n.message || n.text || 'Notification')}</p>
+        <p class="notif-text font-semibold">${escapeHtml(n.title || 'Notification')}</p>
+        <p class="notif-text">${escapeHtml(n.message || n.text || '')}</p>
         <p class="notif-time">${timeAgo(n.createdAt || n.time)}</p>
       </div>
       <button class="notif-close" onclick="event.stopPropagation(); dismissNotification('${n.id}')">
@@ -208,17 +265,43 @@ function renderNotificationList() {
     </div>
   `).join('');
   
-  // Click to mark as read
+  // Click to mark as read (persisted on the server, not just locally).
   list.querySelectorAll('.notif-item').forEach(item => {
     item.addEventListener('click', function() {
       const id = this.dataset.id;
       const notif = coordinatorNotifications.find(n => n.id === id);
-      if (notif) {
-        notif.unread = false;
-        updateNotifBadge();
-        renderNotificationList();
+      if (notif && notif.unread) {
+        fetchAPI(`/notifications/${id}/read`, { method: 'PATCH' })
+          .then(() => {
+            notif.unread = false;
+            notif.read = true;
+            notifUnreadCount = Math.max(0, notifUnreadCount - 1);
+            updateNotifBadge();
+            renderNotificationList();
+          })
+          .catch(err => console.error('Error marking notification read:', err));
       }
     });
+  });
+}
+
+/**
+ * Lightweight refresh. The project has no live push channel (Socket.io is
+ * disabled in the backend), so the bell is polled on a timer and refetched
+ * whenever the tab regains focus.
+ */
+function startNotificationPolling() {
+  if (notifPollTimer) clearInterval(notifPollTimer);
+  notifPollTimer = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      loadCoordinatorNotifications({ silent: true });
+    }
+  }, 60000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      loadCoordinatorNotifications({ silent: true });
+    }
   });
 }
 
@@ -227,7 +310,9 @@ function getNotifIcon(type) {
     journal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
     attendance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
     dtr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
-    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+    inactivity: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+    activity: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 11.08 12 1 2 11.08"></polyline><polyline points="5 19 12 12 19 19"></polyline></svg>'
   };
   return icons[type] || icons.system;
 }
@@ -1414,6 +1499,28 @@ function traineeStatusBadge(status) {
   return 'status-on-track';
 }
 
+/** ACTIVE / INACTIVE badge, driven by the centralized attendance logic. */
+function activityStatusBadge(activityStatus) {
+  return activityStatus === 'INACTIVE' ? 'status-inactive' : 'status-active';
+}
+
+/** "Last time in" cell - never recorded, or a readable date/time. */
+function lastTimeInCell(isoString) {
+  if (!isoString) return '<span class="text-xs text-slate-500">Never</span>';
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return '<span class="text-xs text-slate-500">—</span>';
+  return `<span class="text-slate-300">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>`;
+}
+
+/** "Days since last attendance" cell. */
+function daysSinceAttendanceCell(days) {
+  if (days === null || days === undefined) return '<span class="text-xs text-slate-500">—</span>';
+  const label = `${days} day${days === 1 ? '' : 's'}`;
+  if (days === 0) return '<span class="text-xs text-teal-400">Today</span>';
+  if (days >= 3) return `<span class="text-xs text-red-400 font-semibold">${label}</span>`;
+  return `<span class="text-slate-300">${label}</span>`;
+}
+
 function updateAnalyticsSummary(summary, windows, analytics = {}) {
   const attendance = analytics.attendance || {};
   const statusBreakdown = attendance.statusBreakdown || { present: 0, late: 0, absent: 0, excused: 0 };
@@ -1825,11 +1932,12 @@ function renderTraineeProgress(progress) {
 
   if (tbody) {
     if (items.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="py-6 text-center text-slate-500">No trainee records yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" class="py-6 text-center text-slate-500">No trainee records yet</td></tr>';
     } else {
       tbody.innerHTML = items.map(trainee => {
         const rate = Number(trainee.completionRate) || 0;
         const width = Math.min(rate, 100);
+        const activityStatus = trainee.activityStatus === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE';
         return `
           <tr class="border-b border-white/5">
             <td class="py-3 px-4">
@@ -1837,6 +1945,8 @@ function renderTraineeProgress(progress) {
               <span class="block text-xs text-slate-500">${escapeHtml(trainee.department)}</span>
             </td>
             <td class="py-3 px-4 text-slate-300">${escapeHtml(trainee.studentId)}</td>
+            <td class="py-3 px-4 text-slate-300">${escapeHtml(trainee.department || '—')}</td>
+            <td class="py-3 px-4 text-slate-300">${escapeHtml(trainee.section || '—')}</td>
             <td class="py-3 px-4 text-slate-300">${escapeHtml(trainee.company)}</td>
             <td class="py-3 px-4 text-slate-300">${analyticsHours(trainee.completedHours)}</td>
             <td class="py-3 px-4 text-slate-300">${analyticsHours(trainee.remainingHours)}</td>
@@ -1846,10 +1956,10 @@ function renderTraineeProgress(progress) {
               </div>
               <span class="text-xs text-slate-500">${analyticsPercent(rate)} of ${analyticsCount(trainee.requiredHours)} h</span>
             </td>
+            <td class="py-3 px-4"><span class="status-badge ${activityStatusBadge(activityStatus)}">${activityStatus}</span></td>
+            <td class="py-3 px-4">${lastTimeInCell(trainee.lastTimeIn)}</td>
+            <td class="py-3 px-4">${daysSinceAttendanceCell(trainee.daysSinceLastAttendance)}</td>
             <td class="py-3 px-4"><span class="status-badge ${traineeStatusBadge(trainee.status)}">${escapeHtml(trainee.status)}</span></td>
-            <td class="py-3 px-4 text-slate-300">${trainee.rating === null || trainee.rating === undefined
-              ? '<span class="text-xs text-slate-500">Not rated</span>'
-              : `${trainee.rating} / 5`}</td>
           </tr>
         `;
       }).join('');
@@ -2527,6 +2637,11 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSupervisors();
   loadCoordinatorJournals();
   startCoordinatorRealtimeUpdates();
+
+  // Notifications: fetch on load so the badge is correct before the bell is
+  // ever clicked, then keep it fresh in the background.
+  loadCoordinatorNotifications({ silent: true });
+  startNotificationPolling();
 
   // Setup filter listeners for auto-filtering
   setupFilterListeners();

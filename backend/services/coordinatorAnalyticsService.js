@@ -17,6 +17,16 @@
 const User = require('../models/User');
 const DTR = require('../models/DTR');
 const Journal = require('../models/Journal');
+const {
+  STATUS_ACTIVE,
+  STATUS_INACTIVE,
+  evaluateStatus,
+  loadAttendanceSummariesForAll,
+  startOfDay: activityStartOfDay,
+  addDays: activityAddDays,
+  DEFAULT_LOOKBACK_DAYS,
+  INACTIVITY_THRESHOLD_DAYS,
+} = require('./activityStatusService');
 
 const DEFAULT_REQUIRED_HOURS = 486;
 const ATTENDANCE_WINDOW_DAYS = 30;
@@ -328,12 +338,45 @@ async function buildCoordinatorAnalytics() {
   const timezone = serverTimezoneOffset(now);
 
   const students = await User.find({ role: 'student' })
-    .select('_id fullName studentId department requiredHours companyName isActive supervisorRating supervisorRatingDate supervisorId createdAt')
+    .select('_id fullName studentId department section requiredHours companyName isActive supervisorRating supervisorRatingDate supervisorId createdAt schedule activityStatus inactivityStartDate')
     .lean();
 
   const traineeIds = students.map(student => student._id);
   const traineeNameById = new Map(students.map(student => [student._id.toString(), student.fullName]));
   const activeTrainees = students.filter(student => student.isActive !== false).length;
+
+  // Attendance-derived ACTIVE / INACTIVE labels. Resolved once, from the same
+  // service the notifications and the student profile use, so the analytics
+  // table can never disagree with the coordinator's bell.
+  const activityMap = new Map();
+  try {
+    const attendanceSummaries = await loadAttendanceSummariesForAll(
+      activityStartOfDay(activityAddDays(now, -DEFAULT_LOOKBACK_DAYS))
+    );
+    students.forEach(student => {
+      const attendance = attendanceSummaries.get(student._id.toString()) || {
+        attendedDays: new Set(),
+        excusedDays: new Set(),
+        lastTimeIn: null,
+      };
+      activityMap.set(student._id.toString(), evaluateStatus({ trainee: student, attendance, now }));
+    });
+  } catch (error) {
+    // Never let a status lookup take the whole analytics payload down: fall back
+    // to the last persisted label so the table still renders.
+    console.error('[CoordinatorAnalytics] Activity status lookup failed:', error.message);
+    students.forEach(student => {
+      activityMap.set(student._id.toString(), {
+        status: student.activityStatus || STATUS_ACTIVE,
+        lastTimeIn: null,
+        consecutiveMissedDays: 0,
+        daysSinceLastAttendance: null,
+        inactivityStartDate: student.inactivityStartDate || null,
+        isNewStudent: false,
+        evaluatedAt: now.toISOString(),
+      });
+    });
+  }
 
   const trendWindowStart = new Date(now.getFullYear(), now.getMonth() - (MONTH_TREND_COUNT - 1), 1);
   const attendanceWindowStart = addDays(now, -ATTENDANCE_WINDOW_DAYS);
@@ -613,12 +656,31 @@ async function buildCoordinatorAnalytics() {
     }
 
     const isActive = student.isActive !== false;
+    const activity = activityMap.get(key) || {
+      status: STATUS_ACTIVE,
+      lastTimeIn: null,
+      consecutiveMissedDays: 0,
+      daysSinceLastAttendance: null,
+      inactivityStartDate: null,
+    };
+    const activityStatus = activity.status === STATUS_INACTIVE ? STATUS_INACTIVE : STATUS_ACTIVE;
+    const isInactive = activityStatus === STATUS_INACTIVE;
+
+    // `status` keeps its original hour-completion meaning (used by the existing
+    // "Completed / In Progress" badges and the report), while `activityStatus`
+    // is the attendance-derived ACTIVE / INACTIVE label requested for the
+    // analytics table. Inactive trainees are forced out of the "on track" count
+    // so the KPI cards do not count somebody who stopped showing up as healthy.
     let status = 'In Progress';
     if (completedHours >= requiredHours && requiredHours > 0) {
       status = 'Completed';
-      completedTraineeCount += 1;
-      onTrackCount += 1;
+      if (!isInactive) {
+        completedTraineeCount += 1;
+        onTrackCount += 1;
+      }
     } else if (!isActive) {
+      status = 'Inactive';
+    } else if (isInactive) {
       status = 'Inactive';
     } else if (completionRate >= 50) {
       onTrackCount += 1;
@@ -633,6 +695,7 @@ async function buildCoordinatorAnalytics() {
       name: student.fullName,
       studentId: student.studentId || '—',
       department: student.department || 'Unassigned',
+      section: student.section || '—',
       company: student.companyName || 'Unassigned',
       hasSupervisor: Boolean(student.supervisorId),
       requiredHours,
@@ -649,13 +712,28 @@ async function buildCoordinatorAnalytics() {
       rating,
       performanceBand: band,
       status,
+      // Attendance-derived activity (services/activityStatusService.js)
+      activityStatus,
+      lastTimeIn: activity.lastTimeIn,
+      daysSinceLastAttendance: activity.daysSinceLastAttendance,
+      consecutiveMissedDays: activity.consecutiveMissedDays,
+      inactivityStartDate: activity.inactivityStartDate,
+      isNewStudent: Boolean(activity.isNewStudent),
     });
 
     // Automated follow-up flags (drive the "Needs Attention" panel + reports)
     const flags = [];
     if (!student.companyName || !student.supervisorId) flags.push('No company / supervisor assigned');
-    if (isActive && attendance.records === 0) flags.push('No verified attendance in the last 30 days');
-    else if (isActive && completionRate < 50) flags.push('Below 50% hour completion');
+    if (isInactive) {
+      flags.push(
+        `Inactive - ${activity.consecutiveMissedDays} consecutive OJT day(s) without a time in` +
+        (activity.daysSinceLastAttendance !== null
+          ? ` (last time in ${activity.daysSinceLastAttendance} day(s) ago)`
+          : ' (no time in recorded)')
+      );
+    }
+    if (!isInactive && isActive && attendance.records === 0) flags.push('No verified attendance in the last 30 days');
+    else if (!isInactive && isActive && completionRate < 50) flags.push('Below 50% hour completion');
     if (isActive && rating === null) flags.push('No performance appraisal yet');
     if (journals.incomplete > 0) flags.push(`${journals.incomplete} incomplete journal${journals.incomplete > 1 ? 's' : ''}`);
     if (isActive && journals.total === 0) flags.push('No journals submitted yet');
@@ -668,6 +746,7 @@ async function buildCoordinatorAnalytics() {
         studentId: student.studentId || '—',
         company: student.companyName || 'Unassigned',
         completionRate,
+        activityStatus,
         flags,
       });
     }
@@ -675,6 +754,11 @@ async function buildCoordinatorAnalytics() {
 
   traineeProgress.sort((a, b) => b.completedHours - a.completedHours);
   followUp.sort((a, b) => a.completionRate - b.completionRate);
+
+  const inactiveTraineeCount = traineeProgress.filter(
+    trainee => trainee.activityStatus === STATUS_INACTIVE
+  ).length;
+  const activeTraineeCount = traineeProgress.length - inactiveTraineeCount;
 
   // ── Attendance summary + trends ─────────────────────────────────────────
   const attendanceStatusBreakdown = { present: 0, late: 0, absent: 0, excused: 0 };
@@ -910,6 +994,14 @@ async function buildCoordinatorAnalytics() {
   ).length;
 
   const attention = [];
+  if (inactiveTraineeCount > 0) {
+    attention.push({
+      level: 'high',
+      title: `${inactiveTraineeCount} trainee${inactiveTraineeCount > 1 ? 's have' : ' has'} missed 3 consecutive OJT days`,
+      detail: 'Marked inactive: no time in recorded on three consecutive applicable OJT days. See the Status column in Trainee Progress.',
+      action: 'trainees',
+    });
+  }
   if (journalStatusCounts.awaitingCoordinator > 0) {
     attention.push({
       level: 'high',
@@ -1023,6 +1115,10 @@ async function buildCoordinatorAnalytics() {
         `(${followUp.slice(0, 5).map(entry => entry.name).join(', ')}${followUp.length > 5 ? ', …' : ''}) — ` +
         'see the attention list for the specific findings.'
       : null,
+    activity:
+      `${formatCount(activeTraineeCount)} trainee(s) are ACTIVE and ${formatCount(inactiveTraineeCount)} are INACTIVE. ` +
+      `A trainee is marked inactive after missing ${INACTIVITY_THRESHOLD_DAYS} consecutive applicable OJT days ` +
+      'without a recorded time in; weekends, holidays and approved leave are not counted.',
   };
 
   const narrative = Object.values(narrativeParts).filter(Boolean);
@@ -1030,6 +1126,10 @@ async function buildCoordinatorAnalytics() {
   const summary = {
     studentCount: students.length,
     activeTrainees,
+    // Attendance-derived activity split (services/activityStatusService.js)
+    activeActivityTrainees: activeTraineeCount,
+    inactiveTrainees: inactiveTraineeCount,
+    inactivityThresholdDays: INACTIVITY_THRESHOLD_DAYS,
     completedTrainees: completedTraineeCount,
     onTrackTrainees: onTrackCount,
     behindTrainees: behindCount,
@@ -1134,17 +1234,29 @@ function overviewMetricRows(analytics) {
 function traineeProgressSection(analytics) {
   return {
     title: 'Trainee Progress',
-    description: 'Verified DTR hours completed and remaining per trainee.',
-    columns: ['Trainee', 'Student ID', 'Department', 'Company', 'Completed (h)', 'Remaining (h)', 'Completion', 'Days Recorded', 'Status', 'Rating'],
+    description:
+      'Verified DTR hours completed and remaining per trainee. Activity Status is derived from the ' +
+      `attendance history: a trainee is INACTIVE after ${INACTIVITY_THRESHOLD_DAYS} consecutive applicable OJT days without a time in.`,
+    columns: [
+      'Trainee', 'Student ID', 'Department', 'Section', 'Company',
+      'Completed (h)', 'Remaining (h)', 'Completion', 'Days Recorded',
+      'Activity Status', 'Last Time In', 'Days Since Attendance', 'Progress Status', 'Rating',
+    ],
     rows: analytics.traineeProgress.map(trainee => [
       trainee.name,
       trainee.studentId,
       trainee.department,
+      trainee.section,
       trainee.company,
       round(trainee.completedHours, 1).toFixed(1),
       round(trainee.remainingHours, 1).toFixed(1),
       formatPercent(trainee.completionRate),
       formatCount(trainee.daysRecorded),
+      trainee.activityStatus || STATUS_ACTIVE,
+      trainee.lastTimeIn ? formatDate(trainee.lastTimeIn) : 'Never',
+      trainee.daysSinceLastAttendance === null || trainee.daysSinceLastAttendance === undefined
+        ? '—'
+        : formatCount(trainee.daysSinceLastAttendance),
       trainee.status,
       trainee.rating === null ? 'Not rated' : `${trainee.rating} / 5`,
     ]),

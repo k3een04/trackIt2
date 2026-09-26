@@ -535,23 +535,27 @@
       <!-- Trainee Progress Details -->
       <div class="glass-card p-6 mb-8">
         <h3 class="font-display font-700 mb-2">Trainee Progress Details</h3>
-        <p class="text-xs text-slate-500 mb-6">Each trainee's completed and remaining required OJT hours.</p>
+        <p class="text-xs text-slate-500 mb-6">Each trainee's completed and remaining required OJT hours. Activity Status is derived from the attendance history — a trainee is marked INACTIVE after missing 3 consecutive OJT days without a time in.</p>
         <div class="analytics-table-wrap">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-white/10">
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Trainee</th>
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Student ID</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Course</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Section</th>
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Company</th>
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Completed</th>
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Remaining</th>
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Progress</th>
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Status</th>
-                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Rating</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Last Time In</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Days Since Attendance</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">OJT Progress</th>
               </tr>
             </thead>
             <tbody id="trainee-progress-body">
-              <tr><td colspan="8" class="py-6 text-center text-slate-500">Loading trainee progress...</td></tr>
+              <tr><td colspan="12" class="py-6 text-center text-slate-500">Loading trainee progress...</td></tr>
             </tbody>
           </table>
         </div>

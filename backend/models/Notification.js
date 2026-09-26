@@ -25,7 +25,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['journal', 'attendance', 'dtr', 'system'],
+      enum: ['journal', 'attendance', 'dtr', 'system', 'inactivity', 'activity'],
       default: 'system',
       index: true,
     },
@@ -53,6 +53,30 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
       index: true,
+    },
+    /**
+     * Stable identity of the event that produced this notification, e.g.
+     * "inactivity:<studentId>:<YYYY-MM-DD of first missed OJT day>".
+     * A sparse unique index turns the notification writer into an idempotent
+     * upsert, so re-running the inactivity check any number of times can never
+     * create a second copy of the same event. Left undefined for the existing
+     * ad-hoc notifications, which keep their current "always insert" behaviour.
+     *
+     * The recipient id is part of the key: the same event must be delivered to
+     * every coordinator independently.
+     */
+    dedupeKey: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
+    /**
+     * Extra context for the dashboard (student id/code, course, section,
+     * consecutive missed days, date the student became inactive, ...).
+     */
+    meta: {
+      type: mongoose.Schema.Types.Mixed,
+      sparse: true,
     },
   },
   {

@@ -7,6 +7,23 @@ const Company = require('../models/Company');
 const { generateQRSession, validateQRToken, markQRTokenAsUsed, calculateHoursRendered } = require('../services/qrService');
 
 /**
+ * A recorded time in is the event that can end an inactivity streak, so the
+ * activity status is recalculated immediately instead of waiting for the next
+ * sweep. The recalculation is server-side and idempotent: an INACTIVE trainee
+ * flips back to ACTIVE and the coordinator gets a single "Student Active Again"
+ * notification; a trainee who was already ACTIVE is left alone.
+ */
+async function refreshActivityStatusAfterTimeIn(traineeId) {
+  try {
+    const { runActivityStatusSweep } = require('../services/notificationService');
+    await runActivityStatusSweep();
+  } catch (error) {
+    // Never fail a successful time in because the status refresh hiccuped.
+    console.error('[ActivityStatus] Post time-in refresh failed:', error.message);
+  }
+}
+
+/**
  * GET /api/qr/generate?companyName=...&supervisorId=...&traineeId=...
  * Generate current QR code for company display (shown on supervisor's screen)
  * Auto-refreshes every 5 minutes via frontend polling
@@ -233,6 +250,10 @@ router.get('/scan/:token', async (req, res) => {
       // 4b. Mark the QR token as used (single-use enforcement)
       await markQRTokenAsUsed(token);
 
+      // Recalculate activity status: a trainee returning from INACTIVE is
+      // marked ACTIVE again and the coordinator is notified once.
+      await refreshActivityStatusAfterTimeIn(traineeId);
+
       // Real-time updates removed (Socket.io disabled for stability)
     }
 
@@ -404,6 +425,10 @@ router.post('/scan/:token', async (req, res) => {
     // Emit real-time events
     emitTimeIn(traineeId, session.companyName, dtr);
     emitQRUsed(session.companyName, token);
+
+    // Recalculate activity status so a returning trainee flips back to ACTIVE
+    // and the coordinator receives a single "Student Active Again" notification.
+    await refreshActivityStatusAfterTimeIn(traineeId);
 
     // Emit updated stats via Socket.io
     await calculateAndEmitStudentStats(traineeId, true).catch(err => 
@@ -693,6 +718,9 @@ router.post('/direct/timein', async (req, res) => {
     const dtr = await DTR.create(dtrData);
 
     await dtr.populate('traineeId', 'fullName studentId');
+
+    // Recalculate activity status after a direct (no QR) time in.
+    await refreshActivityStatusAfterTimeIn(traineeId);
 
     res.status(201).json({
       success: true,

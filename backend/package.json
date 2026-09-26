@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "devmailbox": "node tools/devMailbox.js"
+    "devmailbox": "node tools/devMailbox.js",
+    "test:activity": "node test-activity-status.js",
+    "test:inactivity": "node test-inactivity-flow.js",
+    "test": "node test-activity-status.js"
   },
   "keywords": [
     "ojt",
