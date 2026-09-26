@@ -224,9 +224,48 @@ async function sendViaSmtp(smtp, { to, subject, text, html }) {
       text,
       html,
     });
+  } catch (error) {
+    // nodemailer only puts "Invalid login" in `message`, so keep the numeric
+    // SMTP reply too - that is what actually identifies the problem.
+    const code = error?.responseCode || error?.code || '';
+    const reply = String(error?.response || '').trim();
+    const detail = [code, reply].filter(Boolean).join(' - ');
+
+    throw new Error(
+      `SMTP send to ${to} via ${smtp.host}:${smtp.port} failed: ` +
+      `${error.message}${detail ? ` [${detail}]` : ''}${explainSmtpError(code, smtp.host)}`,
+    );
   } finally {
     transport.close();
   }
+}
+
+/**
+ * Turn a raw SMTP reply into an actionable hint, so an operator reading the
+ * server log knows exactly which setting to change.
+ */
+function explainSmtpError(code, host) {
+  const value = String(code || '').trim();
+
+  if (/^525/.test(value)) {
+    return (
+      ' -- Brevo rejected this server IP. Add it under Brevo > Security > Authorized IPs' +
+      ' (https://app.brevo.com/security/authorised_ips), or turn that protection off.'
+    );
+  }
+
+  if (/^535/.test(value)) {
+    return ' -- the server rejected the login. Check SMTP_USER/SMTP_PASS.';
+  }
+
+  if (/^550/.test(value) && /smtp-brevo\.com|brevo\.com/i.test(String(host))) {
+    return (
+      ' -- the sender address is not a verified Brevo sender. Verify it under' +
+      ' Brevo > Senders & Domains > Senders.'
+    );
+  }
+
+  return '';
 }
 
 // App-only Microsoft Graph sendMail (no mailbox password involved)

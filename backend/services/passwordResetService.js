@@ -187,9 +187,13 @@ async function requestReset(email) {
   await storeCode(user._id, { hash: await hashResetCode(code), expiresAt });
 
   if (!emailService.isConfigured()) {
+    const transport = emailService.describeTransport();
     console.warn(
-      `[password-reset] Microsoft Graph mail is not configured. ` +
-      `Reset code for ${normalized} is ${code} (valid ${CODE_TTL_MINUTES} minutes).`,
+      `[password-reset] No mail transport is configured, so the code is only ` +
+      `printed here instead of being emailed. Reset code for ${normalized} ` +
+      `is ${code} (valid ${CODE_TTL_MINUTES} minutes). ` +
+      `Set SMTP_* (see backend/.env.example) to deliver it for real. ` +
+      `Transport currently detected: ${transport.transport}.`,
     );
 
     return {

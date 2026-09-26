@@ -257,12 +257,30 @@ SMTP_PORT=2525
 SMTP_USER=<sandbox user>
 SMTP_PASS=<sandbox password>
 
-# Brevo (delivers to real inboxes; verify the sender address first)
+# Brevo (delivers to real inboxes; free tier = 300 emails/day)
+# SMTP_USER is the dedicated relay login shown under Brevo > SMTP & API
+# (looks like bb1234567@smtp-brevo.com) - NOT your account email address.
 SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
-SMTP_USER=<your Brevo login email>
+SMTP_REQUIRE_TLS=true
+SMTP_USER=<bb1234567@smtp-brevo.com>
 SMTP_PASS=<SMTP key>
+SMTP_FROM=<a verified sender address>
+SMTP_FROM_NAME=TrackIT
 ```
+
+**Brevo gotchas**
+
+- `SMTP_USER` must be the relay login from **Brevo > SMTP & API**, not the account email.
+  Using the account email fails with `535 Authentication failed`.
+- **Authorized IPs.** If the account has IP protection on, every server that sends mail
+  must be allowlisted, or the relay answers `525 5.7.1 Unauthorized IP address` (the
+  password-reset endpoint then returns `502`). Add the server's public IP under
+  <https://app.brevo.com/security/authorised_ips>, or turn that protection off. A home
+  broadband IP usually changes, so allowlisting is only practical for a fixed host such as
+  the Vercel deployment; for local development, switch the protection off.
+- The address in `SMTP_FROM` must be a **verified sender**
+  (**Brevo > Senders & Domains > Senders**), otherwise the send is rejected with `550`.
 
 **Option A - SMTP from the school mailbox (quickest).** Sign in with a real mailbox and
 let nodemailer deliver the mail. Add to `backend/.env`:
