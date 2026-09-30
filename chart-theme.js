@@ -187,25 +187,59 @@
   var HOVER_KEY = '$trackitHoverIndex';
 
   /**
-   * Dims every bar except the one under the cursor and brightens the selected
-   * bar. Chart.js resolves scriptable colours during `update()`, so the index is
-   * cached on the chart and a single no-animation update is issued when it
-   * changes (the guard prevents any update loop).
+   * Highlights the bar under the cursor and dims the rest.
+   *
+   * This runs inside the render pass and writes straight to each bar element's
+   * resolved options. It deliberately never calls chart.update(): doing that
+   * from a hover handler fights Chart.js's render loop, and the scriptable
+   * `backgroundColor` is re-resolved on every render anyway, so mutating the
+   * elements here is both simpler and completely loop-free.
    */
   var hoverHighlight = {
     id: 'trackitBarHover',
     beforeInit: function (chart) {
       chart[HOVER_KEY] = -1;
     },
-    afterInit: function (chart) {
-      var canvas = chart.canvas;
-      if (!canvas) return;
-      // make sure the emphasis clears when the pointer leaves the plot
-      canvas.addEventListener('mouseleave', function () {
-        if (chart[HOVER_KEY] !== -1) {
-          chart[HOVER_KEY] = -1;
-          chart.update('none');
-        }
+    beforeDatasetsDraw: function (chart) {
+      var active = chart.getActiveElements ? chart.getActiveElements() : null;
+      var hovered = active && active.length ? active[0].index : -1;
+      chart[HOVER_KEY] = hovered;
+      var hasActive = hovered !== -1;
+
+      chart.data.datasets.forEach(function (dataset, datasetIndex) {
+        var meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || !meta.data || (meta.type && meta.type !== 'bar')) return;
+        var accent = dataset.trackitAccent;
+        if (!accent) return; // not one of ours - leave it untouched
+
+        var flat = dataset.trackitFlat === true;
+        var area = chart.chartArea;
+
+        meta.data.forEach(function (element, index) {
+          if (!element || !element.options) return;
+          var isActive = hasActive && index === hovered;
+          var top;
+          var bottom;
+          if (!hasActive) {
+            top = flat ? 0.8 : 0.82;
+            bottom = flat ? 0.8 : 0.5;
+          } else if (isActive) {
+            top = 1;
+            bottom = flat ? 1 : 0.82;
+          } else {
+            top = 0.24;
+            bottom = 0.12;
+          }
+
+          if (!flat && area && (area.bottom - area.top)) {
+            var gradient = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            gradient.addColorStop(0, alpha(accent, top));
+            gradient.addColorStop(1, alpha(accent, bottom));
+            element.options.backgroundColor = gradient;
+          } else {
+            element.options.backgroundColor = alpha(accent, top);
+          }
+        });
       });
     },
   };
@@ -233,6 +267,16 @@
   var valueLabels = {
     id: 'trackitValueLabels',
     afterDatasetsDraw: function (chart) {
+      try {
+        drawValueLabels(chart);
+      } catch (error) {
+        // A caption must never be able to stop a chart from rendering.
+        if (window.console) console.warn('[TrackITCharts] value labels skipped:', error.message);
+      }
+    },
+  };
+
+  function drawValueLabels(chart) {
       var cfg = chart.options && chart.options.plugins && chart.options.plugins.trackitValueLabels;
       if (!cfg || cfg.enabled === false) return;
       if (chart[HOVER_KEY] === undefined) return;
@@ -302,8 +346,8 @@
       });
 
       ctx.restore();
-    },
-  };
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   // OPTIONS FACTORY
   // ──────────────────────────────────────────────────────────────────────────
@@ -462,12 +506,10 @@
           maxBarThickness: horizontal ? 26 : 38,
         },
       },
-      onHover: function (event, elements, chart) {
-        var next = elements && elements.length ? elements[0].index : -1;
-        if (chart[HOVER_KEY] !== next) {
-          chart[HOVER_KEY] = next;
-          chart.update('none');
-        }
+      onHover: function () {
+        // Intentionally empty: the hover highlight is applied by the
+        // trackitBarHover plugin during the render pass. Calling
+        // chart.update() from here would fight Chart.js's render loop.
       },
       plugins: {
         legend: {
@@ -557,7 +599,11 @@
     };
   }
 
-  /** Applies the palette + value-label flag to a dataset in one call. */
+    /**
+     * Applies the palette + value-label flag to a dataset in one call.
+     * `fill: 'flat'` opts out of the vertical gradient (used by the single
+     * weekly series, which reads cleaner as a solid bar).
+     */
   function styleDataset(dataset, options) {
     var opts = options || {};
     var theme = tokens();
@@ -582,6 +628,7 @@
     dataset.maxBarThickness = opts.maxBarThickness || 38;
     dataset.trackitValueLabels = opts.showValues !== false;
     dataset.trackitAccent = accent;
+    dataset.trackitFlat = opts.fill === 'flat';
     return dataset;
   }
 

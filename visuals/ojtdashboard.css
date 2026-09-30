@@ -95,9 +95,10 @@ body::before {
   }
 }
 
+/* Chart.js sets its own inline width/height when `responsive: true`; forcing
+   the width from CSS fights its resize observer, so only a display hint here. */
 .chart-frame > canvas {
   display: block;
-  width: 100% !important;
   max-width: 100%;
 }
 

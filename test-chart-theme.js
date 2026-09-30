@@ -277,17 +277,70 @@ check('withPlugins attaches both shared plugins exactly once', () => {
   assert.strictEqual(twice.plugins.length, 2, 'plugins must not be duplicated on re-wrap');
 });
 
-check('the hover plugin caches the index and updates without animating', () => {
+const hoverPlugin = T.plugins.find(p => p.id === 'trackitBarHover');
+
+check('the hover highlight never calls chart.update (render-loop safe)', () => {
   const o = T.barOptions({ vertical: true });
-  const chart = { [T.hoverIndexKey]: -1, updates: 0, update(mode) { this.updates += 1; this.mode = mode; } };
+  const chart = { updates: 0, update() { this.updates += 1; } };
   o.onHover({}, [{ index: 3 }], chart);
-  assert.strictEqual(chart[T.hoverIndexKey], 3);
-  assert.strictEqual(chart.mode, 'none', 'hover must not animate');
-  const before = chart.updates;
-  o.onHover({}, [{ index: 3 }], chart);
-  assert.strictEqual(chart.updates, before, 'same index must not trigger another update');
-  o.onHover({}, [], chart);
-  assert.strictEqual(chart[T.hoverIndexKey], -1, 'leaving the chart clears the highlight');
+  assert.strictEqual(chart.updates, 0,
+    'onHover must not trigger an update - it would fight Chart.js render loop');
+});
+
+check('the hover plugin lifts the selected bar and dims the others in-place', () => {
+  const key = T.hoverIndexKey;
+  function build(activeIndex) {
+    const ctx = makeCtx();
+    const elements = [0, 1, 2].map(() => ({ options: {} }));
+    return {
+      ctx,
+      chart: {
+        ctx,
+        chartArea: { top: 0, bottom: 200 },
+        data: {
+          datasets: [{
+            data: [10, 20, 30],
+            trackitAccent: T.accent.teal,
+            trackitFlat: false,
+            hoverBackgroundColor: 'rgba(0,0,0,0)',
+          }],
+        },
+        [key]: -1,
+        getDatasetMeta: () => ({ type: 'bar', data: elements }),
+        getActiveElements: () => (activeIndex < 0 ? [] : [{ datasetIndex: 0, index: activeIndex }]),
+      },
+      elements,
+    };
+  }
+
+  const rest = build(-1);
+  hoverPlugin.beforeDatasetsDraw(rest.chart);
+  assert.strictEqual(rest.chart[key], -1);
+  const restAlpha = (el) => parseFloat(el.options.backgroundColor.stops[0].color.split(',')[3]);
+  assert.ok(restAlpha(rest.elements[0]) > 0.7, 'resting bars stay fully legible');
+
+  const hovered = build(1);
+  hoverPlugin.beforeDatasetsDraw(hovered.chart);
+  assert.strictEqual(hovered.chart[key], 1, 'the hovered index is tracked');
+  assert.ok(restAlpha(hovered.elements[1]) > restAlpha(hovered.elements[0]),
+    'the selected bar is lifted');
+  assert.ok(restAlpha(hovered.elements[0]) < 0.4,
+    `non-selected bars are dimmed, got ${restAlpha(hovered.elements[0])}`);
+});
+
+check('the hover highlight leaves foreign datasets untouched', () => {
+  const key = T.hoverIndexKey;
+  const elements = [{ options: {} }, { options: {} }];
+  const chart = {
+    ctx: makeCtx(),
+    chartArea: { top: 0, bottom: 200 },
+    data: { datasets: [{ data: [1, 2] }, { data: [3, 4] }] }, // no trackitAccent
+    [key]: -1,
+    getDatasetMeta: () => ({ type: 'bar', data: elements }),
+    getActiveElements: () => [{ datasetIndex: 0, index: 0 }],
+  };
+  hoverPlugin.beforeDatasetsDraw(chart);
+  assert.deepStrictEqual(elements[0].options, {}, 'a dataset we did not style is not touched');
 });
 
 const labelPlugin = T.plugins.find(p => p.id === 'trackitValueLabels');
@@ -459,6 +512,61 @@ check('alpha() keeps the exact brand hues', () => {
   assert.strictEqual(T.alpha('#22c55e', 1), 'rgba(34,197,94,1)');
   assert.strictEqual(T.alpha('#3b82f6', 0.7), 'rgba(59,130,246,0.7)');
   assert.strictEqual(T.alpha('#f5c842', 0.2), 'rgba(245,200,66,0.2)');
+});
+
+console.log('\nRegressions (bugs that broke chart rendering)');
+check('no bar-chart code calls chart.update() from the hover path', () => {
+  // A chart.update() inside onHover / a canvas listener fights Chart.js's render
+  // loop: the chart re-renders forever and appears never to load.
+  const raw = fs.readFileSync(path.join(__dirname, 'chart-theme.js'), 'utf8');
+  // strip comments so the explanatory notes are not mistaken for code
+  const source = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  assert.ok(source.indexOf('onHover') > -1, 'onHover handler not found');
+  assert.ok(!/onHover\s*:\s*function[^{]*\{[^}]*\.update\(/.test(source),
+    'onHover must not call chart.update() - it re-enters the render loop');
+  assert.ok(!/addEventListener\([^)]*mouseleave[\s\S]{0,240}?\.update\(/.test(source),
+    'no canvas listener may call chart.update()');
+  // hoverBackgroundColor is the native highlight; we must not also force updates
+  assert.ok(source.indexOf('getActiveElements') > -1,
+    'the hover highlight should read the active elements during the render pass');
+});
+
+check('the stylesheets never force the chart canvas width', () => {
+  // Chart.js sizes its own canvas when `responsive: true`. Forcing the width
+  // from CSS makes its resize observer fight the layout.
+  ['visuals/coordinator-dashboard.css', 'visuals/ojtdashboard.css'].forEach((rel) => {
+    const file = path.join(__dirname, rel);
+    const css = fs.readFileSync(file, 'utf8');
+    const frameRule = /\.chart-frame\s*>\s*canvas\s*\{([\s\S]*?)\}/.exec(css);
+    assert.ok(frameRule, `${rel}: .chart-frame > canvas rule not found`);
+    assert.ok(!/width\s*:\s*100%\s*!important/.test(frameRule[1]),
+      `${rel}: must not force the canvas width - it breaks Chart.js resizing`);
+  });
+});
+
+check('every chart frame uses a fluid height, not a fixed pixel value', () => {
+  ['coordinator-dashboard.html', 'ojtdashboard.html'].forEach((rel) => {
+    const html = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+    const barFrames = html.match(/class="chart-frame chart-frame--bars[^"]*"/g) || [];
+    assert.ok(barFrames.length > 0, `${rel}: expected bar chart frames`);
+    barFrames.forEach((frame) => {
+      assert.ok(!/height\s*:\s*\d+px/.test(frame), 'a bar frame still uses a fixed height');
+    });
+  });
+});
+
+check('the shared design system is loaded on both dashboards', () => {
+  ['coordinator-dashboard.html', 'ojtdashboard.html'].forEach((rel) => {
+    const html = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+    const chartJs = html.indexOf('chart');
+    const themeJs = html.indexOf('chart-theme.js');
+    const dashJs = html.indexOf(rel.startsWith('coordinator')
+      ? 'coordinator-dashboard.js'
+      : 'ojtdashboard.js');
+    assert.ok(themeJs > -1, `${rel}: chart-theme.js is not loaded`);
+    assert.ok(themeJs < dashJs, `${rel}: chart-theme.js must load before the dashboard script`);
+    assert.ok(chartJs < themeJs, `${rel}: Chart.js must load before chart-theme.js`);
+  });
 });
 
 const failed = results.filter(r => !r.ok);

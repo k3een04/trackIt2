@@ -104,10 +104,12 @@ body::before {
   }
 }
 
-/* The canvas must never hold a stale pixel size after a rotation or resize. */
+/* The canvas must never hold a stale pixel size after a rotation or resize.
+   Chart.js sets its own inline width/height when `responsive: true`, so the
+   canvas must NOT have its width forced from CSS - that fights Chart.js's
+   resize observer and the chart never settles. Only the display hint is ours. */
 .chart-frame > canvas {
   display: block;
-  width: 100% !important;
   max-width: 100%;
 }
 
