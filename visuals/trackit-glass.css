@@ -1,23 +1,24 @@
 /* ===========================================================================
-   TrackIT — Glassmorphism design system
+   TrackIT — SaaS surface design system (v2)
    ---------------------------------------------------------------------------
    ONE design language shared by the coordinator, supervisor and student
    dashboards. Loaded after each dashboard's own stylesheet so it wins on load
    order; every component selector is `body`-prefixed so it also beats the
    single-class utilities generated at runtime by the Tailwind CDN.
 
+   This is a SOLID layered-surface system (not glassmorphism): opaque navy
+   steps in dark mode, deliberate white / off-white steps in light mode.
+   Blur is reserved for nav rails and overlays only. Teal (#00C8AA) is an
+   accent for states and indicators, never a surface fill.
+
    Structure:
      1. Design tokens (dark)          6. Stat / KPI cards
      2. Light-mode tokens             7. Tables (incl. responsive behaviour)
      3. Page atmosphere               8. Forms, search & filters
-     4. Glass primitives              9. Status badges
+     4. Surface primitives            9. Status badges
      5. Cards & panels               10. Notifications, modals, dropdowns
                                     11. Sidebar & navigation
-                                    12. Micro-interactions
-
-   The brand palette is unchanged: #0A0F1E / #00C8AA (dark) and
-   #F5F7FA / #00A98F (light). Teal stays an *accent* - it is never used as a
-   surface fill, only on interactive elements and small indicators.
+                                    12. Micro-interactions + responsive
    =========================================================================== */
 
 /* ── 1. DESIGN TOKENS (dark) ─────────────────────────────────────────────── */
@@ -28,97 +29,102 @@
   --tk-teal-strong: #00a98f;
   --tk-teal-deep: #008573;
 
-  /* Surfaces: a three-step hierarchy so depth reads consistently */
-  --tk-surface-1: rgba(255, 255, 255, 0.045);   /* cards, panels          */
-  --tk-surface-2: rgba(255, 255, 255, 0.075);   /* nested / inner sections */
-  --tk-surface-3: rgba(255, 255, 255, 0.11);    /* rows, chips, elevated  */
-  --tk-surface-nav: rgba(10, 15, 30, 0.72);     /* nav + sidebar rails    */
-  --tk-surface-overlay: rgba(10, 15, 30, 0.82);/* modals & dropdowns     */
+  /* Level 1 — page / Level 2 — primary / Level 3 — secondary / Level 4 — elevated */
+  --tk-bg: #0a0f1e;
+  --tk-surface-1: #101830;   /* primary containers: cards, panels          */
+  --tk-surface-2: #16203c;   /* secondary: nested subsections, widgets     */
+  --tk-surface-3: #1d2a4a;   /* elevated: rows, chips, hover lift          */
+  --tk-surface-nav: #0c1326;     /* nav + sidebar rails (solid)            */
+  --tk-surface-overlay: #131d36;/* modals & dropdowns (solid)              */
 
   /* Hairlines: very thin, very translucent */
-  --tk-hairline: rgba(255, 255, 255, 0.09);
-  --tk-hairline-strong: rgba(255, 255, 255, 0.16);
+  --tk-hairline: rgba(148, 163, 184, 0.14);
+  --tk-hairline-strong: rgba(148, 163, 184, 0.24);
   --tk-hairline-teal: rgba(0, 200, 170, 0.32);
 
-  /* Blur + elevation */
+  /* Elevation: soft, controlled, low-contrast */
   --tk-blur: 18px;
   --tk-blur-strong: 26px;
-  --tk-shadow-1: 0 1px 2px rgba(2, 6, 23, 0.28);
-  --tk-shadow-2: 0 8px 24px -8px rgba(2, 6, 23, 0.55);
-  --tk-shadow-3: 0 18px 46px -14px rgba(2, 6, 23, 0.72);
+  --tk-shadow-1: 0 1px 2px rgba(2, 6, 23, 0.45);
+  --tk-shadow-2: 0 10px 26px -14px rgba(2, 6, 23, 0.65);
+  --tk-shadow-3: 0 22px 48px -18px rgba(2, 6, 23, 0.7);
   --tk-glow-teal: 0 0 0 1px rgba(0, 200, 170, 0.22), 0 6px 22px -10px rgba(0, 200, 170, 0.45);
 
-  /* Geometry */
-  --tk-radius: 18px;
-  --tk-radius-sm: 14px;
-  --tk-radius-lg: 20px;
+  /* Geometry: professional, technical — never toy-like */
+  --tk-radius: 14px;
+  --tk-radius-sm: 10px;
+  --tk-radius-lg: 16px;
   --tk-radius-pill: 999px;
 
+  /* Spacing scale shared by every container */
+  --tk-pad-card: 22px;
+  --tk-pad-card-sm: 16px;
+  --tk-gap-section: 24px;
+  --tk-gap-grid: 16px;
+
   /* Type */
-  --tk-text: #e6edf7;
+  --tk-text: #dbe4f3;
   --tk-text-strong: #ffffff;
-  --tk-text-muted: #94a3c0;
-  --tk-text-faint: #6b7a99;
+  --tk-text-muted: #93a1bd;
+  --tk-text-faint: #67748f;
 
   /* Motion */
   --tk-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --tk-dur: 180ms;
+  --tk-dur-fast: 140ms;
 }
 
 /* ── 2. LIGHT-MODE TOKENS ────────────────────────────────────────────────── */
-/* A designed light theme, not an inversion: cooler navy text, real white
-   glass, softer shadows and a slightly deeper teal for contrast. */
+/* A designed light theme, not an inversion: navy text, white primary
+   surfaces, cool off-white secondary steps, neutral hairlines. */
 
 body.light-mode {
   --tk-teal: #00a98f;
   --tk-teal-strong: #00a98f;
   --tk-teal-deep: #008573;
 
-  --tk-surface-1: rgba(255, 255, 255, 0.66);
-  --tk-surface-2: rgba(255, 255, 255, 0.82);
-  --tk-surface-3: rgba(255, 255, 255, 0.94);
-  --tk-surface-nav: rgba(245, 247, 250, 0.82);
-  --tk-surface-overlay: rgba(245, 247, 250, 0.94);
+  --tk-bg: #f5f7fa;
+  --tk-surface-1: #ffffff;   /* primary containers */
+  --tk-surface-2: #eef2f7;   /* secondary: subsections, widgets */
+  --tk-surface-3: #e3e9f2;   /* elevated rows / chips */
+  --tk-surface-nav: #ffffff;
+  --tk-surface-overlay: #ffffff;
 
   --tk-hairline: rgba(15, 23, 42, 0.09);
   --tk-hairline-strong: rgba(15, 23, 42, 0.16);
   --tk-hairline-teal: rgba(0, 169, 143, 0.34);
 
-  --tk-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --tk-shadow-2: 0 8px 22px -10px rgba(15, 23, 42, 0.18);
-  --tk-shadow-3: 0 18px 44px -16px rgba(15, 23, 42, 0.24);
+  --tk-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --tk-shadow-2: 0 10px 26px -14px rgba(15, 23, 42, 0.18);
+  --tk-shadow-3: 0 22px 48px -20px rgba(15, 23, 42, 0.25);
   --tk-glow-teal: 0 0 0 1px rgba(0, 169, 143, 0.2), 0 6px 20px -10px rgba(0, 169, 143, 0.35);
 
-  --tk-text: #1b2637;
+  --tk-text: #33415c;
   --tk-text-strong: #0b1220;
   --tk-text-muted: #5a6b85;
   --tk-text-faint: #8494ac;
 }
 
 /* ── 3. PAGE ATMOSPHERE ─────────────────────────────────────────────────── */
-/* Two very soft light sources keep the dark background from reading as flat
-   black, and give the glass something to refract. Restrained on purpose. */
+/* Flat L1 backgrounds. One very restrained top sheen only — no neon wash. */
 
 body {
   background-color: #0a0f1e;
-  background-image:
-    radial-gradient(1100px 620px at 12% -8%, rgba(0, 200, 170, 0.10), transparent 60%),
-    radial-gradient(900px 560px at 92% 4%, rgba(59, 130, 246, 0.07), transparent 62%);
+  background-image: linear-gradient(180deg, rgba(148, 163, 184, 0.05), transparent 320px);
   background-attachment: fixed;
 }
 
 body.light-mode {
   background-color: #f5f7fa;
-  background-image:
-    radial-gradient(1000px 560px at 10% -10%, rgba(0, 169, 143, 0.10), transparent 62%),
-    radial-gradient(860px 520px at 94% 0%, rgba(59, 130, 246, 0.07), transparent 60%);
+  background-image: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0) 300px);
 }
 
-/* The existing noise overlay sits on top of the gradients; soften it in light
-   mode where a 0.04 grey texture reads as dirt. */
-body.light-mode::before { opacity: 0.25; }
+/* The legacy noise overlay sits above the background; keep it barely visible
+   in dark mode and effectively off in light mode. */
+body::before { opacity: 0.35; }
+body.light-mode::before { opacity: 0.12; }
 
-/* Glass must actually blur. Safari needs the -webkit- prefix. */
+/* Blur tokens must resolve (Safari prefix) even though card bodies are solid. */
 @supports not (backdrop-filter: blur(1px)) {
   body .glass-card,
   body .sidebar,
@@ -128,9 +134,9 @@ body.light-mode::before { opacity: 0.25; }
 }
 
 
-/* ── 4. GLASS PRIMITIVES ────────────────────────────────────────────────── */
-/* Every surface in the product resolves to the same recipe:
-   translucent fill + hairline + blur + soft shadow + 18px radius. */
+/* ── 4. SURFACE PRIMITIVES ──────────────────────────────────────────────── */
+/* Every surface resolves to: solid fill + 1px hairline + 14px radius +
+   soft shadow. No card-level blur (nav/overlay only). */
 
 body .glass-card,
 body .glass-panel,
@@ -146,22 +152,54 @@ body .trainee-progress-item,
 body .download-item {
   position: relative;
   background: var(--tk-surface-1);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 120px);
   border: 1px solid var(--tk-hairline);
   border-radius: var(--tk-radius);
   box-shadow: var(--tk-shadow-1);
-  -webkit-backdrop-filter: blur(var(--tk-blur)) saturate(140%);
-  backdrop-filter: blur(var(--tk-blur)) saturate(140%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
-/* Nested "inner section" step - one level brighter than its parent card. */
+body.light-mode .glass-card,
+body.light-mode .glass-panel,
+body.light-mode .analytics-mini,
+body.light-mode .analytics-kpi,
+body.light-mode .journal-detail-card,
+body.light-mode .report-section,
+body.light-mode .analytics-narrative,
+body.light-mode .analytics-stat-list,
+body.light-mode .notification-item,
+body.light-mode .journal-item,
+body.light-mode .trainee-progress-item,
+body.light-mode .download-item {
+  background-image: linear-gradient(180deg, #ffffff, #fbfcfe 140px);
+}
+
+/* Level 3 — nested "inner section" step (filters, metric wells, sub-panels). */
 body .glass-card .glass-card,
+body .glass-card .p-4.rounded-lg,
+body .glass-card .p-4[class*="rounded"],
 body .analytics-mini .analytics-mini,
-body .analytics-stat-row {
+body .analytics-stat-row,
+body .journal-detail-card .report-meta,
+body .narrative-item,
+body .attention-item {
   background: var(--tk-surface-2);
-  border-color: var(--tk-hairline);
+  background-image: none;
+  border: 1px solid var(--tk-hairline);
   border-radius: var(--tk-radius-sm);
   box-shadow: none;
 }
+
+/* Tailwind hand-written wells (bg-white/5 + border-white/10) map to L3. */
+body .bg-white\/5 {
+  background: var(--tk-surface-2) !important;
+  background-image: none !important;
+  border: 1px solid var(--tk-hairline);
+}
+body .bg-white\/10 { background: var(--tk-surface-3) !important; background-image: none !important; }
+body .border-white\/10 { border-color: var(--tk-hairline) !important; }
+body .border-white\/20 { border-color: var(--tk-hairline-strong) !important; }
 
 /* Lift on hover - subtle, never bouncy. */
 body .glass-card,
@@ -186,13 +224,19 @@ body .notification-item {
   body .journal-item:hover,
   body .trainee-progress-item:hover,
   body .notification-item:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     border-color: var(--tk-hairline-strong);
     box-shadow: var(--tk-shadow-2);
   }
 }
 
 /* ── 5. CARDS & PANELS ──────────────────────────────────────────────────── */
+/* L2 primary surfaces: consistent padding, label → title → body rhythm. */
+
+body .glass-card,
+body .glass-panel {
+  padding: var(--tk-pad-card);
+}
 
 body .page-header h1 {
   color: var(--tk-text-strong);
@@ -217,12 +261,91 @@ body .divider {
 body .tab-content,
 body .tab-content.active { background: transparent; }
 
+/* The toolbar is a LAYOUT ROW, not a surface - it must stay transparent.
+   Giving it a glass background made a full-width panel sit on top of the tab
+   header below it (it reads as an overlapping container), and backdrop-filter
+   additionally creates a stacking context. Keep it inert and let the button
+   inside be the only visible element. */
 body .tab-toolbar {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  position: static;
+  z-index: auto;
+}
+
+/* Back button: a compact glass chip. It carries the glass itself instead of
+   the row around it, and the neon glow is dialled back so it reads as an
+   affordance rather than a light source. */
+body .tab-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--tk-radius-pill);
+  border: 1px solid var(--tk-hairline-teal);
+  background: rgba(0, 200, 170, 0.16);
+  color: var(--tk-text-strong);
+  box-shadow: var(--tk-shadow-1);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform var(--tk-dur-fast) var(--tk-ease),
+    background-color var(--tk-dur) var(--tk-ease),
+    border-color var(--tk-dur) var(--tk-ease),
+    box-shadow var(--tk-dur) var(--tk-ease);
+}
+
+@media (hover: hover) {
+  body .tab-back-btn:hover {
+    background: rgba(0, 200, 170, 0.26);
+    border-color: rgba(0, 200, 170, 0.45);
+    box-shadow: var(--tk-shadow-2);
+    transform: translateY(-1px);
+  }
+}
+
+body .tab-back-btn:active { transform: translateY(0); }
+
+body .tab-back-btn.is-disabled,
+body .tab-back-btn:disabled {
   background: var(--tk-surface-1);
-  border: 1px solid var(--tk-hairline);
-  border-radius: var(--tk-radius-sm);
-  -webkit-backdrop-filter: blur(var(--tk-blur));
-  backdrop-filter: blur(var(--tk-blur));
+  border-color: var(--tk-hairline);
+  color: var(--tk-text-faint);
+  box-shadow: none;
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (hover: hover) {
+  body .tab-back-btn.is-disabled:hover,
+  body .tab-back-btn:disabled:hover {
+    background: var(--tk-surface-1);
+    border-color: var(--tk-hairline);
+    color: var(--tk-text-faint);
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+body.light-mode .tab-back-btn {
+  background: rgba(0, 169, 143, 0.12);
+  border-color: rgba(0, 169, 143, 0.3);
+  color: #0c1626;
+}
+
+body.light-mode .tab-back-btn.is-disabled,
+body.light-mode .tab-back-btn:disabled {
+  background: rgba(255, 255, 255, 0.66);
+  border-color: var(--tk-hairline);
+  color: var(--tk-text-faint);
 }
 
 /* Empty states read as a quiet inset surface rather than plain text. */
@@ -255,14 +378,15 @@ body .analytics-mini::before {
   content: '';
   position: absolute;
   inset: 0 0 auto 0;
-  height: 1px;
+  height: 2px;
+  border-radius: var(--tk-radius) var(--tk-radius) 0 0;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(0, 200, 170, 0.5),
+    rgba(0, 200, 170, 0.45),
     transparent
   );
-  opacity: 0.65;
+  opacity: 0.5;
 }
 
 body.light-mode .analytics-kpi::before,
@@ -319,15 +443,17 @@ body.light-mode .progress-track {
 }
 
 /* ── 7. TABLES ──────────────────────────────────────────────────────────── */
-/* Glass container, translucent rows, hairline separators, rounded corners. */
+/* Solid L2 container, L3 header well, hairline row separators. */
 
 body .analytics-table-wrap {
   background: var(--tk-surface-1);
+  background-image: none;
   border: 1px solid var(--tk-hairline);
   border-radius: var(--tk-radius);
   overflow: hidden;
-  -webkit-backdrop-filter: blur(var(--tk-blur));
-  backdrop-filter: blur(var(--tk-blur));
+  box-shadow: var(--tk-shadow-1);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 body .analytics-table-wrap > table,
@@ -410,12 +536,13 @@ body input,
 body select,
 body textarea {
   background: var(--tk-surface-2);
+  background-image: none;
   border: 1px solid var(--tk-hairline);
   border-radius: var(--tk-radius-sm);
   color: var(--tk-text);
   padding: 10px 14px;
-  -webkit-backdrop-filter: blur(var(--tk-blur));
-  backdrop-filter: blur(var(--tk-blur));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   transition:
     border-color var(--tk-dur) var(--tk-ease),
     box-shadow var(--tk-dur) var(--tk-ease),
@@ -492,12 +619,13 @@ body.light-mode .tab-btn.active {
 
 /* Ghost + primary buttons share one shape language. */
 body .btn-ghost {
-  background: var(--tk-surface-1);
+  background: var(--tk-surface-2);
+  background-image: none;
   border: 1px solid var(--tk-hairline);
   border-radius: var(--tk-radius-sm);
   color: var(--tk-text);
-  -webkit-backdrop-filter: blur(var(--tk-blur));
-  backdrop-filter: blur(var(--tk-blur));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   transition:
     background-color var(--tk-dur) var(--tk-ease),
     border-color var(--tk-dur) var(--tk-ease),
@@ -546,8 +674,8 @@ body .badge {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   border: 1px solid transparent;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 body .status-active,
@@ -652,13 +780,14 @@ body .unread-dot {
   box-shadow: 0 0 0 2px rgba(10, 15, 30, 0.7);
 }
 
-/* Notification type wells keep their existing hues but become glass chips. */
+/* Notification type wells keep their hues as flat L3 chips. */
 body .notif-icon,
 body .notification-icon {
   border-radius: var(--tk-radius-sm);
   border: 1px solid var(--tk-hairline);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--tk-surface-3);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* ── 11. SIDEBAR & NAVIGATION ───────────────────────────────────────────── */
@@ -725,7 +854,23 @@ body #theme-toggle:hover {
   border-color: var(--tk-hairline-strong);
 }
 
-/* ── 12. MICRO-INTERACTIONS ─────────────────────────────────────────────── */
+/* ── 12. MICRO-INTERACTIONS + RESPONSIVE REFINEMENT ───────────────────────── */
+
+/* Focus: one restrained teal ring shared by every interactive surface. */
+body :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--tk-hairline-teal);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Section rhythm: every dashboard uses the same 24px vertical beat. */
+body .main-content > * + *,
+body .tab-content > * + * { margin-top: 0; }
+body .tab-content > .glass-card + .glass-card,
+body .tab-content > .glass-card + .grid,
+body .tab-content > .grid + .glass-card,
+body .tab-content > .grid + .grid { margin-top: var(--tk-gap-section); }
+body .tab-content .grid { gap: var(--tk-gap-grid); }
 
 @media (prefers-reduced-motion: reduce) {
   body *,
@@ -759,23 +904,100 @@ body ::-webkit-scrollbar-thumb {
 body ::-webkit-scrollbar-thumb:hover { background: var(--tk-hairline-strong); background-clip: content-box; }
 
 /* ── CHART CONTAINERS ───────────────────────────────────────────────────── */
-/* The glass card already provides the surface; the frame just needs to breathe
-   and stop inheriting any legacy border. */
+/* The card already provides the surface; the frame just breathes. */
 
 body .chart-frame {
   border-radius: var(--tk-radius-sm);
   overflow: visible;
+  background: transparent;
+  border: 0;
 }
 
 body .glass-card canvas,
 body .chart-frame canvas { border-radius: 6px; }
 
-/* Tailwind's border-white/10 is used on a few hand-written containers; align
-   those hairlines with the design system too. */
+/* Chart wells: one consistent L3 inset so plots sit on a deliberate surface
+   in both themes (charts render on transparent canvas). */
+body .chart-frame {
+  background: var(--tk-surface-2);
+  background-image: none;
+  border: 1px solid var(--tk-hairline);
+  padding: 12px;
+}
+
+/* Tailwind wells used on hand-written containers map to the L3 step too. */
 body .border-white\/10 { border-color: var(--tk-hairline); }
 body .border-white\/20 { border-color: var(--tk-hairline-strong); }
-body .bg-white\/5 { background: var(--tk-surface-1); }
-body .bg-white\/10 { background: var(--tk-surface-2); }
+body .bg-white\/5 { background: var(--tk-surface-2); background-image: none; }
+body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
+
+/* ── RESPONSIVE CONTAINER POLISH (shared by all three dashboards) ─────────
+   The per-page stylesheets already own sidebar collapse + grid column counts.
+   This layer only guarantees: single-column stacking on phones, full-width
+   cards, readable tables, usable charts, wrapping toolbars and modals. */
+
+@media (max-width: 1024px) {
+  body .glass-card,
+  body .glass-panel { padding: 20px; }
+  body .page-header h1 { font-size: 1.8rem; }
+  body .analytics-kpi,
+  body .analytics-mini { padding: 18px; }
+  body .notif-popup {
+    width: min(360px, calc(100vw - 32px));
+    right: 12px;
+  }
+}
+
+/* Tablet portrait: two-up → one-up happens in page CSS; here we tighten the
+   surfaces so stacked cards still feel designed, not airy. */
+@media (max-width: 768px) {
+  body .glass-card,
+  body .glass-panel { padding: 18px; border-radius: var(--tk-radius-sm); }
+  body .page-header { margin-bottom: 20px; }
+  body .page-header h1 { font-size: 1.5rem; }
+  body .page-header p { font-size: 0.85rem; }
+  body .chart-frame { padding: 10px; }
+  body .analytics-kpi,
+  body .analytics-mini { padding: 16px; }
+  body .kpi-value,
+  body .analytics-mini-value,
+  body .stat-num { font-size: 1.6rem; overflow-wrap: anywhere; }
+  body .icon-box { width: 42px; height: 42px; }
+  body .notif-popup {
+    width: min(340px, calc(100vw - 24px));
+    max-height: min(480px, calc(100dvh - 120px));
+  }
+  body .notif-item { padding: 10px 12px; }
+  body input,
+  body select,
+  body textarea { min-height: 44px; font-size: 16px; }
+  body .btn-primary,
+  body .btn-ghost { min-height: 44px; }
+  body .status-badge,
+  body .badge { white-space: nowrap; }
+}
+
+/* Phones: single column, full-bleed cards, wrap everything, no x-overflow. */
+@media (max-width: 560px) {
+  body .glass-card,
+  body .glass-panel { padding: 16px; }
+  body .page-header h1 { font-size: 1.3rem; overflow-wrap: anywhere; }
+  body .glass-card > h3:first-child,
+  body .glass-panel > h3:first-child { font-size: 0.95rem; overflow-wrap: anywhere; }
+  body .analytics-table-wrap { border-radius: var(--tk-radius-sm); }
+  body .notif-popup {
+    position: fixed;
+    top: 64px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: calc(100dvh - 96px);
+  }
+  body .notif-text { overflow-wrap: anywhere; }
+  body .journal-detail-modal,
+  body .download-modal-card,
+  body .report-modal-card { max-width: calc(100vw - 24px); }
+}
 
 body.light-mode .status-completed {
   background: rgba(22, 163, 74, 0.10);
