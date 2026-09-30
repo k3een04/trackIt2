@@ -512,14 +512,31 @@ const PENDING_ACTION_ICONS = {
   missingJournals: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>',
 };
 
+// Severity vocabulary, lifted straight from the Analytics attention list so the
+// two views say the same thing about the same situation.
+const PENDING_ACTION_LEVELS = {
+  high: { cls: 'pending-action--high', label: 'Urgent' },
+  medium: { cls: 'pending-action--medium', label: 'Warning' },
+  low: { cls: 'pending-action--low', label: 'Notice' },
+  info: { cls: 'pending-action--info', label: 'All clear' },
+};
+
 // The four categories the coordinator can act on. Deliberately closed: things
 // the system does not actually track (evaluations, drafts, notifications) are
 // not offered here.
+//
+// `level` is the severity Analytics already assigns that same situation:
+//   journalReviews   -> "N journals awaiting your approval"      high
+//   inactiveTrainees -> "N trainees missed 3 consecutive days"   high
+//   missingJournals  -> close cousin of "journals still in draft" medium
+//   attendanceIssues -> close cousin of "absent records"          low
+// A count of 0 overrides the level to `info` (All clear), because the
+// situation is that there is nothing to do.
 const PENDING_ACTIONS = [
-  { key: 'journalReviews', label: 'Journal Reviews', description: 'Journals waiting for coordinator review.' },
-  { key: 'attendanceIssues', label: 'Attendance Issues', description: 'Trainees with a late attendance record in the last 30 days.' },
-  { key: 'inactiveTrainees', label: 'Inactive Trainees', description: 'No time-in recorded for 3 consecutive OJT days.' },
-  { key: 'missingJournals', label: 'Missing Journals', description: 'No journal submitted for the current OJT week.' },
+  { key: 'journalReviews', label: 'Journal Reviews', description: 'Journals waiting for coordinator review.', level: 'high' },
+  { key: 'attendanceIssues', label: 'Attendance Issues', description: 'Trainees with a late attendance record in the last 30 days.', level: 'low' },
+  { key: 'inactiveTrainees', label: 'Inactive Trainees', description: 'No time-in recorded for 3 consecutive OJT days.', level: 'high' },
+  { key: 'missingJournals', label: 'Missing Journals', description: 'No journal submitted for the current OJT week.', level: 'medium' },
 ];
 
 /**
@@ -562,17 +579,19 @@ function renderPendingActions() {
 
   container.innerHTML = PENDING_ACTIONS.map(action => {
     const count = Number(pendingActionCounts[action.key]) || 0;
-    const emptyClass = count === 0 ? ' pending-action__count--empty' : '';
+    // Nothing to do about a zero, so the row drops to "All clear" no matter how
+    // serious the category normally is.
+    const level = PENDING_ACTION_LEVELS[count > 0 ? action.level : 'info'];
 
     return `
-      <button type="button" class="pending-action" onclick="openPendingAction('${action.key}')"
-        aria-label="${escapeHtml(action.label)}: ${count}. ${escapeHtml(action.description)}">
+      <button type="button" class="pending-action ${level.cls}" onclick="openPendingAction('${action.key}')"
+        aria-label="${escapeHtml(action.label)}: ${count}. ${escapeHtml(level.label)}. ${escapeHtml(action.description)}">
         <span class="pending-action__icon" aria-hidden="true">${PENDING_ACTION_ICONS[action.key]}</span>
         <span class="pending-action__body">
           <span class="pending-action__label">${escapeHtml(action.label)}</span>
           <span class="pending-action__desc">${escapeHtml(action.description)}</span>
         </span>
-        <span class="pending-action__count${emptyClass}">${count}</span>
+        <span class="pending-action__count">${count}</span>
       </button>
     `;
   }).join('');
