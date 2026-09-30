@@ -137,6 +137,10 @@ app.get('/visuals/supervisor-dashboard.css', (req, res) => {
 app.get('/visuals/trackit-glass.css', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'visuals', 'trackit-glass.css'));
 });
+// Reusable date/month picker stylesheet; the dashboards load it last.
+app.get('/visuals/trackit-calendar.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'trackit-calendar.css'));
+});
 app.get('/landingpage.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'landingpage.js'));
 });
@@ -151,6 +155,10 @@ app.get('/ojtdashboard.js', (req, res) => {
 });
 app.get('/chart-theme.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'chart-theme.js'));
+});
+// Reusable date/month picker; both dashboards load it before their page script.
+app.get('/trackit-calendar.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'trackit-calendar.js'));
 });
 app.get('/coordinator-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'coordinator-dashboard.js'));
