@@ -2173,20 +2173,21 @@ function renderAttentionList(attention) {
     return;
   }
 
-  const levelClasses = {
-    high: 'attention-high',
-    medium: 'attention-medium',
-    low: 'attention-low',
-    info: 'attention-info',
+  const levelMeta = {
+    high: { cls: 'attention-high', label: 'Urgent' },
+    medium: { cls: 'attention-medium', label: 'Warning' },
+    low: { cls: 'attention-low', label: 'Notice' },
+    info: { cls: 'attention-info', label: 'All clear' },
   };
 
   container.innerHTML = items.map(item => {
-    const levelClass = levelClasses[item.level] || 'attention-info';
+    const meta = levelMeta[item.level] || levelMeta.info;
     const action = item.action
       ? `<button onclick="switchTab('${item.action}')" class="text-xs text-teal-400 hover:underline mt-1">Open ${item.action === 'journal-review' ? 'Journal Review' : 'Trainees'}</button>`
       : '';
     return `
-      <div class="attention-item ${levelClass}">
+      <div class="attention-item ${meta.cls}">
+        <span class="attention-level">${escapeHtml(meta.label)}</span>
         <p class="text-sm font-semibold text-white">${escapeHtml(item.title)}</p>
         <p class="text-xs text-slate-400 mt-1">${escapeHtml(item.detail)}</p>
         ${action}

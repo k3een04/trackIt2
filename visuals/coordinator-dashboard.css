@@ -1490,33 +1490,97 @@ body.light-mode .notif-time { color: #94a3b8; }
   background: var(--teal);
 }
 
-/* Needs attention list */
+/* Needs attention list — severity-coded surfaces so the color always matches
+   the situation: red = act now, amber = plan soon, blue = FYI, green = all
+   clear. Each level gets a tinted fill + matching hairline + matching label
+   chip color so the whole row reads as one signal, in both themes. */
 .attention-item {
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
   border-left: 3px solid var(--muted);
   background: rgba(255, 255, 255, 0.02);
 }
 
+.attention-item .attention-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.attention-item .attention-level::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
 .attention-high {
+  border-color: rgba(239, 68, 68, 0.32);
   border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.10);
+}
+
+.attention-high .attention-level { color: #f87171; }
+
+.attention-medium {
+  border-color: rgba(245, 158, 11, 0.32);
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.10);
+}
+
+.attention-medium .attention-level { color: #fbbf24; }
+
+.attention-low {
+  border-color: rgba(59, 130, 246, 0.32);
+  border-left-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.10);
+}
+
+.attention-low .attention-level { color: #60a5fa; }
+
+.attention-info {
+  border-color: rgba(34, 197, 94, 0.32);
+  border-left-color: #22c55e;
+  background: rgba(34, 197, 94, 0.10);
+}
+
+.attention-info .attention-level { color: #4ade80; }
+
+body.light-mode .attention-high {
+  border-color: rgba(239, 68, 68, 0.30);
   background: rgba(239, 68, 68, 0.08);
 }
 
-.attention-medium {
-  border-left-color: #f59e0b;
-  background: rgba(245, 158, 11, 0.08);
+body.light-mode .attention-high .attention-level { color: #dc2626; }
+
+body.light-mode .attention-medium {
+  border-color: rgba(217, 119, 6, 0.30);
+  background: rgba(217, 119, 6, 0.08);
 }
 
-.attention-low {
-  border-left-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.06);
+body.light-mode .attention-medium .attention-level { color: #b45309; }
+
+body.light-mode .attention-low {
+  border-color: rgba(37, 99, 235, 0.28);
+  background: rgba(37, 99, 235, 0.07);
 }
 
-.attention-info {
-  border-left-color: #22c55e;
-  background: rgba(34, 197, 94, 0.06);
+body.light-mode .attention-low .attention-level { color: #1d4ed8; }
+
+body.light-mode .attention-info {
+  border-color: rgba(22, 163, 74, 0.28);
+  background: rgba(22, 163, 74, 0.07);
 }
+
+body.light-mode .attention-info .attention-level { color: #15803d; }
 
 /* Report preview modal */
 .report-meta {
