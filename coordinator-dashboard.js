@@ -453,11 +453,16 @@ async function loadDashboardData() {
     if (profileDeptEl) profileDeptEl.value = window.currentUser.department || '';
   }
 
-  // Fetch real stats from MongoDB
-  const result = await fetchAPI('/stats/coordinator');
+  // Fetch the chart stats and the Overview card data together. They are
+  // independent calls: one failing must not blank out the other.
+  const [result] = await Promise.all([
+    fetchAPI('/stats/coordinator'),
+    loadOverviewWidgets(),
+  ]);
+
   if (!result || !result.success) return;
 
-  const { stats, departmentBreakdown, recentRegistrations, trainees } = result.data;
+  const { stats, departmentBreakdown, trainees } = result.data;
 
   // Store stats for chart rendering
   window.overviewStats = stats;
@@ -466,49 +471,6 @@ async function loadDashboardData() {
   setTimeout(() => {
     initOverviewCharts(stats, trainees);
   }, 100);
-
-  // Populate overview trainee list
-  const traineeList = el('overview-trainee-list');
-  if (traineeList) {
-    if (trainees.length === 0) {
-      traineeList.innerHTML = '<p class="text-slate-500 text-sm text-center py-6">No trainees registered yet</p>';
-    } else {
-      traineeList.innerHTML = trainees.map(t => `
-        <div class="trainee-progress-item">
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <p class="text-sm font-semibold text-white">${t.fullName}</p>
-              <p class="text-xs text-slate-500">${t.companyName || 'No company'} • ${t.department || '—'}</p>
-            </div>
-            <span class="status-badge ${t.isActive ? 'status-active' : 'status-inactive'}">${t.isActive ? 'Active' : 'Inactive'}</span>
-          </div>
-        </div>
-      `).join('');
-    }
-  }
-
-  // Populate recent registrations
-  const recentList = el('recent-registrations');
-  if (recentList) {
-    if (recentRegistrations.length === 0) {
-      recentList.innerHTML = '<p class="text-slate-500 text-sm text-center py-6">No recent registrations</p>';
-    } else {
-      recentList.innerHTML = recentRegistrations.map(r => {
-        const date = new Date(r.createdAt);
-        const timeAgo = getTimeAgo(date);
-        return `
-          <div class="flex gap-3">
-            <div class="flex-shrink-0 w-2 h-2 rounded-full bg-purple-400 mt-1.5"></div>
-            <div>
-              <p class="text-sm font-semibold text-white">${r.fullName}</p>
-              <p class="text-xs text-slate-400">${r.department || '—'} • ${r.companyName || 'No company'}</p>
-              <p class="text-xs text-slate-500 mt-1">${timeAgo}</p>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-  }
 
   // Update account summary in settings
   const settingsTraineeCount = document.querySelector('#settings .space-y-3');
@@ -522,6 +484,191 @@ async function loadDashboardData() {
 
   // Store department data for charts
   window.deptData = departmentBreakdown;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// OVERVIEW: PENDING ACTIONS & RECENT ACTIVITY
+// ────────────────────────────────────────────────────────────────────────────
+
+// Latest counters from /stats/coordinator/overview. Held in memory so a local
+// action (approving or returning a journal) can move the number immediately,
+// without waiting for the next fetch to agree with the server.
+let pendingActionCounts = {
+  journalReviews: 0,
+  attendanceIssues: 0,
+  inactiveTrainees: 0,
+  missingJournals: 0,
+};
+
+// Trainee ids behind each attention counter. The Trainees tab filters against
+// these, so clicking a counter lands on exactly the trainees it counted instead
+// of re-deriving "late" / "inactive" / "missing" a second time.
+let attentionTraineeIds = { late: [], inactive: [], missingJournal: [] };
+
+const PENDING_ACTION_ICONS = {
+  journalReviews: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>',
+  attendanceIssues: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+  inactiveTrainees: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="17" y1="8" x2="22" y2="13"></line><line x1="22" y1="8" x2="17" y2="13"></line></svg>',
+  missingJournals: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>',
+};
+
+// The four categories the coordinator can act on. Deliberately closed: things
+// the system does not actually track (evaluations, drafts, notifications) are
+// not offered here.
+const PENDING_ACTIONS = [
+  { key: 'journalReviews', label: 'Journal Reviews', description: 'Journals waiting for coordinator review.' },
+  { key: 'attendanceIssues', label: 'Attendance Issues', description: 'Trainees with a late attendance record in the last 30 days.' },
+  { key: 'inactiveTrainees', label: 'Inactive Trainees', description: 'No time-in recorded for 3 consecutive OJT days.' },
+  { key: 'missingJournals', label: 'Missing Journals', description: 'No journal submitted for the current OJT week.' },
+];
+
+/**
+ * Fetches the data behind the Pending Actions and Recent Activity cards.
+ * Called alongside the regular Overview load, so the existing 10s Overview
+ * refresh keeps both cards current without a dedicated timer of their own.
+ */
+async function loadOverviewWidgets() {
+  const result = await fetchAPI('/stats/coordinator/overview');
+  renderOverviewWidgets(result);
+  return result;
+}
+
+function renderOverviewWidgets(result) {
+  if (!result || !result.success) {
+    renderPendingActionsError();
+    renderRecentActivityError();
+    return;
+  }
+
+  const data = result.data || {};
+  pendingActionCounts = { ...pendingActionCounts, ...(data.pendingActions || {}) };
+  attentionTraineeIds = { ...attentionTraineeIds, ...(data.attentionTrainees || {}) };
+
+  renderPendingActions();
+  renderRecentActivity(data.recentActivity || []);
+
+  // A Pending Action may already have put the coordinator on the filtered
+  // Trainees list before these ids arrived - re-run that filter now so the
+  // table shows the trainees rather than an empty result.
+  const attentionSelect = el('attention-filter');
+  if (attentionSelect && attentionSelect.value && currentTab === 'trainees') {
+    applyTraineeFilters();
+  }
+}
+
+function renderPendingActions() {
+  const container = el('pending-actions');
+  if (!container) return;
+
+  container.innerHTML = PENDING_ACTIONS.map(action => {
+    const count = Number(pendingActionCounts[action.key]) || 0;
+    const emptyClass = count === 0 ? ' pending-action__count--empty' : '';
+
+    return `
+      <button type="button" class="pending-action" onclick="openPendingAction('${action.key}')"
+        aria-label="${escapeHtml(action.label)}: ${count}. ${escapeHtml(action.description)}">
+        <span class="pending-action__icon" aria-hidden="true">${PENDING_ACTION_ICONS[action.key]}</span>
+        <span class="pending-action__body">
+          <span class="pending-action__label">${escapeHtml(action.label)}</span>
+          <span class="pending-action__desc">${escapeHtml(action.description)}</span>
+        </span>
+        <span class="pending-action__count${emptyClass}">${count}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function renderPendingActionsError() {
+  const container = el('pending-actions');
+  if (!container) return;
+
+  container.innerHTML =
+    '<p class="text-slate-500 text-sm text-center py-6">' +
+    'Pending actions could not be loaded. ' +
+    '<button type="button" onclick="loadOverviewWidgets()" class="text-teal-400 hover:underline">Retry</button>' +
+    '</p>';
+}
+
+function renderRecentActivity(activities) {
+  const container = el('recent-activity');
+  if (!container) return;
+
+  if (!Array.isArray(activities) || activities.length === 0) {
+    container.innerHTML = '<p class="text-slate-500 text-sm text-center py-6">No recent activity</p>';
+    return;
+  }
+
+  container.innerHTML = activities.map(activity => {
+    const time = activity.createdAt ? getTimeAgo(new Date(activity.createdAt)) : '';
+    // Only the "went inactive" event gets the warning colour; everything else
+    // keeps the single accent so the feed stays quiet.
+    const isAlert = activity.type === 'inactivity';
+
+    return `
+      <div class="activity-item">
+        <span class="activity-dot${isAlert ? ' activity-dot--alert' : ''}" aria-hidden="true"></span>
+        <div class="activity-item__body">
+          <p class="activity-item__text">${escapeHtml(activity.message)}</p>
+          ${time ? `<p class="activity-item__time">${escapeHtml(time)}</p>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderRecentActivityError() {
+  const container = el('recent-activity');
+  if (!container) return;
+
+  container.innerHTML =
+    '<p class="text-slate-500 text-sm text-center py-6">' +
+    'Recent activity could not be loaded. ' +
+    '<button type="button" onclick="loadOverviewWidgets()" class="text-teal-400 hover:underline">Retry</button>' +
+    '</p>';
+}
+
+/** Moves one counter locally (used right after the server confirms an action). */
+function adjustPendingAction(key, delta) {
+  if (!(key in pendingActionCounts)) return;
+  pendingActionCounts[key] = Math.max(0, (Number(pendingActionCounts[key]) || 0) + delta);
+  renderPendingActions();
+}
+
+/**
+ * Each Pending Action jumps to where the coordinator can actually act on it.
+ *
+ * Journal Reviews go to the review queue, because that is exactly where those
+ * journals sit. The other three go to the Trainees tab pre-filtered to the
+ * trainees the counter counted: a missing journal cannot be fixed from the
+ * review queue (nothing was submitted), so the useful destination is the list
+ * of names to follow up on.
+ */
+function openPendingAction(action) {
+  switch (action) {
+    case 'journalReviews':
+      switchTab('journal-review');
+      filterJournals(null, 'pending');
+      break;
+    case 'attendanceIssues':
+      openTraineesWithAttention('late');
+      break;
+    case 'inactiveTrainees':
+      openTraineesWithAttention('inactive');
+      break;
+    case 'missingJournals':
+      openTraineesWithAttention('missingJournal');
+      break;
+    default:
+      break;
+  }
+}
+
+/** Switch to the Trainees tab with an Attention preset already applied. */
+function openTraineesWithAttention(preset) {
+  const select = el('attention-filter');
+  if (select) select.value = preset;
+  switchTab('trainees');
+  applyTraineeFilters();
 }
 
 function getTimeAgo(date) {
@@ -783,6 +930,7 @@ function getFilteredTrainees() {
   const search = (document.getElementById('trainee-search')?.value || '').trim().toLowerCase();
   const department = document.getElementById('dept-filter')?.value || '';
   const section = document.getElementById('section-filter')?.value || '';
+  const attention = document.getElementById('attention-filter')?.value || '';
 
   const filtered = traineesCache.filter(trainee => {
     if (search) {
@@ -792,10 +940,22 @@ function getFilteredTrainees() {
     }
     if (department && (trainee.department || '') !== department) return false;
     if (section && (trainee.section || '') !== section) return false;
+    if (attention && !matchesAttentionFilter(trainee, attention)) return false;
     return true;
   });
 
   return sortTraineeList(filtered);
+}
+
+/**
+ * Attendance / inactivity / missing-journal membership. The ids come straight
+ * from the Overview counters, so this filter shows exactly the trainees the
+ * Pending Actions number counted - it never recomputes the rule itself.
+ */
+function matchesAttentionFilter(trainee, attention) {
+  const ids = attentionTraineeIds[attention];
+  if (!Array.isArray(ids) || ids.length === 0) return false;
+  return ids.includes(String(trainee._id));
 }
 
 function getTraineeSortValue(trainee, key) {
@@ -1036,6 +1196,7 @@ function setupFilterListeners() {
   const searchInput = document.getElementById('trainee-search');
   const deptFilter = document.getElementById('dept-filter');
   const sectionFilter = document.getElementById('section-filter');
+  const attentionFilter = document.getElementById('attention-filter');
   const allTraineesModal = document.getElementById('all-trainees-modal');
 
   if (searchInput) {
@@ -1046,6 +1207,9 @@ function setupFilterListeners() {
   }
   if (sectionFilter) {
     sectionFilter.addEventListener('change', applyTraineeFilters);
+  }
+  if (attentionFilter) {
+    attentionFilter.addEventListener('change', applyTraineeFilters);
   }
 
   // Close the "All Students" modal on backdrop click
@@ -1342,6 +1506,9 @@ async function approveJournal(journalId) {
   }
 
   showNotification('Success', 'Journal approved successfully', 'success');
+  // One fewer journal waiting on the coordinator - move the counter now, the
+  // next Overview refresh confirms it against the server.
+  adjustPendingAction('journalReviews', -1);
   await loadCoordinatorJournals('pending');
 }
 
@@ -1362,6 +1529,7 @@ async function returnJournal(journalId) {
   }
 
   showNotification('Success', 'Journal returned to supervisor', 'success');
+  adjustPendingAction('journalReviews', -1);
   await loadCoordinatorJournals('pending');
 }
 

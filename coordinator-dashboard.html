@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=3">
+  <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=4">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
@@ -142,20 +142,30 @@
         </div>
       </div>
 
-      <!-- Trainee List & Recent Registrations -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Trainee List -->
-        <div class="lg:col-span-2 glass-card p-6">
-          <h3 class="font-display font-700 mb-6">Enrolled Trainees</h3>
-          <div class="space-y-4 max-h-96 overflow-y-auto" id="overview-trainee-list">
-            <p class="text-slate-500 text-sm text-center py-6">Loading trainees...</p>
+      <!-- Pending Actions & Recent Activity -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Pending Actions -->
+        <div class="glass-card p-6">
+          <div class="section-head mb-6">
+            <span class="section-head__icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-1.71 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </span>
+            <h3 class="font-display font-700">Pending Actions</h3>
+          </div>
+          <div id="pending-actions">
+            <p class="text-slate-500 text-sm text-center py-6">Loading pending actions...</p>
           </div>
         </div>
 
-        <!-- Recent Registrations -->
+        <!-- Recent Activity -->
         <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-6">Recent Registrations</h3>
-          <div class="space-y-4 max-h-96 overflow-y-auto" id="recent-registrations">
+          <div class="section-head mb-6">
+            <span class="section-head__icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </span>
+            <h3 class="font-display font-700">Recent Activity</h3>
+          </div>
+          <div id="recent-activity" class="activity-feed max-h-96 overflow-y-auto pr-1">
             <p class="text-slate-500 text-sm text-center py-6">Loading...</p>
           </div>
         </div>
@@ -190,7 +200,7 @@
 
       <!-- Filters & Search -->
       <div class="glass-card p-6 mb-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-2">Search Trainee</label>
             <input type="text" id="trainee-search" placeholder="Name or ID..." class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
@@ -215,6 +225,15 @@
               <option value="4F">4F</option>
               <option value="4G">4G</option>
               <option value="4H">4H</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-2">Attention</label>
+            <select id="attention-filter" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+              <option value="">All Trainees</option>
+              <option value="late">Late Attendance (30d)</option>
+              <option value="inactive">Inactive Trainees</option>
+              <option value="missingJournal">Missing Journal (This Week)</option>
             </select>
           </div>
         </div>
@@ -907,6 +926,6 @@
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
   <script src="chart-theme.js?v=1"></script>
-  <script src="coordinator-dashboard.js?v=3"></script>
+  <script src="coordinator-dashboard.js?v=4"></script>
 </body>
 </html>

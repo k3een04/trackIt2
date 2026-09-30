@@ -1617,3 +1617,199 @@ body.light-mode .report-modal-card {
   background: #ffffff !important;
 }
 
+/* ── Overview: Pending Actions & Recent Activity ───────────────────────────
+   Replaces the old Enrolled Trainees / Recent Registrations row. The two cards
+   share a heading treatment so they read as one unit, then diverge: Pending
+   Actions is a list of countable, clickable items (what needs attention),
+   Recent Activity is a chronological feed (what just happened). Both follow the
+   existing typography, spacing, radius and accent system, and both have an
+   explicit light-mode counterpart below. */
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-head__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: rgba(0, 200, 170, 0.12);
+  border: 1px solid rgba(0, 200, 170, 0.28);
+  color: var(--teal);
+}
+
+/* --- Pending Actions ---------------------------------------------------- */
+
+.pending-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 12px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  /* Overrides the global body * theme transition so hover feels instant. */
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.pending-action:last-child {
+  margin-bottom: 0;
+}
+
+.pending-action:hover {
+  background: rgba(0, 200, 170, 0.07);
+  border-color: rgba(0, 200, 170, 0.45);
+}
+
+.pending-action:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.pending-action__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: rgba(0, 200, 170, 0.1);
+  border: 1px solid rgba(0, 200, 170, 0.22);
+  color: var(--teal);
+}
+
+/* min-width: 0 lets the text column shrink so a long description wraps instead
+   of pushing the count off the card. */
+.pending-action__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pending-action__label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.pending-action__desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.pending-action__count {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--teal);
+}
+
+/* Nothing waiting here, so the number steps back visually. */
+.pending-action__count--empty {
+  color: var(--muted);
+}
+
+/* --- Recent Activity ----------------------------------------------------- */
+
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+/* Only "went inactive" carries the warning tone - a second colour for every
+   event type would turn the feed into noise. */
+.activity-dot--alert {
+  background: var(--gold);
+}
+
+.activity-item__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.activity-item__text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+  /* A long trainee name or remark wraps instead of widening the card. */
+  overflow-wrap: anywhere;
+}
+
+/* Own class rather than a utility so the timestamp never depends on the
+   utility CDN having seen it in the static markup. */
+.activity-item__time {
+  margin-top: 3px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* --- Light mode ---------------------------------------------------------- */
+
+body.light-mode .section-head__icon {
+  background: rgba(0, 150, 125, 0.1);
+  border-color: rgba(0, 150, 125, 0.3);
+  color: var(--teal-dark);
+}
+
+body.light-mode .pending-action {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .pending-action:hover {
+  background: rgba(0, 150, 125, 0.07);
+  border-color: rgba(0, 150, 125, 0.45);
+}
+
+body.light-mode .pending-action__icon {
+  background: rgba(0, 150, 125, 0.1);
+  border-color: rgba(0, 150, 125, 0.25);
+  color: var(--teal-dark);
+}
+
+body.light-mode .pending-action__label { color: #0f172a; }
+body.light-mode .pending-action__desc { color: #64748b; }
+body.light-mode .pending-action__count { color: var(--teal-dark); }
+body.light-mode .pending-action__count--empty { color: #94a3b8; }
+body.light-mode .activity-dot { background: var(--teal-dark); }
+body.light-mode .activity-dot--alert { background: #b45309; }
+body.light-mode .activity-item__text { color: #0f172a; }
+body.light-mode .activity-item__time { color: #64748b; }
+

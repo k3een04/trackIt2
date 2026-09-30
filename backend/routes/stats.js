@@ -4,12 +4,112 @@ const User = require('../models/User');
 const DTR = require('../models/DTR');
 const Journal = require('../models/Journal');
 const Company = require('../models/Company');
+const Notification = require('../models/Notification');
 const {
   buildCoordinatorAnalytics,
   buildAutomatedReport,
 } = require('../services/coordinatorAnalyticsService');
+const {
+  listInactiveTraineeIds,
+  startOfDay,
+  addDays,
+} = require('../services/activityStatusService');
 
 const router = express.Router();
+
+// Notification types that describe something actually happening in the system
+// (journal lifecycle, attendance, activity transitions). `system` housekeeping
+// notices such as "Supervisor assigned" are deliberately excluded: the Overview
+// feed is an activity feed, not a copy of the notification bell.
+const ACTIVITY_NOTIFICATION_TYPES = ['journal', 'attendance', 'inactivity', 'activity'];
+
+// How many activities the Overview feed shows. The card scrolls, so this is a
+// feed window rather than a page.
+const RECENT_ACTIVITY_LIMIT = 15;
+
+// Attendance Issues looks at this many days back, matching the window the
+// coordinator analytics already reports attendance against.
+const ATTENTION_WINDOW_DAYS = 30;
+
+// The student dashboard offers "Week 1" .. "Week 17" as its journal selector
+// (ojtdashboard.js). A trainee who is past that range has no required journal
+// left to be missing.
+const TOTAL_OJT_WEEKS = 17;
+
+/**
+ * The OJT week a trainee is on today. Same rule the student dashboard uses to
+ * pick the week selector: Week 1 covers the first 7 days after registering.
+ */
+function currentOjtWeek(createdAt, now) {
+  if (!createdAt) return null;
+  const elapsed = now.getTime() - new Date(createdAt).getTime();
+  const week = Math.floor(elapsed / (7 * 24 * 60 * 60 * 1000)) + 1;
+  return week >= 1 ? week : null;
+}
+
+/** "Week 12" | "week12" | "12" -> 12; anything unparseable -> null. */
+function weekNumberOf(label) {
+  const match = /(\d+)/.exec(String(label || ''));
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Trainees that have not submitted the journal required for the OJT week they
+ * are currently on. Drafts do not count as a submission - the student has not
+ * actually handed the journal in yet.
+ */
+async function summarizeMissingJournals(activeTrainees, now) {
+  const requiredWeekByTrainee = new Map();
+
+  activeTrainees.forEach(trainee => {
+    const week = currentOjtWeek(trainee.createdAt, now);
+    // Outside the programme's 17 weeks there is no required journal.
+    if (week === null || week > TOTAL_OJT_WEEKS) return;
+    requiredWeekByTrainee.set(String(trainee._id), week);
+  });
+
+  if (!requiredWeekByTrainee.size) return { count: 0, traineeIds: [] };
+
+  const requiredWeeks = [...new Set(requiredWeekByTrainee.values())];
+
+  const submitted = await Journal.find({
+    studentId: { $in: [...requiredWeekByTrainee.keys()] },
+    // Matched as a pattern rather than an exact label so a differently written
+    // week ("week 3", "Week 03", "3") is still recognised as this week's
+    // journal instead of being counted as missing.
+    week: {
+      $in: requiredWeeks.map(week => new RegExp(`^\\s*(?:week\\s*)?0*${week}\\s*$`, 'i')),
+    },
+    status: { $ne: 'draft' },
+  })
+    .select('studentId week')
+    .lean();
+
+  const submittedKeys = new Set();
+  submitted.forEach(journal => {
+    const week = weekNumberOf(journal.week);
+    if (week === null) return;
+    submittedKeys.add(`${journal.studentId}|${week}`);
+  });
+
+  const traineeIds = [];
+  requiredWeekByTrainee.forEach((week, traineeId) => {
+    if (!submittedKeys.has(`${traineeId}|${week}`)) traineeIds.push(traineeId);
+  });
+
+  return { count: traineeIds.length, traineeIds };
+}
+
+/** Trim a Notification down to what the Recent Activity card renders. */
+function activityShape(doc) {
+  if (!doc) return null;
+  return {
+    id: String(doc._id),
+    type: doc.type || 'system',
+    message: doc.message || doc.title || '',
+    createdAt: doc.createdAt || null,
+  };
+}
 
 // @route   GET /api/stats/coordinator
 // @desc    Get coordinator overview stats from MongoDB
@@ -34,13 +134,7 @@ router.get('/coordinator', authenticateToken, authorizeRole('coordinator'), asyn
       { $sort: { count: -1 } }
     ]);
 
-    // Get recent registrations (last 10 students)
-    const recentRegistrations = await User.find({ role: 'student' })
-      .select('fullName department companyName createdAt')
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    // Get trainee list with supervisor populated (for overview section)
+    // Get trainee list with supervisor populated (for overview charts)
     const trainees = await User.find({ role: 'student' })
       .populate('supervisorId', 'fullName companyName')
       .select('fullName studentId department companyName isActive createdAt completedHours requiredHours')
@@ -56,7 +150,6 @@ router.get('/coordinator', authenticateToken, authorizeRole('coordinator'), asyn
           companyCount: companies.length,
         },
         departmentBreakdown: deptBreakdown,
-        recentRegistrations,
         trainees,
       },
     });
@@ -65,6 +158,66 @@ router.get('/coordinator', authenticateToken, authorizeRole('coordinator'), asyn
     res.status(500).json({
       success: false,
       message: 'Server error fetching coordinator stats',
+    });
+  }
+});
+
+// @route   GET /api/stats/coordinator/overview
+// @desc    Data behind the two Overview cards: the Pending Actions counters
+//          (with the ids behind them, so the Trainees tab can filter to them)
+//          and the Recent Activity feed.
+//          Every number is derived from live records - nothing here is stored,
+//          cached or mocked - so the counters move as soon as the underlying
+//          journal / DTR / status data changes.
+// @access  Private (Coordinator only)
+router.get('/coordinator/overview', authenticateToken, authorizeRole('coordinator'), async (req, res) => {
+  try {
+    const now = new Date();
+    const attentionWindowStart = startOfDay(addDays(now, -ATTENTION_WINDOW_DAYS));
+
+    const [journalReviews, lateTraineeIds, inactiveTraineeIds, activeTrainees, activityDocs] =
+      await Promise.all([
+        // Journals actually ready for the coordinator to act on: signed by the
+        // supervisor and not yet approved. Mirrors the Journal Review queue.
+        Journal.countDocuments({ supervisorSigned: true, coordinatorApproved: false }),
+        // Distinct trainees with at least one late attendance record in the window.
+        DTR.distinct('traineeId', { status: 'late', date: { $gte: attentionWindowStart } }),
+        // 3 consecutive applicable OJT days without a time in (shared logic).
+        listInactiveTraineeIds(now),
+        User.find({ role: 'student', isActive: true }).select('_id createdAt').lean(),
+        Notification.find({
+          recipientId: req.user.id,
+          type: { $in: ACTIVITY_NOTIFICATION_TYPES },
+        })
+          .sort({ createdAt: -1 })
+          .limit(RECENT_ACTIVITY_LIMIT)
+          .lean(),
+      ]);
+
+    const missingJournals = await summarizeMissingJournals(activeTrainees, now);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        pendingActions: {
+          journalReviews,
+          attendanceIssues: lateTraineeIds.length,
+          inactiveTrainees: inactiveTraineeIds.length,
+          missingJournals: missingJournals.count,
+        },
+        attentionTrainees: {
+          late: lateTraineeIds.map(String),
+          inactive: inactiveTraineeIds,
+          missingJournal: missingJournals.traineeIds,
+        },
+        recentActivity: activityDocs.map(activityShape).filter(Boolean),
+      },
+    });
+  } catch (error) {
+    console.error('Coordinator overview error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching overview data',
     });
   }
 });

@@ -318,6 +318,37 @@ async function calculateStudentActivityStatus(traineeId, options = {}) {
   return evaluateStatus({ trainee, attendance, now });
 }
 
+/**
+ * Ids of every trainee that is INACTIVE right now, for the whole cohort in two
+ * queries.
+ *
+ * The status is re-derived from the DTR history through the very same
+ * `evaluateStatus` the badges and notifications use rather than read back from
+ * the persisted `activityStatus` column, so a dashboard counter never depends
+ * on when the notification sweep last happened to run. Purely read-only: no
+ * writes, no notifications raised.
+ *
+ * @returns {Promise<string[]>} trainee ids as strings.
+ */
+async function listInactiveTraineeIds(now = new Date()) {
+  const windowStart = startOfDay(addDays(now, -DEFAULT_LOOKBACK_DAYS));
+  const [trainees, summaries] = await Promise.all([
+    User.find({ role: 'student' }).select('_id createdAt schedule').lean(),
+    loadAttendanceSummariesForAll(windowStart),
+  ]);
+
+  return trainees
+    .filter(trainee => {
+      const attendance = summaries.get(String(trainee._id)) || {
+        attendedDays: new Set(),
+        excusedDays: new Set(),
+        lastTimeIn: null,
+      };
+      return evaluateStatus({ trainee, attendance, now }).status === STATUS_INACTIVE;
+    })
+    .map(trainee => String(trainee._id));
+}
+
 module.exports = {
   STATUS_ACTIVE,
   STATUS_INACTIVE,
@@ -325,6 +356,7 @@ module.exports = {
   NEW_STUDENT_GRACE_DAYS,
   DEFAULT_LOOKBACK_DAYS,
   calculateStudentActivityStatus,
+  listInactiveTraineeIds,
   evaluateStatus,
   lastSettledDay,
   isApplicableDay,
