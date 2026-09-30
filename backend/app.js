@@ -169,6 +169,13 @@ app.get('/supervisor-dashboard.js', (req, res) => {
 app.get('/Trackitlogo.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'Trackitlogo.png'));
 });
+// Journal PDF templates used by the OJT dashboard download feature.
+app.get('/OJT_Weekly_Journal_Template.pdf', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'OJT_Weekly_Journal_Template.pdf'));
+});
+app.get('/OJT_Weekly_Journal_Template.2Rows.pdf', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'OJT_Weekly_Journal_Template.2Rows.pdf'));
+});
 // Vendor libraries used by the OJT dashboard (PDF export & viewer).
 app.get('/vendor/jspdf.umd.min.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'vendor', 'jspdf.umd.min.js'));
