@@ -145,6 +145,9 @@ app.get('/signup.js', (req, res) => {
 app.get('/ojtdashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'ojtdashboard.js'));
 });
+app.get('/chart-theme.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'chart-theme.js'));
+});
 app.get('/coordinator-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'coordinator-dashboard.js'));
 });

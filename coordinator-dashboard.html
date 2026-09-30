@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=2">
+  <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=3">
 </head>
 <body>
   <script>
@@ -121,7 +121,7 @@
         <!-- Key Metrics Bar Chart -->
         <div class="glass-card p-6">
           <h3 class="font-display font-700 mb-6">Key Metrics Overview</h3>
-          <div style="height: 300px; position: relative;">
+          <div class="chart-frame chart-frame--bars">
             <canvas id="overviewMetricsChart"></canvas>
           </div>
         </div>
@@ -129,7 +129,7 @@
         <!-- Top Trainees Bar Chart -->
         <div class="glass-card p-6">
           <h3 class="font-display font-700 mb-6">Top Trainees</h3>
-          <div style="height: 300px; position: relative;">
+          <div class="chart-frame chart-frame--bars chart-frame--h">
             <canvas id="topTraineesChart"></canvas>
           </div>
         </div>
@@ -483,7 +483,7 @@
           </div>
           <div>
             <h4 class="text-sm font-semibold mb-4">Attendance Trend — Verified Hours (Last 8 Weeks)</h4>
-            <div style="position: relative; height: 280px;">
+            <div class="chart-frame chart-frame--bars">
               <canvas id="attendanceTrendChart"></canvas>
             </div>
           </div>
@@ -519,14 +519,14 @@
         <div class="glass-card p-6">
           <h3 class="font-display font-700 mb-2">Trainee Progress — Completed vs Required Hours</h3>
           <p class="text-xs text-slate-500 mb-6">Top trainees ranked by supervisor-verified hours.</p>
-          <div style="position: relative; height: 320px;">
+          <div class="chart-frame chart-frame--bars chart-frame--tall chart-frame--h">
             <canvas id="traineeProgressChart"></canvas>
           </div>
         </div>
         <div class="glass-card p-6">
           <h3 class="font-display font-700 mb-2">Hours Rendered per Trainee</h3>
           <p class="text-xs text-slate-500 mb-6">Highest verified hour totals (top 8).</p>
-          <div style="position: relative; height: 320px;">
+          <div class="chart-frame chart-frame--bars chart-frame--tall chart-frame--h">
             <canvas id="hoursChart"></canvas>
           </div>
         </div>
@@ -651,7 +651,7 @@
           </div>
           <div>
             <h4 class="text-sm font-semibold mb-4">Weekly Journal Submissions (Last 8 Weeks)</h4>
-            <div style="position: relative; height: 300px;">
+            <div class="chart-frame chart-frame--bars">
               <canvas id="journalTrendChart"></canvas>
             </div>
           </div>
@@ -892,6 +892,9 @@
 
   </div>
 
-  <script src="coordinator-dashboard.js?v=2"></script>
+  <!-- Shared bar-chart design system: must load after Chart.js and before the
+       dashboard script that builds the charts. -->
+  <script src="chart-theme.js?v=1"></script>
+  <script src="coordinator-dashboard.js?v=3"></script>
 </body>
 </html>

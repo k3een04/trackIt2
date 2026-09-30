@@ -708,6 +708,13 @@ function toggleTheme() {
 }
 
 function updateChartTheme(isLightMode) {
+  // Prefer the shared design system: it re-derives every theme-dependent colour
+  // (grid, ticks, axes, legend, tooltip, value captions) from the live CSS
+  // variables and repaints each registered bar chart without animating.
+  if (window.TrackITCharts && typeof window.TrackITCharts.refreshAll === 'function') {
+    window.TrackITCharts.refreshAll();
+    return;
+  }
   if (!weeklyChartInstance || !weeklyChartInstance.options || !weeklyChartInstance.options.scales) return;
 
   const ticksColor = isLightMode ? 'rgba(30, 41, 59, 0.6)' : 'rgba(203, 213, 225, 0.6)';
@@ -1356,67 +1363,40 @@ async function initWeeklyChart(student) {
       weekHours.push(Math.round((weeklyData[key] || 0) * 10) / 10);
     }
 
-    console.log('Chart data - weeks:', weeks, 'hours:', weekHours);
+    console.log('Chart data - weeks:', weeks, 'hour ' + 's:', weekHours);
 
-    const isLightMode = document.body.classList.contains('light-mode');
-    const ticksColor = isLightMode ? 'rgba(30, 41, 59, 0.6)' : 'rgba(203, 213, 225, 0.6)';
-    const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)';
-
-    weeklyChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: weeks,
-        datasets: [{
-          label: 'Hours Rendered',
-          data: weekHours,
-          backgroundColor: 'rgba(0, 200, 170, 0.3)',
-          borderColor: 'rgba(0, 200, 170, 1)',
-          borderWidth: 2,
-          borderRadius: 8,
-          tension: 0.4,
-          fill: true
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 50,
-            grid: {
-              color: gridColor,
-              drawBorder: false
-            },
-            ticks: {
-              color: ticksColor,
-              font: {
-                family: "'Inter', sans-serif",
-                size: 12
-              }
-            }
-          },
-          x: {
-            grid: {
-              display: false,
-              drawBorder: false
-            },
-            ticks: {
-              color: ticksColor,
-              font: {
-                family: "'Inter', sans-serif",
-                size: 12
-              }
-            }
-          }
-        }
-      }
+    // Shared bar-chart design system: same spacing, corner radius, grid, hover
+    // emphasis and value captions as the coordinator analytics charts, and the
+    // theme tokens are read live so a theme switch repaints correctly.
+    const dataset = window.TrackITCharts.styleDataset({
+      label: 'Hours Rendered',
+      data: weekHours,
+    }, {
+      accent: window.TrackITCharts.tokens().teal,
+      maxBarThickness: 34,
+      fill: 'flat', // single weekly series reads better as a flat fill
     });
+
+    const chartConfig = window.TrackITCharts.withPlugins({
+      type: 'bar',
+      data: { labels: weeks, datasets: [dataset] },
+      options: window.TrackITCharts.barOptions({
+        vertical: true,
+        timeSeries: true, // weeks stay on the x axis
+        legend: false,
+        categoryCount: weeks.length,
+        datasetCount: 1,
+        yTitle: 'Hours',
+        valueFormatter: (value) => `${Math.round(value * 10) / 10}`,
+      }),
+    });
+
+    // The existing 0-50 hour ceiling is preserved so the scale semantics of this
+    // chart do not change.
+    chartConfig.options.scales.y.max = 50;
+
+    weeklyChartInstance = new Chart(ctx, chartConfig);
+    window.TrackITCharts.register(weeklyChartInstance);
     
     console.log('Chart created successfully');
   } catch (error) {

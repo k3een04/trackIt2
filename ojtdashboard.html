@@ -23,7 +23,7 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=1">
+  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=2">
 </head>
 <body>
   <script>
@@ -644,7 +644,7 @@
         <div class="lg:col-span-2">
           <div class="glass-card p-8">
             <h3 class="font-display font-700 mb-6">Weekly Hours Rendered</h3>
-            <div style="position: relative; height: 300px;">
+            <div class="chart-frame chart-frame--bars">
               <canvas id="weeklyChart"></canvas>
             </div>
           </div>
@@ -922,6 +922,9 @@
     window.pdfjsLib = pdfjsLib;
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.mjs';
   </script>
-  <script src="ojtdashboard.js?v=1"></script>
+  <!-- Shared bar-chart design system: must load after Chart.js and before the
+       dashboard script that builds the charts. -->
+  <script src="chart-theme.js?v=1"></script>
+  <script src="ojtdashboard.js?v=2"></script>
 </body>
 </html>

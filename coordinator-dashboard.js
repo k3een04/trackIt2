@@ -344,8 +344,18 @@ function applyTheme(theme) {
   const body = document.body;
   const themeIcon = document.getElementById('theme-icon');
 
+  // The charts read their colours from the theme's CSS custom properties, so
+  // everything must be repainted *after* the class change lands. Chart.js also
+  // sizes its canvas from the container, so this runs on the next frame.
+  const repaintCharts = () => {
+    if (window.TrackITCharts && typeof window.TrackITCharts.refreshAll === 'function') {
+      window.TrackITCharts.refreshAll();
+    }
+  };
+
   if (theme === 'light') {
     body.classList.add('light-mode');
+    repaintCharts();
     if (themeIcon) {
       const moonIcon = themeIcon.querySelector('.moon-icon');
       const sunIcons = themeIcon.querySelectorAll('.sun-icon');
@@ -361,6 +371,7 @@ function applyTheme(theme) {
     }
   } else {
     body.classList.remove('light-mode');
+    repaintCharts();
     if (themeIcon) {
       const moonIcon = themeIcon.querySelector('.moon-icon');
       const sunIcons = themeIcon.querySelectorAll('.sun-icon');
@@ -1348,55 +1359,61 @@ function downloadJournal(journalId) {
 // ────────────────────────────────────────────────────────────────────────────
 
 function initOverviewCharts(stats, trainees = []) {
-  // Key Metrics Bar Chart
+  // Key Metrics Bar Chart — colour-coded categories, so each bar keeps its
+  // established hue and the legend stays hidden (the x labels already name them).
   const metricsCtx = document.getElementById('overviewMetricsChart');
   if (metricsCtx && !window.overviewMetricsChartInit) {
-    new Chart(metricsCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Total Enrolled', 'Active', 'Supervisors', 'Companies'],
-        datasets: [{
-          label: 'Count',
-          data: [stats.totalStudents, stats.activeStudents, stats.supervisorCount, stats.companyCount],
-          backgroundColor: [
-            'rgba(0, 200, 170, 0.7)',
-            'rgba(34, 197, 94, 0.7)',
-            'rgba(59, 130, 246, 0.7)',
-            'rgba(168, 85, 247, 0.7)'
-          ],
-          borderColor: [
-            'rgba(0, 200, 170, 1)',
-            'rgba(34, 197, 94, 1)',
-            'rgba(59, 130, 246, 1)',
-            'rgba(168, 85, 247, 1)'
-          ],
-          borderWidth: 2,
-          borderRadius: 8
-        }]
+    const metricSeries = [
+      { label: 'Total Enrolled', value: stats.totalStudents, accent: TrackITCharts.accent.teal },
+      { label: 'Active', value: stats.activeStudents, accent: TrackITCharts.accent.green },
+      { label: 'Supervisors', value: stats.supervisorCount, accent: TrackITCharts.accent.blue },
+      { label: 'Companies', value: stats.companyCount, accent: TrackITCharts.accent.purple },
+    ];
+
+    const metricsDataset = {
+      label: 'Count',
+      data: metricSeries.map(item => item.value),
+      // One hue per metric: the accent is resolved per bar by the shared fill.
+      backgroundColor: (context) => {
+        const accent = metricSeries[context.dataIndex]
+          ? metricSeries[context.dataIndex].accent
+          : TrackITCharts.accent.teal;
+        return TrackITCharts.barFill(accent, TrackITCharts.tokens(), true)(context);
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, labels: { color: 'rgba(203, 213, 225, 0.8)' } }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: { color: 'rgba(203, 213, 225, 0.6)' }
-          },
-          x: {
-            grid: { display: false },
-            ticks: { color: 'rgba(203, 213, 225, 0.6)' }
-          }
-        }
-      }
-    });
+      hoverBackgroundColor: (context) => {
+        const accent = metricSeries[context.dataIndex]
+          ? metricSeries[context.dataIndex].accent
+          : TrackITCharts.accent.teal;
+        return TrackITCharts.alpha(accent, 1);
+      },
+      borderWidth: 0,
+      borderRadius: 6,
+      borderSkipped: false,
+      barPercentage: 0.72,
+      categoryPercentage: 0.7,
+      maxBarThickness: 46,
+      trackitValueLabels: true,
+      trackitAccent: TrackITCharts.accent.teal,
+    };
+
+    window.TrackITCharts.register(window.TrackITCharts.createBar(metricsCtx, {
+      data: {
+        labels: metricSeries.map(item => item.label),
+        datasets: [metricsDataset],
+      },
+      options: window.TrackITCharts.barOptions({
+        vertical: true,
+        legend: false,
+        categoryCount: metricSeries.length,
+        datasetCount: 1,
+        yTitle: 'Count',
+      }),
+    }));
     window.overviewMetricsChartInit = true;
   }
 
-  // Top Trainees Bar Chart (by completed hours)
+  // Top Trainees Bar Chart (by completed hours) — several named categories, so a
+  // horizontal bar reads best.
   const topTraineesCtx = document.getElementById('topTraineesChart');
   if (topTraineesCtx && !window.topTraineesChartInit) {
     // Sort trainees by completed hours (descending) and get top 5
@@ -1407,39 +1424,22 @@ function initOverviewCharts(stats, trainees = []) {
     const labels = topTrainees.map(t => t.fullName.split(' ')[0]); // First name only
     const data = topTrainees.map(t => t.completedHours || 0);
 
-    new Chart(topTraineesCtx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Completed Hours',
-          data: data,
-          backgroundColor: 'rgba(0, 200, 170, 0.7)',
-          borderColor: 'rgba(0, 200, 170, 1)',
-          borderWidth: 2,
-          borderRadius: 8
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, labels: { color: 'rgba(203, 213, 225, 0.8)' } }
-        },
-        scales: {
-          x: {
-            beginAtZero: true,
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: { color: 'rgba(203, 213, 225, 0.6)' }
-          },
-          y: {
-            grid: { display: false },
-            ticks: { color: 'rgba(203, 213, 225, 0.6)' }
-          }
-        }
-      }
-    });
+    const dataset = window.TrackITCharts.styleDataset({
+      label: 'Completed Hours',
+      data: data,
+    }, { accent: TrackITCharts.accent.teal, maxBarThickness: 26 });
+
+    window.TrackITCharts.register(window.TrackITCharts.createBar(topTraineesCtx, {
+      data: { labels: labels, datasets: [dataset] },
+      options: window.TrackITCharts.barOptions({
+        horizontal: true,
+        legend: false,
+        categoryCount: labels.length,
+        datasetCount: 1,
+        xTitle: 'Hours',
+        valueFormatter: (value) => `${Math.round(value * 10) / 10} h`,
+      }),
+    }));
     window.topTraineesChartInit = true;
   }
 }
@@ -1581,11 +1581,11 @@ function renderHoursChart(hoursByTrainee) {
   const dataset = {
     label: 'Hours Completed',
     data: values,
-    backgroundColor: 'rgba(0, 200, 170, 0.3)',
-    borderColor: 'rgba(0, 200, 170, 1)',
-    borderWidth: 2,
-    borderRadius: 8,
   };
+  window.TrackITCharts.styleDataset(dataset, {
+    accent: TrackITCharts.accent.teal,
+    maxBarThickness: 26,
+  });
 
   if (window.analyticsCharts?.hoursChart) {
     window.analyticsCharts.hoursChart.data.labels = labels;
@@ -1595,31 +1595,16 @@ function renderHoursChart(hoursByTrainee) {
   }
 
   window.analyticsCharts = window.analyticsCharts || {};
-  window.analyticsCharts.hoursChart = new Chart(hoursCtx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [dataset],
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-      },
-      scales: {
-        x: {
-          beginAtZero: true,
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-        },
-        y: {
-          grid: { display: false },
-          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-        },
-      },
-    },
+  window.analyticsCharts.hoursChart = window.TrackITCharts.createBar(hoursCtx, {
+    data: { labels, datasets: [dataset] },
+    options: window.TrackITCharts.barOptions({
+      horizontal: true,
+      legend: false,
+      categoryCount: labels.length,
+      datasetCount: 1,
+      xTitle: 'Verified Hours',
+      valueFormatter: (value) => `${Math.round(value * 10) / 10} h`,
+    }),
   });
 }
 
@@ -1816,25 +1801,32 @@ function renderAttendancePanel(attendance) {
   if (trendCanvas) {
     const weeks = Array.isArray(data.weeklyHours) ? data.weeklyHours : [];
     const labels = weeks.length > 0 ? weeks.map(week => week.label) : ['No data'];
-    const hoursDataset = {
+    const hoursDataset = window.TrackITCharts.styleDataset({
       type: 'bar',
       label: 'Verified Hours',
       data: weeks.length > 0 ? weeks.map(week => week.hours) : [0],
-      backgroundColor: 'rgba(0, 200, 170, 0.55)',
-      borderColor: 'rgba(0, 200, 170, 1)',
-      borderWidth: 2,
-      borderRadius: 6,
       yAxisID: 'y',
-    };
+      borderRadius: 5,
+    }, {
+      accent: TrackITCharts.accent.teal,
+      maxBarThickness: 30,
+      showValues: false, // 8 weeks x 2 series: labels on hover only
+    });
+    // The line overlay keeps its existing gold and shape - only the styling of
+    // its stroke/points is tidied so it reads as part of the same system.
     const presentDataset = {
       type: 'line',
       label: 'Present Records',
       data: weeks.length > 0 ? weeks.map(week => week.present) : [0],
-      borderColor: 'rgba(245, 200, 66, 1)',
-      backgroundColor: 'rgba(245, 200, 66, 0.2)',
+      borderColor: window.TrackITCharts.alpha(TrackITCharts.accent.gold, 1),
+      backgroundColor: window.TrackITCharts.alpha(TrackITCharts.accent.gold, 0.2),
       borderWidth: 2,
       tension: 0.35,
       pointRadius: 3,
+      pointHoverRadius: 5,
+      pointBackgroundColor: window.TrackITCharts.alpha(TrackITCharts.accent.gold, 1),
+      pointBorderWidth: 0,
+      fill: false,
       yAxisID: 'y1',
     };
 
@@ -1844,45 +1836,23 @@ function renderAttendancePanel(attendance) {
       window.analyticsCharts.attendanceTrendChart.update();
     } else {
       window.analyticsCharts = window.analyticsCharts || {};
-      window.analyticsCharts.attendanceTrendChart = new Chart(trendCanvas, {
-        type: 'bar',
+      window.analyticsCharts.attendanceTrendChart = window.TrackITCharts.createBar(trendCanvas, {
         data: { labels, datasets: [hoursDataset, presentDataset] },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: { labels: { color: 'rgba(203, 213, 225, 0.8)' } },
-            tooltip: {
-              callbacks: {
-                afterLabel: (context) => {
-                  const week = weeks[context.dataIndex];
-                  return week ? week.range : '';
-                },
-              },
-            },
+        options: window.TrackITCharts.barOptions({
+          vertical: true,
+          timeSeries: true,
+          dualAxis: true,
+          legend: true,
+          categoryCount: labels.length,
+          datasetCount: 2,
+          yTitle: 'Hours',
+          secondaryTitle: 'Records',
+          // Existing tooltip augmentation, preserved verbatim.
+          tooltipAfterLabel: (context) => {
+            const week = weeks[context.dataIndex];
+            return week ? week.range : '';
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              position: 'left',
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-              title: { display: true, text: 'Hours', color: 'rgba(203, 213, 225, 0.6)' },
-            },
-            y1: {
-              beginAtZero: true,
-              position: 'right',
-              grid: { display: false },
-              ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-              title: { display: true, text: 'Records', color: 'rgba(203, 213, 225, 0.6)' },
-            },
-            x: {
-              grid: { display: false },
-              ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-            },
-          },
-        },
+        }),
       });
     }
   }
@@ -1972,24 +1942,32 @@ function renderTraineeProgress(progress) {
 
   const topTrainees = items.slice(0, 8);
   const labels = topTrainees.length > 0 ? topTrainees.map(trainee => trainee.name.split(' ')[0]) : ['No data'];
-  const completedDatasets = {
+  const completedDatasets = window.TrackITCharts.styleDataset({
     label: 'Completed Hours',
     data: topTrainees.length > 0 ? topTrainees.map(trainee => trainee.completedHours) : [0],
-    backgroundColor: 'rgba(0, 200, 170, 0.75)',
-    borderColor: 'rgba(0, 200, 170, 1)',
-    borderWidth: 2,
-    borderRadius: 6,
     stack: 'hours',
-  };
-  const remainingDatasets = {
+    // Stacked: rounding every segment would look broken, so only the outer end
+    // of each stack is rounded.
+    borderRadius: { topLeft: 0, bottomLeft: 0, topRight: 6, bottomRight: 6 },
+    borderSkipped: 'start',
+  }, {
+    accent: TrackITCharts.accent.teal,
+    strong: true,
+    maxBarThickness: 24,
+    showValues: false, // stacked segments: label on hover only
+  });
+  const remainingDatasets = window.TrackITCharts.styleDataset({
     label: 'Remaining Hours',
     data: topTrainees.length > 0 ? topTrainees.map(trainee => trainee.remainingHours) : [0],
-    backgroundColor: 'rgba(148, 163, 184, 0.35)',
-    borderColor: 'rgba(148, 163, 184, 0.7)',
-    borderWidth: 2,
-    borderRadius: 6,
     stack: 'hours',
-  };
+    borderRadius: { topLeft: 0, bottomLeft: 0, topRight: 6, bottomRight: 6 },
+    borderSkipped: 'start',
+  }, {
+    // The existing muted slate used for "remaining", unchanged in hue.
+    accent: TrackITCharts.accent.slate,
+    maxBarThickness: 24,
+    showValues: false,
+  });
 
   if (window.analyticsCharts?.traineeProgressChart) {
     window.analyticsCharts.traineeProgressChart.data.labels = labels;
@@ -1999,31 +1977,17 @@ function renderTraineeProgress(progress) {
   }
 
   window.analyticsCharts = window.analyticsCharts || {};
-  window.analyticsCharts.traineeProgressChart = new Chart(canvas, {
-    type: 'bar',
+  window.analyticsCharts.traineeProgressChart = window.TrackITCharts.createBar(canvas, {
     data: { labels, datasets: [completedDatasets, remainingDatasets] },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: 'rgba(203, 213, 225, 0.8)' } },
-      },
-      scales: {
-        x: {
-          beginAtZero: true,
-          stacked: true,
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-          title: { display: true, text: 'Hours', color: 'rgba(203, 213, 225, 0.6)' },
-        },
-        y: {
-          stacked: true,
-          grid: { display: false },
-          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-        },
-      },
-    },
+    options: window.TrackITCharts.barOptions({
+      horizontal: true,
+      stacked: true,
+      legend: true,
+      categoryCount: labels.length,
+      datasetCount: 2,
+      xTitle: 'Hours',
+      valueFormatter: (value) => `${Math.round(value * 10) / 10} h`,
+    }),
   });
 }
 
@@ -2137,22 +2101,22 @@ function renderJournalPanel(journals) {
 
   const trend = Array.isArray(data.weeklyTrend) ? data.weeklyTrend : [];
   const labels = trend.length > 0 ? trend.map(row => row.label) : ['No data'];
-  const submittedDataset = {
+  const submittedDataset = window.TrackITCharts.styleDataset({
     label: 'Submitted',
     data: trend.length > 0 ? trend.map(row => row.submitted) : [0],
-    backgroundColor: 'rgba(59, 130, 246, 0.7)',
-    borderColor: 'rgba(59, 130, 246, 1)',
-    borderWidth: 2,
-    borderRadius: 6,
-  };
-  const approvedDataset = {
+  }, {
+    accent: TrackITCharts.accent.blue,
+    maxBarThickness: 26,
+    showValues: false, // grouped: labels on hover only
+  });
+  const approvedDataset = window.TrackITCharts.styleDataset({
     label: 'Coordinator Approved',
     data: trend.length > 0 ? trend.map(row => row.approved) : [0],
-    backgroundColor: 'rgba(34, 197, 94, 0.7)',
-    borderColor: 'rgba(34, 197, 94, 1)',
-    borderWidth: 2,
-    borderRadius: 6,
-  };
+  }, {
+    accent: TrackITCharts.accent.green,
+    maxBarThickness: 26,
+    showValues: false,
+  });
 
   if (window.analyticsCharts?.journalTrendChart) {
     window.analyticsCharts.journalTrendChart.data.labels = labels;
@@ -2162,27 +2126,16 @@ function renderJournalPanel(journals) {
   }
 
   window.analyticsCharts = window.analyticsCharts || {};
-  window.analyticsCharts.journalTrendChart = new Chart(canvas, {
-    type: 'bar',
+  window.analyticsCharts.journalTrendChart = window.TrackITCharts.createBar(canvas, {
     data: { labels, datasets: [submittedDataset, approvedDataset] },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: 'rgba(203, 213, 225, 0.8)' } },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: 'rgba(203, 213, 225, 0.6)' },
-        },
-      },
-    },
+    options: window.TrackITCharts.barOptions({
+      vertical: true,
+      timeSeries: true,
+      legend: true,
+      categoryCount: labels.length,
+      datasetCount: 2,
+      yTitle: 'Journals',
+    }),
   });
 }
 

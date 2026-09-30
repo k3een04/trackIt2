@@ -59,6 +59,58 @@ body::before {
   border-radius: 12px;
 }
 
+/* --- Chart frames -------------------------------------------------------
+   Responsive plotting area shared by every bar chart. Chart.js sizes itself
+   from the container, so the height is expressed as a clamp rather than a
+   fixed pixel value: it fills the dashboard on desktop, shrinks gracefully on
+   tablets, and never crushes the bars on a phone. Only bar charts use these
+   classes - the doughnut cards keep their existing inline heights. */
+.chart-frame {
+  position: relative;
+  width: 100%;
+  height: clamp(260px, 30vh, 320px);
+}
+
+/* Vertical bars need vertical room, not width. */
+.chart-frame--bars {
+  height: clamp(240px, 30vh, 300px);
+}
+
+/* Horizontal bar charts gain readability from extra rows of height. */
+.chart-frame--bars.chart-frame--tall,
+.chart-frame--bars.chart-frame--h {
+  height: clamp(300px, 38vh, 380px);
+}
+
+/* Fewer categories (5 trainees) need less height than a crowded list. */
+.chart-frame--bars.chart-frame--compact {
+  height: clamp(250px, 30vh, 300px);
+}
+
+@media (max-width: 1024px) {
+  .chart-frame--bars,
+  .chart-frame--bars.chart-frame--h,
+  .chart-frame--bars.chart-frame--tall {
+    height: clamp(240px, 36vh, 320px);
+  }
+}
+
+@media (max-width: 640px) {
+  .chart-frame,
+  .chart-frame--bars,
+  .chart-frame--bars.chart-frame--h,
+  .chart-frame--bars.chart-frame--tall {
+    height: clamp(230px, 42vh, 290px);
+  }
+}
+
+/* The canvas must never hold a stale pixel size after a rotation or resize. */
+.chart-frame > canvas {
+  display: block;
+  width: 100% !important;
+  max-width: 100%;
+}
+
 nav img{
   width: 60px;
 }
