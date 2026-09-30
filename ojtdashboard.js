@@ -3186,10 +3186,11 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
   const timeOutBtn = document.getElementById('time-out-btn');
   const geofenceInfo = document.getElementById('geofence-info');
   const geofenceMessage = document.getElementById('geofence-message');
+  const loadStatus = document.getElementById('geofence-load-status');
 
-  // Reset classes
-  indicator.classList.remove('in-range', 'out-of-range');
-  statusText.classList.remove('in-range', 'out-of-range');
+  // Reset classes (checking = locating/validating, amber)
+  indicator.classList.remove('in-range', 'out-of-range', 'checking');
+  statusText.classList.remove('in-range', 'out-of-range', 'checking');
 
   // Update status
   switch (status) {
@@ -3199,6 +3200,9 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.textContent = '✓ In Range';
       // Button enable/lock is handled by the schedule-window logic AFTER
       // this call; do NOT force-enable here.
+      if (loadStatus) {
+        loadStatus.textContent = message || 'Within the company geofence.';
+      }
       geofenceInfo.style.display = 'none';
       break;
 
@@ -3208,19 +3212,31 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.textContent = '✗ Out of Range';
       setAttendanceButtonState(timeInBtn, false);
       setAttendanceButtonState(timeOutBtn, false);
+      // The detail box below carries the message, so the supporting line is
+      // cleared to avoid saying the same thing twice.
+      if (loadStatus) loadStatus.textContent = '';
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
       break;
 
     case 'locating':
+      indicator.classList.add('checking');
+      statusText.classList.add('checking');
       statusText.textContent = message;
+      if (loadStatus) {
+        loadStatus.textContent = 'Checking your position against the company geofence…';
+      }
       timeInBtn.disabled = true;
       geofenceInfo.style.display = 'none';
       break;
 
     case 'error':
     default:
+      // Unavailable reads as the same red state as out of range.
+      indicator.classList.add('out-of-range');
+      statusText.classList.add('out-of-range');
       statusText.textContent = '⚠ Error';
+      if (loadStatus) loadStatus.textContent = '';
       timeInBtn.disabled = true;
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;

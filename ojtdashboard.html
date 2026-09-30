@@ -23,7 +23,7 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=2">
+  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=3">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
@@ -255,53 +255,54 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Geofence Tracking Section - Left Column (Mobile: Full Width) -->
-        <div class="lg:col-span-1">
-          <!-- Geofence Status Card -->
-          <div class="glass-card p-6 sticky top-28">
-            <div class="flex items-center justify-between mb-4">
+        <!-- Attendance Tracking - Left Column (stacks full width below lg) -->
+        <div class="lg:col-span-1 dtr-aside">
+          <div class="glass-card p-6 attendance-card">
+            <!-- Header: title + compact refresh control -->
+            <div class="attendance-card__header">
               <h3 class="font-display font-700 text-lg">Attendance Tracking</h3>
-              <button onclick="refreshGeolocation()" style="padding: 6px 12px; background: rgba(0,200,170,0.2); border: 1px solid rgba(0,200,170,0.5); border-radius: 6px; color: #00c8aa; font-size: 12px; cursor: pointer; transition: all 0.2s;">
-                 Refresh
+              <button type="button" class="attendance-refresh" onclick="refreshGeolocation()" aria-label="Refresh geolocation">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                Refresh
               </button>
             </div>
-            
-            <!-- Geofence Status Display -->
-            <div style="display: flex; justify-content: center; align-items: center; background: rgba(0,200,170,0.05); border-radius: 10px; padding: 20px; margin-bottom: 15px; flex-direction: column;">
-              <div style="text-align: center; width: 100%;">
-                <div id="geofence-status" style="margin-bottom: 15px;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px;">
-                    <div id="status-indicator" style="width: 12px; height: 12px; border-radius: 50%; background: #94a3b8; animation: pulse 2s infinite;"></div>
-                    <span id="status-text" style="color: #cbd5e1; font-size: 14px;">Locating...</span>
-                  </div>
-                  <div style="font-size: 12px; color: #94a3b8;">
-                    <p style="margin: 2px 0;" id="distance-info">Distance: —</p>
-                    <p style="margin: 2px 0;" id="accuracy-info">Accuracy: —</p>
-                  </div>
-                </div>
-                <p id="geofence-load-status" style="color: #cbd5e1; font-size: 13px; margin: 0;">Initializing geolocation...</p>
+
+            <!-- Geolocation status readout -->
+            <div class="attendance-status" id="geofence-status">
+              <div class="attendance-status__head">
+                <span class="attendance-status__dot checking" id="status-indicator" aria-hidden="true"></span>
+                <span class="attendance-status__state" id="status-text" role="status">Locating...</span>
+              </div>
+
+              <div class="attendance-metrics">
+                <span class="attendance-metric" id="distance-info">Distance: —</span>
+                <span class="attendance-metric" id="accuracy-info">Accuracy: —</span>
+              </div>
+
+              <p class="attendance-status__message" id="geofence-load-status">Initializing geolocation...</p>
+
+              <div class="attendance-alert" id="geofence-info" style="display: none;">
+                <p id="geofence-message"></p>
               </div>
             </div>
 
-            <!-- Time In/Out Buttons -->
-            <div style="display: flex; gap: 8px; flex-direction: column;">
-              <button id="time-in-btn" onclick="recordTimeIn()" class="btn-attendance-disabled" style="--attend-dark: rgba(20, 83, 45, 0.55); --attend-dark-pulse: rgba(22, 101, 52, 0.75); --attend-bright: #10b981; --attend-bright-pulse: #34d399; --attend-accent: #10b981; --attend-accent-soft: rgba(16, 185, 129, 0.35); --attend-border: rgba(20, 83, 45, 0.85); --attend-dim: #166534; --attend-fg: #22c55e; padding: 12px; display: none;" disabled>
+            <!-- Primary action + supervisor schedule -->
+            <div class="attendance-actions">
+              <button id="time-in-btn" onclick="recordTimeIn()" class="btn-attendance-disabled" style="--attend-dark: rgba(0, 91, 79, 0.55); --attend-dark-pulse: rgba(0, 116, 100, 0.7); --attend-bright: #00c8aa; --attend-bright-pulse: #19dcc4; --attend-accent: #00c8aa; --attend-accent-soft: rgba(0, 200, 170, 0.16); --attend-border: rgba(0, 133, 115, 0.85); --attend-dim: #00695c; --attend-fg: #00c8aa; --attend-ink: #052e28; display: none;" disabled>
                 ⏱ Time In
               </button>
-              <button id="time-out-btn" onclick="recordTimeOut()" class="btn-attendance-disabled" style="--attend-dark: rgba(127, 29, 29, 0.55); --attend-dark-pulse: rgba(153, 27, 27, 0.75); --attend-bright: #ef4444; --attend-bright-pulse: #f87171; --attend-accent: #ef4444; --attend-accent-soft: rgba(239, 68, 68, 0.35); --attend-border: rgba(127, 29, 29, 0.85); --attend-dim: #991b1b; --attend-fg: #ef4444; padding: 12px; display: none;" disabled>
+              <button id="time-out-btn" onclick="recordTimeOut()" class="btn-attendance-disabled" style="--attend-dark: rgba(127, 29, 29, 0.55); --attend-dark-pulse: rgba(153, 27, 27, 0.75); --attend-bright: #ef4444; --attend-bright-pulse: #f87171; --attend-accent: #ef4444; --attend-accent-soft: rgba(239, 68, 68, 0.16); --attend-border: rgba(127, 29, 29, 0.85); --attend-dim: #991b1b; --attend-fg: #ef4444; --attend-ink: #1a0505; display: none;" disabled>
                 ⏱ Time Out
               </button>
 
-              <!-- Supervisor-set time (shown alongside the Time In/Out buttons) -->
-              <div id="supervisor-time-out-info" style="display: none; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 6px; background: rgba(16, 185, 129, 0.08); border: 1px dashed rgba(16, 185, 129, 0.35);">
-                <span style="font-size: 11px; color: #22c55e;">⏰ <span id="supervisor-schedule-label">Time out set by supervisor</span></span>
-                <span id="supervisor-time-out-value" style="font-size: 13px; font-weight: 700; color: #10b981;">—</span>
+              <!-- Supervisor-set time (label flips between time in / time out) -->
+              <div id="supervisor-time-out-info" class="attendance-schedule" style="display: none;">
+                <span class="attendance-schedule__label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 13.5"></polyline></svg>
+                  <span id="supervisor-schedule-label">Time out set by supervisor</span>
+                </span>
+                <span id="supervisor-time-out-value" class="attendance-schedule__value">—</span>
               </div>
-            </div>
-
-            <!-- Geofence Info Box -->
-            <div id="geofence-info" style="padding: 10px; border-radius: 6px; background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.3); margin-top: 15px; font-size: 12px; color: #d8b4fe; display: none;">
-              <p id="geofence-message" style="margin: 0;"></p>
             </div>
           </div>
         </div>
@@ -932,6 +933,6 @@
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
   <script src="chart-theme.js?v=1"></script>
-  <script src="ojtdashboard.js?v=2"></script>
+  <script src="ojtdashboard.js?v=3"></script>
 </body>
 </html>
