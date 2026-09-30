@@ -28,6 +28,9 @@
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
   <link rel="stylesheet" href="visuals/trackit-glass.css?v=1">
+  <!-- Reusable date/month picker. Loaded last so its field and popover rules
+       win against the per-page input styles above. -->
+  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=1">
 </head>
 <body>
   <script>
@@ -405,8 +408,8 @@
 
           <!-- Month Selector -->
           <div class="glass-card p-6">
-            <label class="text-sm text-slate-400 block mb-3">Filter by Month:</label>
-            <input type="month" id="dtr-month" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" onchange="loadDTRRecords()">
+            <label for="dtr-month" class="text-sm text-slate-400 block mb-3">Filter by Month:</label>
+            <input type="month" id="dtr-month" data-trackit-cal="month" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" onchange="loadDTRRecords()">
           </div>
         </div>
       </div>
@@ -577,8 +580,8 @@
           <div class="glass-card p-8">
             <form id="dutylog-form" onsubmit="submitDutyLog(event)">
               <div class="mb-6">
-                <label class="block text-sm font-semibold mb-3">Date</label>
-                <input type="date" id="dutylog-date" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <label for="dutylog-date" class="block text-sm font-semibold mb-3">Date</label>
+                <input type="date" id="dutylog-date" data-trackit-cal="date" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
               </div>
 
               <div class="mb-6">
@@ -955,6 +958,9 @@
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
   <script src="chart-theme.js?v=1"></script>
+  <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
+       which writes .value and listens for the change events it re-dispatches. -->
+  <script src="trackit-calendar.js?v=1"></script>
   <script src="ojtdashboard.js?v=4"></script>
 </body>
 </html>

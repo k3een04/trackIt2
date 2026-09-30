@@ -14,6 +14,9 @@
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
   <link rel="stylesheet" href="visuals/trackit-glass.css?v=1">
+  <!-- Reusable date/month picker. Loaded last so its field and popover rules
+       win against the per-page input styles above. -->
+  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=1">
 </head>
 <body>
   <script>
@@ -495,8 +498,8 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-2">Month & Year</label>
-            <input type="month" id="dtr-month-picker" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+            <label for="dtr-month-picker" class="block text-sm font-semibold mb-2">Month & Year</label>
+            <input type="month" id="dtr-month-picker" data-trackit-cal="month" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
           </div>
           <div class="flex items-end gap-2">
             <!-- Auto-filtering by month selection -->
@@ -628,8 +631,8 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-semibold mb-2">Appraisal Month</label>
-            <input type="month" id="appraisal-month-picker" value="2026-04" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+            <label for="appraisal-month-picker" class="block text-sm font-semibold mb-2">Appraisal Month</label>
+            <input type="month" id="appraisal-month-picker" data-trackit-cal="month" value="2026-04" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
           </div>
         </div>
       </div>
@@ -917,6 +920,9 @@
 
   </div>
 
+  <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
+       which writes .value and listens for the change events it re-dispatches. -->
+  <script src="trackit-calendar.js?v=1"></script>
   <script src="supervisor-dashboard.js?v=1"></script>
 </body>
 </html>

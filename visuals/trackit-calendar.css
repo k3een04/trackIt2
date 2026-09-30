@@ -1,0 +1,488 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   TrackIT Calendar — reusable date / month picker
+   ---------------------------------------------------------------------------
+   A compact SaaS-style popover calendar for TrackIT's date and month fields.
+
+   Pure presentation + interaction. It reads and writes the ORIGINAL
+   <input>.value (YYYY-MM-DD / YYYY-MM) and dispatches the same input/change
+   events the native control did, so no page logic has to change.
+
+     data-trackit-cal="date"   → day grid, month + year navigation
+     data-trackit-cal="month"  → month grid, year navigation (no day grid)
+
+   Day states that are styled but not yet driven by any data (single-select
+   is the only mode in use today; these are ready for a future hook via
+   TrackITCalendar.setDayMeta(fn)):
+     .is-booked .has-event .is-in-range .is-range-start .is-range-end
+
+   Loaded after trackit-glass.css so the --tk-* tokens are available and so
+   these rules win the cascade against the per-page input rules.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. TRIGGER FIELD ────────────────────────────────────────────────────── */
+
+/* The calendar glyph is painted on the input itself — inputs cannot host
+   pseudo-elements. The `!important`s are deliberate: the page stylesheets
+   reset these fields with a `background` shorthand (and `!important` in
+   supervisor light mode), which would otherwise wipe the glyph and its
+   geometry. Everything else about the field is left alone so it keeps the
+   exact look, focus ring and light-mode treatment of its neighbours. */
+body input.tk-cal-field {
+  --tk-cal-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237f8fb0' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.25' y='4.75' width='17.5' height='16' rx='3.25'/%3E%3Cpath d='M3.25 9.75h17.5'/%3E%3Cpath d='M8 2.75v4'/%3E%3Cpath d='M16 2.75v4'/%3E%3C/svg%3E");
+  cursor: pointer;
+  caret-color: transparent;
+  background-image: var(--tk-cal-icon) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 13px center !important;
+  background-size: 15px 15px !important;
+  padding-right: 38px;
+}
+
+body.light-mode input.tk-cal-field {
+  --tk-cal-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.25' y='4.75' width='17.5' height='16' rx='3.25'/%3E%3Cpath d='M3.25 9.75h17.5'/%3E%3Cpath d='M8 2.75v4'/%3E%3Cpath d='M16 2.75v4'/%3E%3C/svg%3E");
+}
+
+/* ── 2. POPOVER SHELL ────────────────────────────────────────────────────── */
+
+.tk-cal-pop {
+  --tk-cal-surface: rgba(19, 29, 54, 0.94);
+  --tk-cal-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --tk-cal-dx: 5px;
+  --tk-cal-dy: 0px;
+
+  position: fixed;
+  z-index: 2000;
+  box-sizing: border-box;
+  width: min(300px, calc(100vw - 24px));
+  padding: 12px 12px 14px;
+  border: 1px solid var(--tk-hairline-strong);
+  border-radius: var(--tk-radius);
+  background: var(--tk-cal-surface);
+  backdrop-filter: blur(var(--tk-blur-strong));
+  -webkit-backdrop-filter: blur(var(--tk-blur-strong));
+  box-shadow:
+    var(--tk-shadow-3),
+    inset 0 1px 0 rgba(0, 200, 170, 0.08);
+  color: var(--tk-text);
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--tk-dur) var(--tk-ease),
+    transform var(--tk-dur) var(--tk-ease);
+}
+
+.tk-cal-pop.is-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tk-cal-pop[hidden] { display: none; }
+
+body.light-mode .tk-cal-pop {
+  --tk-cal-surface: rgba(255, 255, 255, 0.97);
+  box-shadow:
+    var(--tk-shadow-3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* ── 3. HEADER: ‹  October 2026  › ───────────────────────────────────────── */
+
+.tk-cal-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 9px;
+}
+
+.tk-cal-nav {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tk-text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--tk-dur-fast) var(--tk-ease),
+    border-color var(--tk-dur-fast) var(--tk-ease),
+    color var(--tk-dur-fast) var(--tk-ease);
+}
+
+.tk-cal-nav::after {
+  content: "";
+  display: block;
+  width: 15px;
+  height: 15px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--tk-cal-chevron);
+  mask-image: var(--tk-cal-chevron);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.tk-cal-nav--prev::after { transform: rotate(90deg); }
+.tk-cal-nav--next::after { transform: rotate(-90deg); }
+
+.tk-cal-nav:hover {
+  background: var(--tk-surface-3);
+  border-color: var(--tk-hairline);
+  color: var(--tk-text);
+}
+
+.tk-cal-nav:active { transform: translateY(1px); }
+
+.tk-cal-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tk-text-strong);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--tk-dur-fast) var(--tk-ease),
+    border-color var(--tk-dur-fast) var(--tk-ease);
+}
+
+.tk-cal-title::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background-color: currentColor;
+  opacity: 0.5;
+  -webkit-mask-image: var(--tk-cal-chevron);
+  mask-image: var(--tk-cal-chevron);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  transition: opacity var(--tk-dur-fast) var(--tk-ease);
+}
+
+.tk-cal-title:hover {
+  background: var(--tk-surface-3);
+  border-color: var(--tk-hairline);
+}
+
+.tk-cal-title:hover::after { opacity: 0.85; }
+
+/* Top of the hierarchy: the active year always carries the TrackIT accent. */
+.tk-cal-year { color: var(--tk-teal); font-variant-numeric: tabular-nums; }
+
+/* Year view is the top level — the title stops being a control. */
+.tk-cal-title.is-static {
+  cursor: default;
+  color: var(--tk-text-muted);
+}
+.tk-cal-title.is-static::after { display: none; }
+.tk-cal-title.is-static:hover { background: transparent; border-color: transparent; }
+
+/* ── 4. VIEWS ────────────────────────────────────────────────────────────── */
+
+.tk-cal-view { display: none; }
+
+.tk-cal-view.is-active {
+  display: block;
+  animation: tk-cal-in var(--tk-dur) var(--tk-ease) both;
+}
+
+@keyframes tk-cal-in {
+  from { opacity: 0; transform: translate(var(--tk-cal-dx), var(--tk-cal-dy)); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+
+/* Weekday header — must land on the same seven columns as the day grid. */
+.tk-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 5px;
+}
+
+.tk-cal-weekdays span {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--tk-text-muted);
+}
+
+/* Day grid: always six rows so the height never moves between months. */
+.tk-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 2px;
+}
+
+.tk-cal-grid--month,
+.tk-cal-grid--year {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+/* ── 5. DAY CELLS ────────────────────────────────────────────────────────── */
+
+.tk-cal-day {
+  justify-self: center;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(32px, 100%);
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tk-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--tk-dur-fast) var(--tk-ease),
+    color var(--tk-dur-fast) var(--tk-ease),
+    box-shadow var(--tk-dur-fast) var(--tk-ease);
+}
+
+.tk-cal-day:hover:not(:disabled) {
+  background: rgba(0, 200, 170, 0.16);
+  color: var(--tk-text-strong);
+}
+
+.tk-cal-day:focus-visible {
+  outline: 2px solid var(--tk-teal);
+  outline-offset: 2px;
+}
+
+/* Adjacent-month days: visible for context, clearly secondary. */
+.tk-cal-day.is-outside { color: var(--tk-text-faint); }
+
+/* Today keeps an outline so it stays legible even when selected. */
+.tk-cal-day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--tk-teal);
+  color: var(--tk-teal);
+  font-weight: 600;
+}
+
+/* Selected: solid accent. Dark ink keeps real contrast against the teal. */
+.tk-cal-day.is-selected,
+.tk-cal-day.is-selected:hover {
+  background: var(--tk-teal);
+  color: #04121b;
+  font-weight: 700;
+  box-shadow: 0 2px 9px -3px rgba(0, 200, 170, 0.75);
+}
+
+.tk-cal-day.is-today.is-selected {
+  box-shadow: 0 2px 9px -3px rgba(0, 200, 170, 0.75);
+  color: #04121b;
+}
+
+.tk-cal-day:disabled,
+.tk-cal-day.is-disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+  color: var(--tk-text-faint);
+}
+
+/* ── 6. BOOKED / EVENT / RANGE — styled, not yet driven by any data ──────── */
+
+.tk-cal-day.is-booked {
+  color: var(--tk-text-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(148, 163, 184, 0.55);
+}
+
+.tk-cal-day.has-event::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--tk-teal);
+  transform: translateX(-50%);
+}
+
+/* Range fills the full column so the selection reads as one connected band
+   instead of separate circles. End caps round outward only. */
+.tk-cal-day.is-in-range,
+.tk-cal-day.is-range-start,
+.tk-cal-day.is-range-end {
+  width: 100%;
+  border-radius: 0;
+  background: rgba(0, 200, 170, 0.14);
+  color: var(--tk-text);
+}
+
+.tk-cal-day.is-range-start { border-radius: 50% 0 0 50%; }
+.tk-cal-day.is-range-end { border-radius: 0 50% 50% 0; }
+.tk-cal-day.is-range-start.is-range-end { border-radius: 50%; width: min(32px, 100%); }
+
+/* Declared last so an endpoint that is also selected wins outright. */
+.tk-cal-day.is-selected,
+.tk-cal-day.is-selected:hover {
+  width: min(32px, 100%);
+  border-radius: 50%;
+}
+
+/* ── 7. MONTH / YEAR GRIDS ───────────────────────────────────────────────── */
+
+.tk-cal-opt {
+  height: 34px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-2);
+  color: var(--tk-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--tk-dur-fast) var(--tk-ease),
+    border-color var(--tk-dur-fast) var(--tk-ease),
+    color var(--tk-dur-fast) var(--tk-ease);
+}
+
+.tk-cal-opt:hover {
+  background: var(--tk-surface-3);
+  border-color: var(--tk-hairline);
+  color: var(--tk-text-strong);
+}
+
+.tk-cal-opt:focus-visible {
+  outline: 2px solid var(--tk-teal);
+  outline-offset: 1px;
+}
+
+/* Current month / current year: accent, not a fill. */
+.tk-cal-opt.is-current {
+  border-color: var(--tk-hairline-teal);
+  color: var(--tk-teal);
+  font-weight: 700;
+}
+
+.tk-cal-opt.is-selected {
+  background: var(--tk-teal);
+  border-color: var(--tk-teal);
+  color: #04121b;
+  font-weight: 700;
+}
+
+.tk-cal-opt.is-selected:hover {
+  background: var(--tk-teal);
+  border-color: var(--tk-teal);
+  color: #04121b;
+}
+
+.tk-cal-opt:disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+}
+
+/* ── 8. LIGHT MODE ───────────────────────────────────────────────────────── */
+
+body.light-mode .tk-cal-day:hover:not(:disabled) {
+  background: rgba(0, 169, 143, 0.14);
+  color: var(--tk-text-strong);
+}
+
+body.light-mode .tk-cal-day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--tk-teal);
+  color: var(--tk-teal-strong);
+}
+
+body.light-mode .tk-cal-day.is-booked { color: var(--tk-text-muted); }
+
+body.light-mode .tk-cal-day.is-in-range,
+body.light-mode .tk-cal-day.is-range-start,
+body.light-mode .tk-cal-day.is-range-end {
+  background: rgba(0, 169, 143, 0.14);
+}
+
+body.light-mode .tk-cal-opt { background: var(--tk-surface-2); }
+
+body.light-mode .tk-cal-opt:hover {
+  background: var(--tk-surface-3);
+  color: var(--tk-text-strong);
+}
+
+body.light-mode .tk-cal-opt.is-current {
+  border-color: var(--tk-hairline-teal);
+  color: var(--tk-teal-deep);
+}
+
+/* ── 9. RESPONSIVE ───────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .tk-cal-pop {
+    width: calc(100vw - 20px);
+    max-width: 340px;
+    padding: 10px 10px 12px;
+  }
+
+  /* Comfortable touch targets without inflating the component. */
+  .tk-cal-day {
+    width: min(36px, 100%);
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .tk-cal-opt {
+    height: 38px;
+    font-size: 13px;
+  }
+
+  .tk-cal-nav,
+  .tk-cal-title { height: 32px; }
+  .tk-cal-nav { width: 32px; }
+}
+
+/* ── 10. REDUCED MOTION ──────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-cal-pop,
+  .tk-cal-day,
+  .tk-cal-opt,
+  .tk-cal-nav,
+  .tk-cal-title,
+  .tk-cal-title::after {
+    transition-duration: 1ms !important;
+  }
+
+  .tk-cal-view.is-active { animation: none !important; }
+  .tk-cal-pop { transform: none !important; }
+}
