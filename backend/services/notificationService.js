@@ -143,9 +143,11 @@ async function notifyJournalSubmitted({ journal, trainee, week }) {
   return createNotifications(items);
 }
 
-async function notifyTimeIn({ trainee, dtr }) {
+async function notifyTimeIn({ trainee, dtr, late = false, lateMinutes = 0 }) {
   const label = traineeLabel(trainee);
   const { supervisors, coordinators } = await resolveRecipientsForTrainee(trainee);
+  const timeText = dtr && dtr.timeIn ? ` at ${formatTime(dtr.timeIn)}` : '';
+  const lateText = late ? ` — LATE by ${Number(lateMinutes) || 0} min` : '';
   const items = [];
   supervisors.forEach((supervisor) => {
     items.push({
@@ -154,8 +156,8 @@ async function notifyTimeIn({ trainee, dtr }) {
       actorId: trainee ? trainee._id : null,
       actorName: label,
       type: 'attendance',
-      title: 'Trainee timed in',
-      message: `${label} timed in${dtr && dtr.timeIn ? ` at ${formatTime(dtr.timeIn)}` : ''}.`,
+      title: late ? 'Trainee timed in LATE' : 'Trainee timed in',
+      message: `${label} timed in${timeText}${lateText}.`,
       refModel: 'DTR',
       refId: dtr ? dtr._id : null,
     });
@@ -167,8 +169,8 @@ async function notifyTimeIn({ trainee, dtr }) {
       actorId: trainee ? trainee._id : null,
       actorName: label,
       type: 'attendance',
-      title: 'Trainee timed in',
-      message: `${label} timed in${dtr && dtr.timeIn ? ` at ${formatTime(dtr.timeIn)}` : ''}.`,
+      title: late ? 'Trainee timed in LATE' : 'Trainee timed in',
+      message: `${label} timed in${timeText}${lateText}.`,
       refModel: 'DTR',
       refId: dtr ? dtr._id : null,
     });

@@ -485,6 +485,21 @@ async function dismissNotification(id) {
   updateNotifBadge();
 }
 
+/** "Clear all" - permanently deletes every notification for this user. */
+async function deleteAllNotifications() {
+  if (ojtNotifications.length === 0) return;
+  if (!confirm('Clear all notifications? This cannot be undone.')) return;
+  try {
+    await fetchAPI('/notifications', { method: 'DELETE' });
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+  }
+  ojtNotifications = [];
+  notifUnreadCount = 0;
+  renderNotificationList();
+  updateNotifBadge();
+}
+
 function updateNotifBadge() {
   const badge = document.getElementById('notif-badge');
   if (!badge) return;
@@ -3014,48 +3029,61 @@ function updateSupervisorScheduleInfo(schedule) {
 /**
  * Client's UTC offset in minutes, east-positive (UTC+8 => 480, UTC-5 => -300).
  * Browsers expose it west-positive, so negate getTimezoneOffset().
- * Sent with geofence requests so the server validates the ±10-minute
- * attendance window in the STUDENT's own timezone.
+ * Sent with geofence requests so the server validates the attendance timing in
+ * the STUDENT's own timezone.
  */
 function getClientTimezoneOffsetMinutes() {
   return -new Date().getTimezoneOffset();
 }
 
 /**
- * Check whether now is inside the ±10-minute attendance window for an action.
+ * Check whether time-in/out is currently allowed for an action.
  * With no supervisor schedule, the action is always allowed.
+ * Time-in: blocked only BEFORE the scheduled start; any arrival at/after the
+ * start is allowed (and flagged late when after the start). Time-out: opens
+ * 10 minutes before the scheduled end so trainees cannot leave early.
  * @param {Object|null} scheduleTimes - { startTime, endTime }
  * @param {'time-in'|'time-out'} action
  */
 function getScheduleWindowState(scheduleTimes, action) {
-  if (!scheduleTimes) return { allowed: true, reason: 'no_schedule' };
+  if (!scheduleTimes) return { allowed: true, late: false, lateMinutes: 0, reason: 'no_schedule' };
 
   const timeStr = action === 'time-in' ? scheduleTimes.startTime : scheduleTimes.endTime;
-  if (!timeStr) return { allowed: true, reason: 'no_time' };
+  if (!timeStr) return { allowed: true, late: false, lateMinutes: 0, reason: 'no_time' };
 
   const match = String(timeStr).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
-  if (!match) return { allowed: true, reason: 'invalid_time' };
+  if (!match) return { allowed: true, late: false, lateMinutes: 0, reason: 'invalid_time' };
 
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const scheduledMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-
-  const windowStart = scheduledMinutes - 10;
-  const windowEnd = scheduledMinutes + 10;
-  const allowed = currentMinutes >= windowStart && currentMinutes <= windowEnd;
   const label = action === 'time-in' ? 'time in' : 'time out';
   const verb = action === 'time-in' ? 'Time in' : 'Time out';
 
-  let message;
-  if (allowed) {
-    message = `Within ${label} window`;
-  } else if (currentMinutes < windowStart) {
-    message = `${verb} opens 10 minutes before the scheduled ${label}`;
-  } else {
-    message = `${verb} is locked (allowed up to 10 minutes after the scheduled ${label})`;
+  if (action === 'time-in') {
+    const late = currentMinutes > scheduledMinutes;
+    const lateMinutes = late ? currentMinutes - scheduledMinutes : 0;
+    if (currentMinutes < scheduledMinutes) {
+      return { allowed: false, late: false, lateMinutes: 0, reason: 'too_early', message: `${verb} opens at the scheduled start (${timeStr})` };
+    }
+    return {
+      allowed: true,
+      late,
+      lateMinutes,
+      reason: late ? 'late' : 'on_time',
+      message: late ? `Late ${label}: ${lateMinutes} min after the scheduled start` : `Within ${label} window`,
+    };
   }
 
-  return { allowed, reason: allowed ? 'within_window' : currentMinutes < windowStart ? 'too_early' : 'too_late', message };
+  const windowStart = scheduledMinutes - 10;
+  const allowed = currentMinutes >= windowStart;
+  return {
+    allowed,
+    late: false,
+    lateMinutes: 0,
+    reason: allowed ? 'within_window' : 'too_early',
+    message: allowed ? `Within ${label} window` : `${verb} opens 10 minutes before the scheduled ${label}`,
+  };
 }
 
 /**
@@ -3116,7 +3144,9 @@ async function updateGeofenceStatus() {
       return;
     }
 
-    // In range → green status, then enforce the ±10-minute window on the buttons
+    // In range → green status, then enforce the schedule on the buttons.
+    // Time-in opens at the scheduled start and stays open (late arrivals are
+    // allowed and flagged late); time-out opens near the scheduled end.
     updateGeofenceStatusUI('in-range', geofence.message, geofence, schedule);
 
     const timeInBtn = document.getElementById('time-in-btn');
@@ -3213,7 +3243,8 @@ function refreshGeolocation() {
 }
 
 /**
- * Record time in with geolocation
+ * Record time in with geolocation. Late arrivals are allowed: the time-in is
+ * recorded with status "late" and the supervisor is notified of the lateness.
  */
 async function recordTimeIn() {
   if (!currentCoordinates) {
@@ -3221,8 +3252,8 @@ async function recordTimeIn() {
     return;
   }
 
-  // Guard: never allow clocking outside the ±10-minute window, even if the
-  // button was somehow force-clicked while disabled.
+  // Guard: never allow clocking before the scheduled start, even if the
+  // button was somehow force-clicked while disabled. Late arrivals pass.
   const timeInWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-in');
   if (!timeInWindow.allowed) {
     showNotification('Locked', timeInWindow.message || 'Time in is currently locked', 'error');
@@ -3259,7 +3290,12 @@ async function recordTimeIn() {
       return;
     }
 
-    showNotification('Success', '✓ Time In Recorded', 'success');
+    if (response.data && response.data.late) {
+      const mins = Number(response.data.lateMinutes) || 0;
+      showNotification('Success', `✓ Late Time In Recorded (${mins} min late — supervisor notified)`, 'success');
+    } else {
+      showNotification('Success', '✓ Time In Recorded', 'success');
+    }
     console.log('[Geofence] Time In recorded:', response.data);
 
     // Update UI to show time out button
@@ -3284,7 +3320,7 @@ async function recordTimeOut() {
     return;
   }
 
-  // Guard: never allow clocking outside the ±10-minute window, even if the
+  // Guard: never allow clocking before the scheduled end window, even if the
   // button was somehow force-clicked while disabled.
   const timeOutWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-out');
   if (!timeOutWindow.allowed) {
@@ -3514,7 +3550,13 @@ async function loadTodaysSummary() {
 
       // Update display
       document.getElementById('today-time-in').textContent = timeIn;
-      document.getElementById('today-time-in-status').textContent = todayRecord.timeIn ? 'recorded' : 'pending';
+      const timeInStatusEl = document.getElementById('today-time-in-status');
+      if (timeInStatusEl) {
+        const rawStatus = String(todayRecord.status || '').toLowerCase();
+        timeInStatusEl.textContent = !todayRecord.timeIn
+          ? 'Not recorded'
+          : rawStatus === 'late' ? 'recorded — late' : 'recorded';
+      }
       
       document.getElementById('today-time-out').textContent = timeOut;
       document.getElementById('today-time-out-status').textContent = todayRecord.timeOut ? 'recorded' : 'pending';

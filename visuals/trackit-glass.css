@@ -800,7 +800,8 @@ body .status-holiday {
 
 body .status-pending,
 body .status-behind,
-body .status-returned {
+body .status-returned,
+body .status-warning {
   background: rgba(245, 158, 11, 0.12);
   color: #fbbf24;
   border-color: rgba(245, 158, 11, 0.28);
@@ -817,7 +818,11 @@ body.light-mode .status-active,
 body.light-mode .status-present,
 body.light-mode .status-verified,
 body.light-mode .status-approved,
-body.light-mode .status-on-track,
+body.light-mode .status-on-track {
+  background: rgba(22, 163, 74, 0.10);
+  color: #15803d;
+  border-color: rgba(22, 163, 74, 0.26);
+}
 
 /* ── 10. NOTIFICATIONS ──────────────────────────────────────────────────── */
 /* Modals and dropdowns get stronger blur + higher opacity than cards so the
@@ -1200,7 +1205,8 @@ body.light-mode .status-holiday {
 
 body.light-mode .status-pending,
 body.light-mode .status-behind,
-body.light-mode .status-returned {
+body.light-mode .status-returned,
+body.light-mode .status-warning {
   background: rgba(217, 119, 6, 0.10);
   color: #b45309;
   border-color: rgba(217, 119, 6, 0.26);

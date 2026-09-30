@@ -180,12 +180,6 @@ function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetM
   }
 
   const currentMinutes = getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes);
-  const scheduledTime = action === 'time-out' ? endMinutes : startMinutes;
-
-  // Attendance window: 10 minutes BEFORE the scheduled time, 10 minutes AFTER.
-  const windowStart = scheduledTime - 10;
-  const windowEnd = scheduledTime + 10;
-  const allowed = currentMinutes >= windowStart && currentMinutes <= windowEnd;
   const label = action === 'time-out' ? 'time-out' : 'time-in';
 
   const formatWindowMinutes = (minutes) => {
@@ -193,11 +187,33 @@ function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetM
     return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
   };
 
+  // LATE-BY-DESIGN: the old ±10-minute allowance is removed. Time-in stays
+  // open once the scheduled start passes (any arrival after the start is a
+  // valid but LATE time-in) and is only blocked while it is still before the
+  // scheduled start. Time-out keeps its existing end-of-shift window so
+  // trainees cannot clock out long before the shift ends.
+  if (action === 'time-in') {
+    const late = currentMinutes > startMinutes;
+    const lateMinutes = late ? currentMinutes - startMinutes : 0;
+    return {
+      allowed: currentMinutes >= startMinutes,
+      late,
+      lateMinutes,
+      message: currentMinutes >= startMinutes
+        ? (late
+          ? `Late time-in: ${lateMinutes} min after the scheduled start (${formatWindowMinutes(startMinutes)})`
+          : `On-time time-in (scheduled start ${formatWindowMinutes(startMinutes)})`)
+        : `Time in opens at the scheduled start (${formatWindowMinutes(startMinutes)})`,
+    };
+  }
+
+  const windowStart = endMinutes - 10;
+  const allowed = currentMinutes >= windowStart;
   return {
     allowed,
     message: allowed
-      ? `Within ${label} window (${formatWindowMinutes(windowStart)} - ${formatWindowMinutes(windowEnd)})`
-      : `Outside ${label} window. Allowed 10 minutes before and up to 10 minutes after the scheduled ${label === 'time-in' ? 'start' : 'end'} time.`,
+      ? `Within time-out window (from ${formatWindowMinutes(windowStart)})`
+      : `Time out opens 10 minutes before the scheduled end (${formatWindowMinutes(endMinutes)})`,
   };
 }
 

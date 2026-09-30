@@ -238,7 +238,9 @@ router.get('/company/:companyId', authenticateToken, async (req, res) => {
 
 /**
  * POST /api/geofence/time-in
- * Record trainee time-in with geolocation
+ * Record trainee time-in with geolocation. Late arrivals are allowed: when the
+ * time-in lands after the supervisor-set start, the DTR status is stored as
+ * "late" and the assigned supervisor is notified of the lateness.
  * Body: { companyId, coordinates: { latitude, longitude, accuracy } }
  */
 router.post('/time-in', authenticateToken, async (req, res) => {
@@ -271,7 +273,7 @@ router.post('/time-in', authenticateToken, async (req, res) => {
       });
     }
 
-    const trainee = await User.findById(traineeId).select('schedule');
+    const trainee = await User.findById(traineeId);
     const attendanceWindow = validateAttendanceWindow(new Date(), trainee?.schedule, 'time-in', req.body.timezoneOffsetMinutes);
     if (!attendanceWindow.allowed) {
       return res.status(400).json({
@@ -298,6 +300,10 @@ router.post('/time-in', authenticateToken, async (req, res) => {
       });
     }
 
+    // Late arrivals are valid time-ins with a "late" DTR status.
+    const isLate = attendanceWindow.late === true;
+    const lateMinutes = Number(attendanceWindow.lateMinutes) || 0;
+
     // Create or update DTR record
     let dtr = await DTR.findOne({
       traineeId,
@@ -320,16 +326,29 @@ router.post('/time-in', authenticateToken, async (req, res) => {
       accuracy: coordinates.accuracy || null,
     };
     dtr.geofenceValidated = true;
+    dtr.status = isLate ? 'late' : 'present';
 
     await dtr.save();
 
+    // Notify the assigned supervisor (and coordinator) of the time-in. A late
+    // arrival carries an explicit LATE flag so it stands out on their side.
+    try {
+      const { notifyTimeIn } = require('../services/notificationService');
+      await notifyTimeIn({ trainee, dtr, late: isLate, lateMinutes });
+    } catch (notifyError) {
+      console.error('[Geofence Route] Time-in notification failed:', notifyError.message);
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Time-in recorded successfully',
+      message: isLate ? 'Late time-in recorded successfully' : 'Time-in recorded successfully',
       data: {
         dtrId: dtr._id,
         timeIn: dtr.timeIn,
         coordinates: dtr.geoTag,
+        status: dtr.status,
+        late: isLate,
+        lateMinutes,
       },
     });
   } catch (error) {
@@ -421,6 +440,15 @@ router.post('/time-out', authenticateToken, async (req, res) => {
     dtr.geofenceValidated = true;
 
     await dtr.save();
+
+    // Notify the assigned supervisor of the time-out (never blocks the save).
+    try {
+      const trainee = await User.findById(traineeId);
+      const { notifyTimeOut } = require('../services/notificationService');
+      await notifyTimeOut({ trainee, dtr });
+    } catch (notifyError) {
+      console.error('[Geofence Route] Time-out notification failed:', notifyError.message);
+    }
 
     res.status(200).json({
       success: true,

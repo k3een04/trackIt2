@@ -64,7 +64,10 @@
         <div id="notif-popup" class="notif-popup" style="display:none;">
           <div class="notif-header">
             <h3>Notifications</h3>
-            <button onclick="clearAllNotifications()" class="text-xs text-teal-400 hover:text-teal-300">Mark all read</button>
+            <div class="flex items-center gap-3">
+              <button onclick="clearAllNotifications()" class="text-xs text-teal-400 hover:text-teal-300">Mark all read</button>
+              <button onclick="deleteAllNotifications()" class="text-xs text-red-400 hover:text-red-300" title="Permanently delete all notifications">Clear all</button>
+            </div>
           </div>
           <div id="notif-list" class="notif-list"></div>
         </div>

@@ -24,6 +24,23 @@ async function refreshActivityStatusAfterTimeIn(traineeId) {
 }
 
 /**
+ * Late-by-schedule evaluation for the QR flows (the QR path sends no client
+ * timezone, so the server clock is used). A time-in after the supervisor-set
+ * start is still valid but flagged LATE, matching the geofence/DTR flow.
+ * @returns {{ late: boolean, lateMinutes: number }}
+ */
+function evaluateLateTimeIn(trainee, at = new Date()) {
+  const start = trainee && trainee.schedule ? trainee.schedule.startTime : null;
+  if (!start) return { late: false, lateMinutes: 0 };
+  const match = String(start).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return { late: false, lateMinutes: 0 };
+  const startMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+  const nowMinutes = at.getHours() * 60 + at.getMinutes();
+  if (nowMinutes <= startMinutes) return { late: false, lateMinutes: 0 };
+  return { late: true, lateMinutes: nowMinutes - startMinutes };
+}
+
+/**
  * GET /api/qr/generate?companyName=...&supervisorId=...&traineeId=...
  * Generate current QR code for company display (shown on supervisor's screen)
  * Auto-refreshes every 5 minutes via frontend polling
@@ -207,6 +224,7 @@ router.get('/scan/:token', async (req, res) => {
 
     // 4. Process the clock in/out
     let result;
+    let lateResult = { late: false, lateMinutes: 0 };
     if (isClockingOut) {
       // TIME OUT
       const hoursRendered = calculateHoursRendered(existing.timeIn, new Date());
@@ -230,13 +248,23 @@ router.get('/scan/:token', async (req, res) => {
 
       // 4b. Mark the QR token as used (single-use enforcement)
       await markQRTokenAsUsed(token);
+
+      // Notify the assigned supervisor of the time-out (never blocks the scan).
+      try {
+        const { notifyTimeOut } = require('../services/notificationService');
+        await notifyTimeOut({ trainee, dtr: result });
+      } catch (notifyError) {
+        console.error('[QR Route] Time-out notification failed:', notifyError.message);
+      }
     } else {
-      // TIME IN
+      // TIME IN — a scan after the scheduled start is a valid LATE time-in.
+      lateResult = evaluateLateTimeIn(trainee);
       const dtrData = {
         traineeId,
         timeIn: new Date(),
         qrToken: token,
         date: new Date(),
+        status: lateResult.late ? 'late' : 'present',
       };
 
       if (session.companyId) {
@@ -253,6 +281,20 @@ router.get('/scan/:token', async (req, res) => {
       // Recalculate activity status: a trainee returning from INACTIVE is
       // marked ACTIVE again and the coordinator is notified once.
       await refreshActivityStatusAfterTimeIn(traineeId);
+
+      // Notify the assigned supervisor of the time-in (explicit LATE flag
+      // when the scan landed after the supervisor-set start).
+      try {
+        const { notifyTimeIn } = require('../services/notificationService');
+        await notifyTimeIn({
+          trainee,
+          dtr: result,
+          late: lateResult.late,
+          lateMinutes: lateResult.lateMinutes,
+        });
+      } catch (notifyError) {
+        console.error('[QR Route] Time-in notification failed:', notifyError.message);
+      }
 
       // Real-time updates removed (Socket.io disabled for stability)
     }
@@ -287,6 +329,7 @@ router.get('/scan/:token', async (req, res) => {
               <div class="time">${new Date().toLocaleTimeString()}</div>
               <div class="name">${trainee.fullName}</div>
               ${isClockingOut ? `<div class="hours">Hours Worked: ${hours}h</div>` : ''}
+              ${!isClockingOut && lateResult.late ? `<div class="hours">⚠️ Late time-in: ${lateResult.lateMinutes} min after the scheduled start — supervisor notified</div>` : ''}
             </div>
           </div>
         </body>
@@ -385,6 +428,14 @@ router.post('/scan/:token', async (req, res) => {
       // Mark the QR token as used (single-use enforcement)
       await markQRTokenAsUsed(token);
 
+      // Notify the assigned supervisor of the time-out (never blocks the scan).
+      try {
+        const { notifyTimeOut } = require('../services/notificationService');
+        await notifyTimeOut({ trainee, dtr: updated });
+      } catch (notifyError) {
+        console.error('[QR Route] Time-out notification failed:', notifyError.message);
+      }
+
       return res.status(200).json({
         success: true,
         message: 'Time Out recorded',
@@ -395,7 +446,9 @@ router.post('/scan/:token', async (req, res) => {
       });
     }
 
-    // TIME IN - trainee is clocking in
+    // TIME IN - trainee is clocking in (a scan after the scheduled start is a
+    // valid LATE time-in and the supervisor is told about the lateness).
+    const lateResult = evaluateLateTimeIn(trainee);
     const dtrData = {
       traineeId,
       timeIn: new Date(),
@@ -406,6 +459,7 @@ router.post('/scan/:token', async (req, res) => {
       },
       qrToken: token,
       date: new Date(),
+      status: lateResult.late ? 'late' : 'present',
     };
 
     // Use companyId if available, otherwise use companyName
@@ -429,6 +483,20 @@ router.post('/scan/:token', async (req, res) => {
     // Recalculate activity status so a returning trainee flips back to ACTIVE
     // and the coordinator receives a single "Student Active Again" notification.
     await refreshActivityStatusAfterTimeIn(traineeId);
+
+    // Notify the assigned supervisor of the time-in (explicit LATE flag when
+    // the scan landed after the supervisor-set start).
+    try {
+      const { notifyTimeIn } = require('../services/notificationService');
+      await notifyTimeIn({
+        trainee,
+        dtr,
+        late: lateResult.late,
+        lateMinutes: lateResult.lateMinutes,
+      });
+    } catch (notifyError) {
+      console.error('[QR Route] Time-in notification failed:', notifyError.message);
+    }
 
     // Emit updated stats via Socket.io
     await calculateAndEmitStudentStats(traineeId, true).catch(err => 
@@ -706,13 +774,16 @@ router.post('/direct/timein', async (req, res) => {
       });
     }
 
-    // Create new DTR record for time in
+    // Create new DTR record for time in (after the scheduled start = LATE).
+    const punchTime = new Date(timestamp || Date.now());
+    const lateResult = evaluateLateTimeIn(trainee, Number.isNaN(punchTime.getTime()) ? new Date() : punchTime);
     const dtrData = {
       traineeId,
-      timeIn: new Date(timestamp || new Date()),
+      timeIn: Number.isNaN(punchTime.getTime()) ? new Date() : punchTime,
       date: new Date(),
       companyName: trainee.companyName || 'Not assigned',
       companyId: trainee.companyId,
+      status: lateResult.late ? 'late' : 'present',
     };
 
     const dtr = await DTR.create(dtrData);
@@ -721,6 +792,14 @@ router.post('/direct/timein', async (req, res) => {
 
     // Recalculate activity status after a direct (no QR) time in.
     await refreshActivityStatusAfterTimeIn(traineeId);
+
+    // Notify the assigned supervisor of every time-in (never blocks the save).
+    try {
+      const { notifyTimeIn } = require('../services/notificationService');
+      await notifyTimeIn({ trainee, dtr, late: lateResult.late, lateMinutes: lateResult.lateMinutes });
+    } catch (notifyError) {
+      console.error('[QR Route] Direct time-in notification failed:', notifyError.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -800,6 +879,14 @@ router.post('/direct/timeout', async (req, res) => {
         remainingHours: -hoursRendered,
       },
     });
+
+    // Notify the assigned supervisor of every time-out (never blocks the save).
+    try {
+      const { notifyTimeOut } = require('../services/notificationService');
+      await notifyTimeOut({ trainee, dtr: updated });
+    } catch (notifyError) {
+      console.error('[QR Route] Direct time-out notification failed:', notifyError.message);
+    }
 
     res.status(200).json({
       success: true,

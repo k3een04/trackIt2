@@ -177,6 +177,21 @@ async function dismissNotification(id) {
   updateNotifBadge();
 }
 
+/** "Clear all" - permanently deletes every notification for this user. */
+async function deleteAllNotifications() {
+  if (coordinatorNotifications.length === 0) return;
+  if (!confirm('Clear all notifications? This cannot be undone.')) return;
+  try {
+    await fetchAPI('/notifications', { method: 'DELETE' });
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+  }
+  coordinatorNotifications = [];
+  notifUnreadCount = 0;
+  renderNotificationList();
+  updateNotifBadge();
+}
+
 function updateNotifBadge() {
   const badge = document.getElementById('notif-badge');
   if (!badge) return;

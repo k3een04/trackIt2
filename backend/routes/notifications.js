@@ -127,6 +127,26 @@ router.patch('/read-all', authenticateToken, async (req, res) => {
 });
 
 /**
+ * @route   DELETE /api/notifications
+ * @desc    Permanently clears every notification that belongs to the logged-in
+ *          user (all three dashboards share this endpoint). Scoped to the JWT
+ *          user id, so a user can never clear another user's notifications.
+ * @access  Private
+ */
+router.delete('/', authenticateToken, async (req, res) => {
+  try {
+    const result = await Notification.deleteMany({ recipientId: req.user.id });
+    res.status(200).json({
+      success: true,
+      message: 'All notifications cleared',
+      deleted: result.deletedCount || 0,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error clearing notifications', error: error.message });
+  }
+});
+
+/**
  * @route   POST /api/notifications/sweep
  * @desc    Run the attendance -> consecutive missed OJT days -> status check and
  *          raise the coordinator notifications for any new transition.
