@@ -23,7 +23,7 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=3">
+  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=4">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
@@ -254,7 +254,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 dtr-grid">
         <!-- Attendance Tracking - Left Column (stacks full width below lg) -->
         <div class="lg:col-span-1 dtr-aside">
           <div class="glass-card p-6 attendance-card">
@@ -270,13 +270,30 @@
             <!-- Geolocation status readout -->
             <div class="attendance-status" id="geofence-status">
               <div class="attendance-status__head">
-                <span class="attendance-status__dot checking" id="status-indicator" aria-hidden="true"></span>
-                <span class="attendance-status__state" id="status-text" role="status">Locating...</span>
+                <!-- One state badge: the icon switches purely by CSS class, so
+                     the JS only ever toggles classes on this element. -->
+                <span class="attendance-status__dot checking" id="status-indicator" aria-hidden="true">
+                  <svg class="ico ico-locating" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1.5" x2="12" y2="4.5"></line><line x1="12" y1="19.5" x2="12" y2="22.5"></line><line x1="1.5" y1="12" x2="4.5" y2="12"></line><line x1="19.5" y1="12" x2="22.5" y2="12"></line></svg>
+                  <svg class="ico ico-in-range" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <svg class="ico ico-out-of-range" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13.5"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </span>
+                <span class="attendance-status__state checking" id="status-text" role="status">Locating...</span>
               </div>
 
+              <!-- Metric tiles: same label / value / sub-label language as the
+                   KPI tiles in Today's Summary, tinted by geofence state. -->
               <div class="attendance-metrics">
-                <span class="attendance-metric" id="distance-info">Distance: —</span>
-                <span class="attendance-metric" id="accuracy-info">Accuracy: —</span>
+                <div class="attendance-metric">
+                  <span class="attendance-metric__label">Distance</span>
+                  <span class="attendance-metric__value" id="distance-info">—</span>
+                  <span class="attendance-metric__sub" id="distance-sub">radius not confirmed</span>
+                  <span class="attendance-meter" aria-hidden="true"><span class="attendance-meter__fill" id="distance-fill"></span></span>
+                </div>
+                <div class="attendance-metric">
+                  <span class="attendance-metric__label">Accuracy</span>
+                  <span class="attendance-metric__value" id="accuracy-info">—</span>
+                  <span class="attendance-metric__sub">GPS precision</span>
+                </div>
               </div>
 
               <p class="attendance-status__message" id="geofence-load-status">Initializing geolocation...</p>
@@ -307,8 +324,9 @@
           </div>
         </div>
 
-        <!-- Right Column - Stats and Records -->
-        <div class="lg:col-span-2 space-y-8">
+        <!-- Today's Summary - grid row 1, beside the attendance card, so the
+             two cards share a row and their top AND bottom edges line up. -->
+        <div class="lg:col-span-2 dtr-side dtr-side--primary">
           <!-- Stats Section - Time In/Out Summary -->
           <div class="glass-card p-6">
             <h3 class="font-display font-700 mb-6"> Today's Summary</h3>
@@ -369,7 +387,11 @@
               </div>
             </div>
           </div>
+        </div>
 
+        <!-- Remaining right-column widgets - rows below the aligned pair.
+             space-y-8 keeps their original 32px internal rhythm. -->
+        <div class="lg:col-span-2 dtr-side space-y-8">
           <!-- Progress Bar -->
           <div class="glass-card p-6">
             <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
@@ -933,6 +955,6 @@
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
   <script src="chart-theme.js?v=1"></script>
-  <script src="ojtdashboard.js?v=3"></script>
+  <script src="ojtdashboard.js?v=4"></script>
 </body>
 </html>

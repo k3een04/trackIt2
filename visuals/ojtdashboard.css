@@ -658,10 +658,14 @@ nav {
 }
 
 /* ── ATTENDANCE TRACKING CARD (DTR tab) ────────────────────────────────────
-   The left rail of the DTR grid. The wrapper stretches with its grid row and
-   the card fills the wrapper, so the card's top and bottom edges land exactly
-   on the right-hand column (Today's Summary → Filter by Month) instead of
-   floating as a short widget.
+   The DTR grid is laid out as:
+     row 1  col 1      Attendance Tracking
+     row 1  col 2-3    Today's Summary
+     row 2+ col 2-3    OJT Progress, month filter
+   Putting Today's Summary in the SAME grid row as the attendance card is what
+   makes the two cards share a height: both stretch to the row, so their top
+   and bottom edges land on each other no matter which one is taller. The
+   widgets below only occupy the right columns, leaving col 1 empty.
 
    Slack from that stretch is absorbed by .attendance-status (flex: 1), which is
    the card's readout and therefore the right place for extra height - the gaps
@@ -678,12 +682,73 @@ nav {
   min-width: 0;
 }
 
+/* Today's Summary has to fill its grid area too: the wrapper stretching is not
+   enough, because it is the card's own edge that has to meet the attendance
+   card's edge. Below lg the area is auto-sized, so flex simply leaves the card
+   at its natural height. */
+.dtr-side--primary {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dtr-side--primary > .glass-card {
+  flex: 1 1 auto;
+}
+
+/* 16px row gap by default (what the grid already used). The second right-hand
+   block adds 16px of margin, so Today's Summary -> OJT Progress keeps the 32px
+   it got from space-y-8 without pushing the attendance card around. */
+.dtr-grid > .dtr-side + .dtr-side {
+  margin-top: 16px;
+}
+
+@media (min-width: 1024px) {
+  .dtr-grid > .dtr-aside {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  /* Explicit placement: auto-flow would otherwise pull the lower widgets into
+     the empty left column instead of stacking them under Today's Summary. */
+  .dtr-grid > .dtr-side {
+    grid-column: 2 / -1;
+  }
+}
+
 .attendance-card {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   gap: var(--tk-gap-grid);
   min-height: 0;
+}
+
+/* The one place a card may hint at the brand colour - a hairline along the top
+   edge, the same treatment the KPI cards already use. */
+.attendance-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  border-radius: var(--tk-radius) var(--tk-radius) 0 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 200, 170, 0.45),
+    transparent
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+body.light-mode .attendance-card::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 169, 143, 0.55),
+    transparent
+  );
 }
 
 /* Header — title left, compact refresh control right. ------------------- */
@@ -743,6 +808,13 @@ body.light-mode .attendance-refresh:hover {
 
 /* Status readout — the card's hero, and where the stretch lands. --------- */
 .attendance-status {
+  /* Geofence state recolours the whole readout - badge, metric tiles and the
+     distance meter - from the one class the JS already toggles on
+     #status-text. :has() keeps this CSS-only; without support the readout
+     simply stays teal, which is still a valid state colour. */
+  --att-accent: var(--tk-teal);
+  --att-accent-soft: rgba(0, 200, 170, 0.07);
+
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -750,7 +822,7 @@ body.light-mode .attendance-refresh:hover {
   align-items: flex-start;
   gap: 14px;
   min-height: 164px;
-  padding: 18px;
+  padding: 16px;
   background: var(--tk-surface-2);
   background-image: none;
   border: 1px solid var(--tk-hairline);
@@ -759,16 +831,41 @@ body.light-mode .attendance-refresh:hover {
   overflow: hidden;
 }
 
+.attendance-status:has(#status-text.checking) {
+  --att-accent: #f59e0b;
+  --att-accent-soft: rgba(245, 158, 11, 0.09);
+}
+
+.attendance-status:has(#status-text.out-of-range) {
+  --att-accent: #ef4444;
+  --att-accent-soft: rgba(239, 68, 68, 0.09);
+}
+
+body.light-mode .attendance-status {
+  --att-accent: var(--tk-teal);
+  --att-accent-soft: rgba(0, 169, 143, 0.08);
+}
+
+body.light-mode .attendance-status:has(#status-text.checking) {
+  --att-accent: #b45309;
+  --att-accent-soft: rgba(217, 119, 6, 0.10);
+}
+
+body.light-mode .attendance-status:has(#status-text.out-of-range) {
+  --att-accent: #b91c1c;
+  --att-accent-soft: rgba(220, 38, 38, 0.08);
+}
+
 .attendance-status__head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
 }
 
 .attendance-status__state {
   min-width: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -782,16 +879,60 @@ body.light-mode .attendance-refresh:hover {
 }
 
 .attendance-metric {
-  padding: 9px 11px;
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.35;
-  font-variant-numeric: tabular-nums;
-  color: var(--tk-text);
-  background: var(--tk-surface-3);
-  border: 1px solid var(--tk-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 12px 14px;
   border-radius: 8px;
+  /* Same tinted-left-accent tile language as Today's Summary's KPI cards, but
+     the accent follows the geofence state instead of always being teal. */
+  background: var(--att-accent-soft);
+  border-left: 3px solid var(--att-accent);
+}
+
+.attendance-metric__label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--tk-text-muted);
+}
+
+.attendance-metric__value {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--att-accent);
   overflow-wrap: anywhere;
+}
+
+.attendance-metric__sub {
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--tk-text-muted);
+}
+
+/* Distance measured against the allowed radius: the far edge of the track IS
+   the geofence boundary, so a full bar means at or beyond it. */
+.attendance-meter {
+  display: block;
+  margin-top: 7px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(100, 116, 139, 0.30);
+  overflow: hidden;
+}
+
+.attendance-meter__fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  background: var(--att-accent);
+  transition: width var(--tk-dur) var(--tk-ease);
 }
 
 .attendance-status__message {
@@ -1980,18 +2121,19 @@ body.light-mode .qr-expiry-timer {
   color: #7e22ce !important;
 }
 
-/* Geofence status pulse — a 4px halo, not a light source. */
+/* Geofence status pulse - only ever applied to the amber "checking" badge, so
+   the halo matches its state colour. A 5px ring, not a light source. */
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(0, 200, 170, 0.38);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.42);
   }
 
   50% {
-    box-shadow: 0 0 0 4px rgba(0, 200, 170, 0);
+    box-shadow: 0 0 0 5px rgba(245, 158, 11, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 200, 170, 0);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
 }
 
@@ -2001,30 +2143,44 @@ body.light-mode .qr-expiry-timer {
    range or unavailable. Each state carries its own soft ring instead of a
    glow, and the label tint matches the dot so the pair reads as one cue. */
 #status-indicator {
-  width: 10px;
-  height: 10px;
+  width: 34px;
+  height: 34px;
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   background: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.16);
+  box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.14);
   transition: background-color 0.2s, box-shadow 0.2s;
 }
 
+/* The glyph is picked purely by the state class the JS already toggles, so the
+   badge always agrees with the label instead of showing a second symbol. */
+#status-indicator .ico {
+  display: none;
+  color: #0b1220;
+}
+
+#status-indicator.checking .ico-locating { display: block; }
+#status-indicator.in-range .ico-in-range { display: block; }
+#status-indicator.out-of-range .ico-out-of-range { display: block; }
+
 #status-indicator.checking {
   background: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18);
   animation: pulse 2s infinite;
 }
 
 #status-indicator.in-range {
   background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
   animation: none;
 }
 
 #status-indicator.out-of-range {
   background: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
   animation: none;
 }
 

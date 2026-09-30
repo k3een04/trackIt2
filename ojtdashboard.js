@@ -3187,6 +3187,8 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
   const geofenceInfo = document.getElementById('geofence-info');
   const geofenceMessage = document.getElementById('geofence-message');
   const loadStatus = document.getElementById('geofence-load-status');
+  const distanceSub = document.getElementById('distance-sub');
+  const distanceFill = document.getElementById('distance-fill');
 
   // Reset classes (checking = locating/validating, amber)
   indicator.classList.remove('in-range', 'out-of-range', 'checking');
@@ -3197,7 +3199,8 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
     case 'in-range':
       indicator.classList.add('in-range');
       statusText.classList.add('in-range');
-      statusText.textContent = '✓ In Range';
+      // The badge already carries the glyph, so the label stays clean text.
+      statusText.textContent = 'In Range';
       // Button enable/lock is handled by the schedule-window logic AFTER
       // this call; do NOT force-enable here.
       if (loadStatus) {
@@ -3209,7 +3212,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
     case 'out-of-range':
       indicator.classList.add('out-of-range');
       statusText.classList.add('out-of-range');
-      statusText.textContent = '✗ Out of Range';
+      statusText.textContent = 'Out of Range';
       setAttendanceButtonState(timeInBtn, false);
       setAttendanceButtonState(timeOutBtn, false);
       // The detail box below carries the message, so the supporting line is
@@ -3235,7 +3238,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       // Unavailable reads as the same red state as out of range.
       indicator.classList.add('out-of-range');
       statusText.classList.add('out-of-range');
-      statusText.textContent = '⚠ Error';
+      statusText.textContent = 'Error';
       if (loadStatus) loadStatus.textContent = '';
       timeInBtn.disabled = true;
       geofenceInfo.style.display = 'block';
@@ -3243,12 +3246,29 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
   }
 
   // Update distance and accuracy info
-  if (geofenceData && currentCoordinates) {
-    distanceInfo.textContent = `Distance: ${geofenceData.distanceMeters}m / ${geofenceData.radiusMeters}m`;
-    accuracyInfo.textContent = `Accuracy: ±${Math.round(currentCoordinates.accuracy)}m`;
+  const hasMetrics = !!(geofenceData
+    && currentCoordinates
+    && geofenceData.distanceMeters != null
+    && geofenceData.radiusMeters != null);
+
+  if (hasMetrics) {
+    const distanceMeters = Number(geofenceData.distanceMeters);
+    const radiusMeters = Number(geofenceData.radiusMeters);
+
+    distanceInfo.textContent = `${distanceMeters}m`;
+    distanceSub.textContent = `of ${radiusMeters}m allowed`;
+    accuracyInfo.textContent = `±${Math.round(currentCoordinates.accuracy)}m`;
+
+    // Fill = distance against the allowed radius. The far edge of the track IS
+    // the geofence boundary, so clamping at 100% reads as "at or beyond it".
+    distanceFill.style.width = radiusMeters > 0
+      ? `${Math.min(100, (distanceMeters / radiusMeters) * 100)}%`
+      : '0%';
   } else {
-    distanceInfo.textContent = 'Distance: —';
-    accuracyInfo.textContent = 'Accuracy: —';
+    distanceInfo.textContent = '—';
+    distanceSub.textContent = 'radius not confirmed';
+    accuracyInfo.textContent = '—';
+    distanceFill.style.width = '0%';
   }
 }
 
