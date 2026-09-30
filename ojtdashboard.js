@@ -3061,17 +3061,25 @@ function getScheduleWindowState(scheduleTimes, action) {
   const verb = action === 'time-in' ? 'Time in' : 'Time out';
 
   if (action === 'time-in') {
-    const late = currentMinutes > scheduledMinutes;
-    const lateMinutes = late ? currentMinutes - scheduledMinutes : 0;
-    if (currentMinutes < scheduledMinutes) {
+    const nowSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const deltaSeconds = nowSeconds - scheduledMinutes * 60;
+    if (deltaSeconds < 0) {
       return { allowed: false, late: false, lateMinutes: 0, reason: 'too_early', message: `${verb} opens at the scheduled start (${timeStr})` };
     }
+    // 120 s grace matches the server: a punch at exactly the scheduled time
+    // (12:20 for a 12:20 start) is NEVER late — device/server clock skew and
+    // the last seconds of the scheduled minute are covered. More than 2 min
+    // after the start is a LATE time-in.
+    const late = deltaSeconds > 120;
+    const lateMinutes = late ? Math.max(1, Math.round(deltaSeconds / 60)) : 0;
     return {
       allowed: true,
       late,
       lateMinutes,
       reason: late ? 'late' : 'on_time',
-      message: late ? `Late ${label}: ${lateMinutes} min after the scheduled start` : `Within ${label} window`,
+      message: late
+        ? `Timed in ${lateMinutes} min after the scheduled start`
+        : `Within ${label} window`,
     };
   }
 
@@ -3292,7 +3300,7 @@ async function recordTimeIn() {
 
     if (response.data && response.data.late) {
       const mins = Number(response.data.lateMinutes) || 0;
-      showNotification('Success', `✓ Late Time In Recorded (${mins} min late — supervisor notified)`, 'success');
+      showNotification('Success', `✓ Time In Recorded — ${mins} min after your scheduled start (supervisor notified)`, 'success');
     } else {
       showNotification('Success', '✓ Time In Recorded', 'success');
     }
@@ -3555,7 +3563,7 @@ async function loadTodaysSummary() {
         const rawStatus = String(todayRecord.status || '').toLowerCase();
         timeInStatusEl.textContent = !todayRecord.timeIn
           ? 'Not recorded'
-          : rawStatus === 'late' ? 'recorded — late' : 'recorded';
+          : rawStatus === 'late' ? 'recorded (late)' : 'recorded';
       }
       
       document.getElementById('today-time-out').textContent = timeOut;

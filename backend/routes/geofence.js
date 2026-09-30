@@ -341,7 +341,9 @@ router.post('/time-in', authenticateToken, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: isLate ? 'Late time-in recorded successfully' : 'Time-in recorded successfully',
+      message: isLate
+        ? `Time-in recorded (late by ${lateMinutes} min)`
+        : 'Time-in recorded successfully',
       data: {
         dtrId: dtr._id,
         timeIn: dtr.timeIn,

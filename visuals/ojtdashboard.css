@@ -599,9 +599,12 @@ nav {
 }
 
 /* Attendance Time In/Out buttons
-   - LOCKED (outside the ±10-minute window): dark green (time in) / dark red (time out), subtle pulse
-   - UNLOCKED (inside the window): bright green (time in) / bright red (time out), stronger pulse
-   The color is driven by --attend-accent / --attend-soft set per button. */
+   - LOCKED (window not open yet): dark translucent fill + light muted label
+   - UNLOCKED (ready to punch): bright fill + DARK ink label
+   The enabled state used to paint the label in the SAME hue as the fill
+   (#22c55e text on #10b981 green, #ef4444 on #ef4444 red) which made it
+   unreadable; labels now always use a high-contrast foreground.
+   The color is driven by --attend-* custom properties set per button. */
 .btn-attendance-disabled,
 .btn-attendance-enabled {
   border: 1px solid var(--attend-accent);
@@ -611,11 +614,11 @@ nav {
   transition: all 0.2s;
 }
 
-/* LOCKED state: dark color + slow subtle pulse */
+/* LOCKED state: dark color + slow subtle pulse, label stays readable */
 .btn-attendance-disabled {
   background: var(--attend-dark) !important;
   border-color: var(--attend-border) !important;
-  color: var(--attend-dim) !important;
+  color: rgba(226, 232, 240, 0.78) !important;
   cursor: not-allowed !important;
   animation: attendanceLockedPulse 2.4s ease-in-out infinite;
 }
@@ -631,11 +634,11 @@ nav {
   }
 }
 
-/* UNLOCKED state: bright color + faster pulse */
+/* UNLOCKED state: bright fill + dark ink label (never bright-on-bright) */
 .btn-attendance-enabled {
   background: var(--attend-bright) !important;
   border-color: var(--attend-accent) !important;
-  color: var(--attend-fg) !important;
+  color: var(--attend-ink, #0b1220) !important;
   cursor: pointer !important;
   animation: attendanceUnlockedPulse 1.2s ease-in-out infinite;
 }

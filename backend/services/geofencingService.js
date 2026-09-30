@@ -103,6 +103,30 @@ function getMinutesInClientTimezone(currentTime, timezoneOffsetMinutes) {
   return clientTime.getUTCHours() * 60 + clientTime.getUTCMinutes();
 }
 
+/**
+ * Seconds-of-day in the client's wall clock (0-86399). Same fallback rules as
+ * getMinutesInClientTimezone, but keeps the seconds so lateness can be judged
+ * against the exact punch instant instead of the whole minute.
+ */
+function getSecondsInClientTimezone(currentTime, timezoneOffsetMinutes) {
+  const offset = Number(timezoneOffsetMinutes);
+  if (!Number.isFinite(offset) || Math.abs(offset) > 840) {
+    return currentTime.getHours() * 3600 + currentTime.getMinutes() * 60 + currentTime.getSeconds();
+  }
+
+  const clientTime = new Date(currentTime.getTime() + offset * 60 * 1000);
+  return clientTime.getUTCHours() * 3600 + clientTime.getUTCMinutes() * 60 + clientTime.getUTCSeconds();
+}
+
+/**
+ * How many seconds after the scheduled start a time-in may land before it is
+ * considered LATE. 120s covers clock skew between the student's device and
+ * the server plus the final seconds of the scheduled minute: a punch at
+ * exactly the scheduled time (e.g. 12:20 for a 12:20 start) is ALWAYS on
+ * time, while a punch more than 2 minutes after the start is LATE.
+ */
+const LATE_GRACE_SECONDS = 120;
+
 function validateSchedule(currentTime, schedule, timezoneOffsetMinutes) {
   if (!schedule) {
     return {
@@ -190,20 +214,24 @@ function validateAttendanceWindow(currentTime, schedule, action, timezoneOffsetM
   // LATE-BY-DESIGN: the old ±10-minute allowance is removed. Time-in stays
   // open once the scheduled start passes (any arrival after the start is a
   // valid but LATE time-in) and is only blocked while it is still before the
-  // scheduled start. Time-out keeps its existing end-of-shift window so
-  // trainees cannot clock out long before the shift ends.
+  // scheduled start. Lateness is judged on SECONDS against the exact punch
+  // instant (plus LATE_GRACE_SECONDS of clock-skew tolerance), so punching at
+  // exactly the scheduled time (12:20 for a 12:20 start) is never LATE.
   if (action === 'time-in') {
-    const late = currentMinutes > startMinutes;
-    const lateMinutes = late ? currentMinutes - startMinutes : 0;
+    const startSeconds = startMinutes * 60;
+    const deltaSeconds = getSecondsInClientTimezone(currentTime, timezoneOffsetMinutes) - startSeconds;
+    const allowed = deltaSeconds >= -60; // device/server clock-skew tolerance
+    const late = deltaSeconds > LATE_GRACE_SECONDS;
+    const lateMinutes = late ? Math.max(1, Math.round(deltaSeconds / 60)) : 0;
     return {
-      allowed: currentMinutes >= startMinutes,
+      allowed,
       late,
       lateMinutes,
-      message: currentMinutes >= startMinutes
-        ? (late
-          ? `Late time-in: ${lateMinutes} min after the scheduled start (${formatWindowMinutes(startMinutes)})`
-          : `On-time time-in (scheduled start ${formatWindowMinutes(startMinutes)})`)
-        : `Time in opens at the scheduled start (${formatWindowMinutes(startMinutes)})`,
+      message: !allowed
+        ? `Time in opens at the scheduled start (${formatWindowMinutes(startMinutes)})`
+        : late
+          ? `Timed in ${lateMinutes} min after the scheduled start (${formatWindowMinutes(startMinutes)})`
+          : `On-time time-in (scheduled start ${formatWindowMinutes(startMinutes)})`,
     };
   }
 

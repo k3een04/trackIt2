@@ -34,10 +34,13 @@ function evaluateLateTimeIn(trainee, at = new Date()) {
   if (!start) return { late: false, lateMinutes: 0 };
   const match = String(start).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
   if (!match) return { late: false, lateMinutes: 0 };
-  const startMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-  const nowMinutes = at.getHours() * 60 + at.getMinutes();
-  if (nowMinutes <= startMinutes) return { late: false, lateMinutes: 0 };
-  return { late: true, lateMinutes: nowMinutes - startMinutes };
+  const startSeconds = (parseInt(match[1], 10) * 60 + parseInt(match[2], 10)) * 60;
+  const nowSeconds = at.getHours() * 3600 + at.getMinutes() * 60 + at.getSeconds();
+  const deltaSeconds = nowSeconds - startSeconds;
+  // 120 s grace (matches geofencingService): a scan at exactly the scheduled
+  // time — or while both clocks straddle the minute boundary — is never late.
+  if (deltaSeconds <= 120) return { late: false, lateMinutes: 0 };
+  return { late: true, lateMinutes: Math.max(1, Math.round(deltaSeconds / 60)) };
 }
 
 /**
@@ -329,7 +332,7 @@ router.get('/scan/:token', async (req, res) => {
               <div class="time">${new Date().toLocaleTimeString()}</div>
               <div class="name">${trainee.fullName}</div>
               ${isClockingOut ? `<div class="hours">Hours Worked: ${hours}h</div>` : ''}
-              ${!isClockingOut && lateResult.late ? `<div class="hours">⚠️ Late time-in: ${lateResult.lateMinutes} min after the scheduled start — supervisor notified</div>` : ''}
+              ${!isClockingOut && lateResult.late ? `<div class="hours">⚠️ Timed in ${lateResult.lateMinutes} min after the scheduled start — supervisor notified</div>` : ''}
             </div>
           </div>
         </body>
