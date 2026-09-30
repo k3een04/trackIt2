@@ -24,6 +24,10 @@
     }
   </script>
   <link rel="stylesheet" href="visuals/ojtdashboard.css?v=2">
+  <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
+       load order; its selectors are body-prefixed so they also beat the
+       utilities the Tailwind CDN injects at runtime. -->
+  <link rel="stylesheet" href="visuals/trackit-glass.css?v=1">
 </head>
 <body>
   <script>

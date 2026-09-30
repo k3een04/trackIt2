@@ -569,6 +569,93 @@ check('the shared design system is loaded on both dashboards', () => {
   });
 });
 
+console.log('\nGlassmorphism design system');
+const GLASS = fs.readFileSync(path.join(__dirname, 'visuals/trackit-glass.css'), 'utf8');
+const DASHBOARDS = ['coordinator-dashboard.html', 'ojtdashboard.html', 'supervisor-dashboard.html'];
+
+check('the shared design system is loaded by every dashboard', () => {
+  DASHBOARDS.forEach((rel) => {
+    const html = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+    assert.ok(html.includes('visuals/trackit-glass.css'),
+      `${rel} does not load the shared glassmorphism stylesheet`);
+  });
+});
+
+check('the design system loads after each page-specific stylesheet', () => {
+  DASHBOARDS.forEach((rel) => {
+    const html = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+    const own = html.search(/visuals\/(coordinator|ojt|supervisor)-dashboard\.css/);
+    const glass = html.indexOf('visuals/trackit-glass.css');
+    assert.ok(glass > own,
+      `${rel}: trackit-glass.css must load after its own stylesheet to win the cascade`);
+  });
+});
+
+check('brand colours are unchanged', () => {
+  assert.ok(GLASS.includes('--tk-teal: #00c8aa'), 'dark accent must stay #00C8AA');
+  assert.ok(GLASS.includes('--tk-teal: #00a98f'), 'light accent must stay #00A98F');
+  assert.ok(/body\s*\{[^}]*background-color:\s*#0a0f1e/i.test(GLASS), 'dark bg must be #0A0F1E');
+  assert.ok(/body\.light-mode\s*\{[^}]*background-color:\s*#f5f7fa/i.test(GLASS), 'light bg must be #F5F7FA');
+});
+
+check('the same radius, hairline and blur tokens drive every surface', () => {
+  // One radius scale, one hairline, one blur - that is what makes the UI feel
+  // like a single application rather than sections designed separately.
+  ['--tk-radius:', '--tk-radius-sm:', '--tk-radius-lg:'].forEach((token) => {
+    assert.ok(GLASS.includes(token), `missing shared geometry token ${token}`);
+  });
+  assert.ok(/--tk-blur:\s*\d+px/.test(GLASS), 'missing shared blur token');
+  assert.ok(/--tk-hairline:\s*rgba/.test(GLASS), 'missing shared hairline token');
+});
+
+check('glass treatment covers cards, tables, forms, badges, modals and nav', () => {
+  const required = [
+    '.glass-card',        // cards / panels
+    '.analytics-kpi',     // stat cards
+    '.analytics-table-wrap', // tables
+    'input',              // forms / search / filters
+    '.status-badge',      // status badges
+    '.notif-popup',       // notifications
+    'body nav',           // top nav
+    '.sidebar',           // sidebar
+    '.btn-primary',       // buttons
+  ];
+  required.forEach((selector) => {
+    assert.ok(GLASS.includes(selector),
+      `glass system does not cover ${selector}`);
+  });
+});
+
+check('both themes are handled, not one inverted into the other', () => {
+  const light = GLASS.slice(GLASS.indexOf('body.light-mode'));
+  assert.ok(light.includes('--tk-surface-1'), 'light theme needs its own surface token');
+  assert.ok(light.includes('--tk-text:'), 'light theme needs its own text token');
+  // light mode must not simply reuse the dark translucent fills
+  assert.ok(!/body\.light-mode[\s\S]{0,400}rgba\(255,\s*255,\s*255,\s*0\.0(45|75|11)\)/.test(light),
+    'light mode reuses the dark surface alpha instead of a designed one');
+});
+
+check('teal stays an accent, never a surface fill', () => {
+  // Surfaces must be neutral; teal may only appear on interactive/indicator
+  // rules. A teal card background would turn the whole UI cyan.
+  const surfaceBlock = GLASS.slice(GLASS.indexOf('--tk-surface-1'), GLASS.indexOf('--tk-hairline:'));
+  assert.ok(!surfaceBlock.includes('0, 200, 170'),
+    'a glass surface token must not be teal-tinted');
+});
+
+check('accessibility and motion guards are present', () => {
+  assert.ok(GLASS.includes('prefers-reduced-motion'), 'must respect reduced motion');
+  assert.ok(GLASS.includes('focus-visible'), 'must provide a visible focus ring');
+  assert.ok(GLASS.includes('-webkit-backdrop-filter'), 'Safari needs the -webkit- blur prefix');
+});
+
+check('responsive tables never get squeezed into a phone viewport', () => {
+  assert.ok(/@media \(max-width: 768px\)[\s\S]{0,900}overflow-x:\s*auto/.test(GLASS),
+    'tables must scroll horizontally on small screens');
+  assert.ok(GLASS.includes('.table-stack'),
+    'a stacked-row presentation must be available for narrow screens');
+});
+
 const failed = results.filter(r => !r.ok);
 console.log(`\n=== ${results.length - failed.length}/${results.length} checks passed ===\n`);
 process.exit(failed.length ? 1 : 0);

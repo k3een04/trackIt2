@@ -11,6 +11,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=3">
+  <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
+       load order; its selectors are body-prefixed so they also beat the
+       utilities the Tailwind CDN injects at runtime. -->
+  <link rel="stylesheet" href="visuals/trackit-glass.css?v=1">
 </head>
 <body>
   <script>

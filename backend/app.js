@@ -133,6 +133,10 @@ app.get('/visuals/coordinator-dashboard.css', (req, res) => {
 app.get('/visuals/supervisor-dashboard.css', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'visuals', 'supervisor-dashboard.css'));
 });
+// Shared glassmorphism design system, loaded by all three dashboards.
+app.get('/visuals/trackit-glass.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'trackit-glass.css'));
+});
 app.get('/landingpage.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'landingpage.js'));
 });
