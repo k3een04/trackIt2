@@ -10,11 +10,16 @@
    CONTRACT WITH EXISTING PAGE CODE (unchanged behaviour):
      • the original <input> stays in the DOM and stays the source of truth;
        .value keeps its native format (YYYY-MM-DD / YYYY-MM)
+     • only the text the browser *paints* differs: "October 2026" /
+       "October 14, 2026". The field's value accessor is shadowed per
+       instance, so a page writing .value repaints the label automatically
      • the input's `input` and `change` events are re-dispatched after a pick,
        so inline onchange="..." handlers and addEventListener('change')
        listeners both still fire
      • values written programmatically (setTodayDate(), the supervisor month
        default) are picked up, because the field is re-read on every open
+     • form.reset() is followed by a resync — it rewrites the element value
+       without going through the setter
 
    The native `type` is switched to "text" purely to suppress the OS-drawn
    popup, which cannot be styled. `readOnly` + `inputmode="none"` mean the
@@ -29,6 +34,7 @@
                                                      rangeEnd} | null
      TrackITCalendar.parse(v, mode)   → {y,m,d} | null
      TrackITCalendar.format(o, mode)  → native value string
+     TrackITCalendar.display(v, mode) → the readable text the field shows
    ══════════════════════════════════════════════════════════════════════════ */
 (function (global) {
   'use strict';
@@ -94,6 +100,30 @@
       : o.y + '-' + pad(o.m) + '-' + pad(o.d);
   }
 
+  /* What the browser should paint. `.value` never changes — this is display
+     only, so page code keeps reading YYYY-MM / YYYY-MM-DD. An unrecognised
+     value is echoed back verbatim rather than swallowed. */
+  function displayValue(v, mode) {
+    if (!v) return '';
+    var o = parseValue(v, mode);
+    if (!o) return String(v);
+    if (mode === 'month') return MONTHS[o.m - 1] + ' ' + o.y;
+    return MONTHS[o.m - 1] + ' ' + o.d + ', ' + o.y;
+  }
+
+  /* The element's own value accessor lives on HTMLInputElement.prototype.
+     Walking the chain lets us shadow it per-instance; it also keeps this
+     file loadable against a DOM stub that has no HTMLInputElement. */
+  function findValueAccessor(obj) {
+    var p = obj;
+    while (p) {
+      var d = Object.getOwnPropertyDescriptor(p, 'value');
+      if (d && typeof d.get === 'function' && typeof d.set === 'function') return d;
+      p = Object.getPrototypeOf(p);
+    }
+    return null;
+  }
+
   function el(tag, cls, text) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -136,6 +166,34 @@
     input.setAttribute('aria-haspopup', 'dialog');
     input.setAttribute('aria-expanded', 'false');
 
+    /* Split the machine value from the text the browser paints. Shadowing
+       the element's own `value` accessor means every write — ours, the
+       page's, or a future one — lands in the same slot, so the readable
+       label can never drift away from what page code reads back. */
+    this._acc = findValueAccessor(input);
+    this._raw = this._acc
+      ? String(this._acc.get.call(input) || '')
+      : String(input.value || '');
+
+    Object.defineProperty(input, 'value', {
+      configurable: true,
+      enumerable: true,
+      get: function () { return self._raw; },
+      set: function (v) {
+        self._raw = (v === null || v === undefined) ? '' : String(v);
+        self._paint();
+      }
+    });
+    this._paint();
+
+    /* form.reset() rewrites the DOM value behind our back, so re-read it.
+       The reset event fires before the controls are cleared, hence the tick. */
+    if (input.form && typeof input.form.addEventListener === 'function') {
+      input.form.addEventListener('reset', function () {
+        setTimeout(function () { self._resync(); }, 0);
+      });
+    }
+
     input.addEventListener('click', function () { self.toggle(); });
 
     input.addEventListener('keydown', function (e) {
@@ -156,6 +214,22 @@
   Calendar.prototype.sync = function () {
     this.selected = parseValue(this.input.value, this.mode);
     return this.selected;
+  };
+
+  /* Push the readable form of `_raw` into the element's stored value. */
+  Calendar.prototype._paint = function () {
+    if (!this._acc) return;
+    this._acc.set.call(this.input, displayValue(this._raw, this.mode));
+  };
+
+  /* After a form reset the element holds the machine value (or nothing).
+     If it still holds display text the reset was cancelled — leave it be. */
+  Calendar.prototype._resync = function () {
+    if (!this._acc) return;
+    var v = String(this._acc.get.call(this.input) || '');
+    if (v !== '' && !parseValue(v, this.mode)) return;
+    this._raw = v;
+    this._paint();
   };
 
   /* ── popover construction ─────────────────────────────────────────────── */
@@ -736,6 +810,7 @@
     setDayMeta: function (fn) { dayMetaHook = typeof fn === 'function' ? fn : null; },
     parse: parseValue,
     format: formatValue,
+    display: displayValue,
     MONTHS: MONTHS.slice(),
     WEEKDAYS: DOW.slice()
   };
