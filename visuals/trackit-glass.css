@@ -392,15 +392,42 @@ body .top-performers-grid {
 
 body .top-performers-grid > p { grid-column: 1 / -1; }
 
-body .trainee-progress-card { overflow: hidden; }
+body .trainee-progress-card { overflow: hidden; max-width: 100%; min-width: 0; }
 
-body .trainee-progress-table {
+/* NOTE: this must beat `body .analytics-table-wrap` (overflow: hidden) which
+   is defined later in section 7 — hence the doubled class specificity. */
+body .analytics-table-wrap.trainee-progress-table {
   overflow-x: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   max-height: 420px;
+  max-width: 100%;
 }
 
-body .trainee-progress-table > table { min-width: 1080px; }
+body .analytics-table-wrap.trainee-progress-table > table {
+  min-width: 960px;
+  width: 100%;
+  font-size: 0.78rem;
+}
+
+/* Compact cells override the Tailwind py-3 px-4 the JS-rendered rows carry,
+   so all 12 columns fit the card at 100% zoom. Labels are unchanged. */
+body .trainee-progress-table th,
+body .trainee-progress-table td {
+  padding: 8px 10px !important;
+  vertical-align: middle;
+}
+
+body .trainee-progress-table thead th {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+body .trainee-progress-table tbody td { white-space: nowrap; }
+body .trainee-progress-table tbody td:first-child { white-space: normal; min-width: 140px; }
+body .trainee-progress-table tbody td .progress-track { min-width: 90px; }
 
 body .trainee-progress-table thead th:first-child,
 body .trainee-progress-table tbody td:first-child {
