@@ -169,6 +169,19 @@ app.get('/supervisor-dashboard.js', (req, res) => {
 app.get('/Trackitlogo.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'Trackitlogo.png'));
 });
+// Vendor libraries used by the OJT dashboard (PDF export & viewer).
+app.get('/vendor/jspdf.umd.min.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'vendor', 'jspdf.umd.min.js'));
+});
+app.get('/vendor/html2canvas.min.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'vendor', 'html2canvas.min.js'));
+});
+app.get('/vendor/pdf.mjs', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'vendor', 'pdf.mjs'));
+});
+app.get('/vendor/pdf.worker.mjs', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'vendor', 'pdf.worker.mjs'));
+});
 
 // Explicit page route handlers
 app.get(['/login', '/loginpage.html'], (req, res) => {

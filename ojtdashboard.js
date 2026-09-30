@@ -2062,16 +2062,16 @@ async function renderJournalDownloadList() {
       day: 'numeric',
       year: 'numeric',
     });
-    const hasSummary = !!(journal.summary && journal.summary.trim());
+    const hasContent = !!(journal.narrative?.trim() || journal.summary?.trim());
 
     const item = document.createElement('label');
-    item.className = `download-item ${hasSummary ? '' : 'disabled'}`;
+    item.className = `download-item ${hasContent ? '' : 'disabled'}`;
     item.innerHTML = `
       <div class="download-item-info">
         <span class="download-item-title">${journal.week || 'Weekly Journal'}</span>
-        <span class="download-item-sub">${date} • ${hasSummary ? 'Summary ready' : 'Missing summary'}</span>
+        <span class="download-item-sub">${date} • ${hasContent ? 'Content available' : 'No content'}</span>
       </div>
-      <input type="checkbox" data-id="${journal._id}" ${hasSummary ? '' : 'disabled'} />
+      <input type="checkbox" data-id="${journal._id}" ${hasContent ? '' : 'disabled'} />
     `;
 
     const checkbox = item.querySelector('input[type="checkbox"]');
@@ -2664,11 +2664,12 @@ async function generateJournalPdf(journals) {
     const latestLabel = sorted.length ? fmt(sorted[sorted.length - 1].submittedAt)    : '—';
 
     const rows = sorted.slice(0, rowCount).map(journal => {
-      if (!journal.summary?.trim()) throw new Error('Missing summary');
+      // Use narrative as the main content; summary is optional
+      const content = (journal.narrative?.trim() || journal.summary?.trim() || 'No entry content');
       return {
         week:        journal.week || '',
         dateLabel:   fmt(journal.submittedAt),
-        summary:     journal.summary,
+        summary:     content,
         photoDataUrl: journal.photoDataUrl || '',
       };
     });

@@ -1364,15 +1364,20 @@ function selectJournal(element, journalId) {
           </div>
         </div>
 
-        ${journal.summary ? `
+        ${journal.narrative && journal.narrative.trim() ? `
+          <div class="glass-card p-4 bg-white/5 border-l-4 border-teal-400 mb-6">
+            <p class="text-xs text-slate-400 mb-2">JOURNAL ENTRY</p>
+            <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${journal.narrative}</p>
+          </div>
+        ` : journal.summary ? `
           <div class="glass-card p-4 bg-white/5 border-l-4 border-teal-400 mb-6">
             <p class="text-xs text-slate-400 mb-2">AI-GENERATED SUMMARY</p>
             <p class="text-sm text-slate-200">${journal.summary}</p>
           </div>
         ` : `
           <div class="glass-card p-4 bg-slate-600/20 border-l-4 border-slate-500 mb-6">
-            <p class="text-xs text-slate-400 mb-2">AI-GENERATED SUMMARY</p>
-            <p class="text-sm text-slate-300">No summary available for this journal</p>
+            <p class="text-xs text-slate-400 mb-2">JOURNAL ENTRY</p>
+            <p class="text-sm text-slate-300">No entry content available</p>
           </div>
         `}
 
@@ -1394,6 +1399,27 @@ function selectJournal(element, journalId) {
           <div class="mb-6">
             <label class="block text-sm font-semibold mb-3">Supervisor Remarks (Optional)</label>
             <textarea id="journal-remarks" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" rows="3" placeholder="Add your remarks here..."></textarea>
+          </div>
+        ` : ''}
+
+        ${journal.identifiedTheories && journal.identifiedTheories.length > 0 ? `
+          <div class="mb-6">
+            <h4 class="font-semibold mb-3">Identified Theories</h4>
+            <div class="space-y-2">
+              ${journal.identifiedTheories.map((theory, index) => {
+                const accents = ['#00c8aa', '#38bdf8', '#a78bfa', '#fbbf24', '#f472b6'];
+                const accent = accents[index % accents.length];
+                return `
+                <div style="padding: 10px 14px; background: linear-gradient(135deg, rgba(255,255,255,0.04), ${accent}0f); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span style="font-weight: 600; color: ${accent}; font-size: 12px;">${escapeHtml(theory.course || '')} – ${escapeHtml(theory.courseName || '')}</span>
+                    <span style="font-size: 10px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.07); color: #94a3b8; border: 1px solid rgba(255,255,255,0.08);">${escapeHtml(theory.category || '')}</span>
+                  </div>
+                  <p style="margin: 5px 0 0 0; color: #e2e8f0; font-size: 13px; line-height: 1.5; font-style: italic;">${escapeHtml(theory.theory || '')}</p>
+                </div>
+                `;
+              }).join('')}
+            </div>
           </div>
         ` : ''}
 
