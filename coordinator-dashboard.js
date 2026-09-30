@@ -217,6 +217,7 @@ async function loadCoordinatorNotifications(options = {}) {
     notifError = '';
     renderNotificationList();
   }
+  const signatureBefore = notificationSignature();
 
   try {
     const result = await fetchAPI('/notifications?limit=20');
@@ -236,9 +237,27 @@ async function loadCoordinatorNotifications(options = {}) {
     notifUnreadCount = 0;
   } finally {
     notifLoading = false;
-    renderNotificationList();
+    // Rebuilding an unchanged list while the bell popup is open resets its
+    // scroll position for nothing, so a silent poll that found nothing new
+    // leaves it alone. With the popup closed the redraw is invisible, so it
+    // still runs and keeps the relative timestamps fresh for the next open.
+    const unchanged = notificationSignature() === signatureBefore;
+    if (!(silent && unchanged && notifPopupOpen)) {
+      renderNotificationList();
+    }
     updateNotifBadge();
   }
+}
+
+/**
+ * Just enough of the list to tell "nothing arrived" from "something did".
+ * The relative timestamps are deliberately excluded - they always differ.
+ */
+function notificationSignature() {
+  return JSON.stringify({
+    error: notifError,
+    items: coordinatorNotifications.map(n => `${n.id}|${n.unread ? 1 : 0}`),
+  });
 }
 
 function renderNotificationList() {
@@ -440,29 +459,106 @@ function el(id) {
   return document.getElementById(id);
 }
 
-async function loadDashboardData() {
+// ────────────────────────────────────────────────────────────────────────────
+// BACKGROUND REFRESH
+// ────────────────────────────────────────────────────────────────────────────
+// The dashboard repaints itself on a timer, and that repaint has to be
+// invisible: it never blanks a panel the coordinator is reading, never rebuilds
+// DOM that did not change, and never lands while they are actively working.
+
+// Minimum gap between automatic refreshes. Nothing in TrackIT moves faster
+// than this, and the scheduler only fires while the tab is visible.
+const REFRESH_MIN_GAP_MS = 45000;
+
+// How often the scheduler wakes up to check whether a refresh is due. Kept
+// short so a refresh postponed by user input is retried rather than dropped.
+const REFRESH_TICK_MS = 10000;
+
+// How long after the last real user input an automatic refresh waits.
+const REFRESH_GRACE_MS = 1200;
+
+let lastInteractionAt = 0;
+let lastRefreshAt = 0;
+
+/** Records genuine user input so refreshes can stay out of its way. */
+function markInteraction() {
+  lastInteractionAt = Date.now();
+}
+
+/** True once the coordinator has stopped interacting long enough. */
+function interactionSettled() {
+  return Date.now() - lastInteractionAt >= REFRESH_GRACE_MS;
+}
+
+// JSON of what each section currently displays, keyed by section. Absent until
+// that section has painted its first payload, so a first load always renders.
+const paintedPayloads = Object.create(null);
+
+/**
+ * Compares `next` with what a section already shows and records it as the
+ * newly shown payload. Returns false when the section is up to date, letting
+ * the caller skip the DOM write entirely.
+ */
+function paintOnce(key, next) {
+  const serialized = JSON.stringify(next);
+  if (paintedPayloads[key] === serialized) return false;
+  paintedPayloads[key] = serialized;
+  return true;
+}
+
+/** Marks a section stale so the next result repaints it no matter what. */
+function forgetPainted(key) {
+  delete paintedPayloads[key];
+}
+
+/** Fills a profile field only while nobody is typing into it. */
+function fillInputIfIdle(id, value) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  // Writing .value on a focused field jumps the caret and eats characters, so
+  // an automatic pass always leaves whatever is being edited alone.
+  if (document.activeElement === input) return;
+  if (input.value !== value) input.value = value;
+}
+
+/** True while the paginated "All Students" modal is on screen. */
+function allTraineesModalOpen() {
+  const modal = document.getElementById('all-trainees-modal');
+  return Boolean(modal) && !modal.classList.contains('hidden');
+}
+
+/** Starts the listeners that tell the refresh loop when to hold off. */
+function startInteractionTracking() {
+  const mark = () => markInteraction();
+  ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'].forEach(type => {
+    document.addEventListener(type, mark, { passive: true, capture: true });
+  });
+}
+
+async function loadDashboardData(options = {}) {
+  const background = options.background === true;
+
   // Update profile info from stored user
   if (window.currentUser) {
-    const profileNameEl = document.getElementById('coord-name');
-    if (profileNameEl) profileNameEl.value = window.currentUser.fullName || '';
-
-    const profileEmailEl = document.getElementById('coord-email');
-    if (profileEmailEl) profileEmailEl.value = window.currentUser.email || '';
-
-    const profileDeptEl = document.getElementById('coord-dept');
-    if (profileDeptEl) profileDeptEl.value = window.currentUser.department || '';
+    fillInputIfIdle('coord-name', window.currentUser.fullName || '');
+    fillInputIfIdle('coord-email', window.currentUser.email || '');
+    fillInputIfIdle('coord-dept', window.currentUser.department || '');
   }
 
   // Fetch the chart stats and the Overview card data together. They are
   // independent calls: one failing must not blank out the other.
   const [result] = await Promise.all([
     fetchAPI('/stats/coordinator'),
-    loadOverviewWidgets(),
+    loadOverviewWidgets({ background }),
   ]);
 
   if (!result || !result.success) return;
 
   const { stats, departmentBreakdown, trainees } = result.data;
+
+  // The charts are built once and the settings summary only moves when the
+  // roster does, so an unchanged payload costs nothing to skip.
+  if (!paintOnce('overview', { stats, departmentBreakdown, trainees })) return;
 
   // Store stats for chart rendering
   window.overviewStats = stats;
@@ -490,20 +586,34 @@ async function loadDashboardData() {
 // OVERVIEW: PENDING ACTIONS & RECENT ACTIVITY
 // ────────────────────────────────────────────────────────────────────────────
 
-// Latest counters from /stats/coordinator/overview. Held in memory so a local
-// action (approving or returning a journal) can move the number immediately,
-// without waiting for the next fetch to agree with the server.
-let pendingActionCounts = {
+// Defaults every payload is spread over, so a partial response can never leave
+// a counter undefined.
+const PENDING_ACTION_DEFAULTS = {
   journalReviews: 0,
   attendanceIssues: 0,
   inactiveTrainees: 0,
   missingJournals: 0,
 };
 
+const ATTENTION_TRAINEE_DEFAULTS = { late: [], inactive: [], missingJournal: [] };
+
+// Latest counters from /stats/coordinator/overview. Held in memory so a local
+// action (approving or returning a journal) can move the number immediately,
+// without waiting for the next fetch to agree with the server.
+let pendingActionCounts = { ...PENDING_ACTION_DEFAULTS };
+
 // Trainee ids behind each attention counter. The Trainees tab filters against
 // these, so clicking a counter lands on exactly the trainees it counted instead
 // of re-deriving "late" / "inactive" / "missing" a second time.
-let attentionTraineeIds = { late: [], inactive: [], missingJournal: [] };
+let attentionTraineeIds = { ...ATTENTION_TRAINEE_DEFAULTS };
+
+// Set once the cards have actually painted, so an empty first payload still
+// renders instead of being mistaken for "nothing has changed".
+let widgetsPainted = false;
+
+// The activity feed currently on screen. The counters alone cannot detect a new
+// event when every count happens to stay put.
+let paintedActivity = [];
 
 const PENDING_ACTION_ICONS = {
   journalReviews: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>',
@@ -541,28 +651,55 @@ const PENDING_ACTIONS = [
 
 /**
  * Fetches the data behind the Pending Actions and Recent Activity cards.
- * Called alongside the regular Overview load, so the existing 10s Overview
- * refresh keeps both cards current without a dedicated timer of their own.
+ * Called alongside the regular Overview load, so the Overview refresh keeps
+ * both cards current without a dedicated timer of their own.
+ *
+ * Pass `{ background: true }` from the refresh loop: a background pass reports
+ * failures by leaving the cards alone rather than swapping them for an error.
  */
-async function loadOverviewWidgets() {
+async function loadOverviewWidgets(options = {}) {
+  const background = options.background === true;
   const result = await fetchAPI('/stats/coordinator/overview');
-  renderOverviewWidgets(result);
+  renderOverviewWidgets(result, { background });
   return result;
 }
 
-function renderOverviewWidgets(result) {
+function renderOverviewWidgets(result, options = {}) {
+  const background = options.background === true;
+
   if (!result || !result.success) {
+    // A background blip must not turn working cards into an error panel; the
+    // next successful pass paints them again either way.
+    if (background) return;
+    widgetsPainted = false;
     renderPendingActionsError();
     renderRecentActivityError();
     return;
   }
 
   const data = result.data || {};
-  pendingActionCounts = { ...pendingActionCounts, ...(data.pendingActions || {}) };
-  attentionTraineeIds = { ...attentionTraineeIds, ...(data.attentionTrainees || {}) };
+  const nextCounts = { ...PENDING_ACTION_DEFAULTS, ...(data.pendingActions || {}) };
+  const nextAttention = { ...ATTENTION_TRAINEE_DEFAULTS, ...(data.attentionTrainees || {}) };
+  const nextActivity = Array.isArray(data.recentActivity) ? data.recentActivity : [];
+
+  // Compared against what is on screen rather than what was last fetched:
+  // adjustPendingAction() moves a counter locally, and the server's next
+  // answer has to be able to win that argument.
+  const alreadyShown =
+    widgetsPainted &&
+    JSON.stringify(nextCounts) === JSON.stringify(pendingActionCounts) &&
+    JSON.stringify(nextAttention) === JSON.stringify(attentionTraineeIds) &&
+    JSON.stringify(nextActivity) === JSON.stringify(paintedActivity);
+
+  if (alreadyShown) return;
+
+  widgetsPainted = true;
+  pendingActionCounts = nextCounts;
+  attentionTraineeIds = nextAttention;
+  paintedActivity = nextActivity;
 
   renderPendingActions();
-  renderRecentActivity(data.recentActivity || []);
+  renderRecentActivity(nextActivity);
 
   // A Pending Action may already have put the coordinator on the filtered
   // Trainees list before these ids arrived - re-run that filter now so the
@@ -711,6 +848,11 @@ let currentTab = null;
 
 function switchTab(tabName, options = {}) {
   const { fromHistory = false, direction = 'forward' } = options;
+
+  // Moving around the dashboard counts as using it, so the refresh loop holds
+  // off for a moment instead of repainting under the new view.
+  markInteraction();
+
   const tabs = document.querySelectorAll('.tab-content');
   tabs.forEach(tab => tab.classList.remove('active'));
 
@@ -736,6 +878,17 @@ function switchTab(tabName, options = {}) {
   const activeNavLink = document.querySelector(`.nav-link[href="#${tabName}"]`);
   if (activeNavLink) {
     activeNavLink.classList.add('active');
+  }
+
+  // Opening a view pulls it up to date straight away, so freshness comes from
+  // navigating rather than from a timer firing while the view is being read.
+  // Both are silent no-ops when the data has not moved.
+  if (tabName === 'overview') {
+    loadDashboardData();
+  }
+
+  if (tabName === 'trainees') {
+    loadTrainees();
   }
 
   // Initialize charts if on analytics tab
@@ -790,22 +943,41 @@ let traineeSort = { key: 'name', dir: 'asc' };
 // Current page of the "All Students" modal
 let allTraineesPage = 1;
 
-async function loadTrainees() {
+async function loadTrainees(options = {}) {
+  const background = options.background === true;
   const tbody = document.getElementById('trainees-table-body');
   if (!tbody) return;
 
-  tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">Loading trainees...</td></tr>';
+  // The placeholder only appears while nothing has been painted yet. Swapping
+  // visible rows for "Loading trainees..." on every pass is what made the old
+  // loop feel like it was fighting the reader.
+  if (paintedPayloads.trainees === undefined) {
+    tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">Loading trainees...</td></tr>';
+  }
 
   const result = await fetchAPI('/coordinator/trainees');
 
   if (!result || !result.success) {
+    // Best-effort in the background: a blip keeps whatever is on screen and the
+    // next pass tries again. A deliberate refresh still reports the failure,
+    // and has to clear the painted payload because it just overwrote the table.
+    if (background) return;
+
     traineesCache = [];
+    forgetPainted('trainees');
     tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">Failed to load trainees. Make sure the server is running.</td></tr>';
     updateTraineesCountLabel(0, 0);
     return;
   }
 
-  traineesCache = Array.isArray(result.data) ? result.data : [];
+  // The "All Students" modal repaginates off this list, so leave it alone until
+  // it is closed rather than throwing the coordinator back to page one.
+  if (background && allTraineesModalOpen()) return;
+
+  const data = Array.isArray(result.data) ? result.data : [];
+  if (!paintOnce('trainees', data)) return;
+
+  traineesCache = data;
   addMissingFilterOptions();
   applyTraineeFilters();
 }
@@ -1295,9 +1467,13 @@ function getJournalDate(journal, status) {
   return journal.updatedAt || journal.submittedAt;
 }
 
-async function loadCoordinatorJournals(defaultFilter = 'pending') {
+async function loadCoordinatorJournals(defaultFilter = 'pending', options = {}) {
+  const background = options.background === true;
   const journalList = document.getElementById('journal-list');
-  if (journalList) {
+
+  // The placeholder only appears while nothing has been painted yet, so opening
+  // the tab no longer blanks a list the coordinator was already reading.
+  if (journalList && paintedPayloads.journals === undefined) {
     journalList.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Loading journals...</p>';
   }
 
@@ -1307,12 +1483,48 @@ async function loadCoordinatorJournals(defaultFilter = 'pending') {
     fetchAPI('/coordinator/journals/returned')
   ]);
 
-  journalDataCache.pending = pendingResult?.success ? (pendingResult.data || []) : [];
-  journalDataCache.approved = approvedResult?.success ? (approvedResult.data || []) : [];
-  journalDataCache.returned = returnedResult?.success ? (returnedResult.data || []) : [];
+  // Best-effort in the background: a failed call must not empty a list that is
+  // already showing the right journals.
+  if (background && (
+    !pendingResult?.success || !approvedResult?.success || !returnedResult?.success
+  )) return;
+
+  const next = {
+    pending: pendingResult?.success ? (pendingResult.data || []) : [],
+    approved: approvedResult?.success ? (approvedResult.data || []) : [],
+    returned: returnedResult?.success ? (returnedResult.data || []) : [],
+  };
+
+  // Recorded on every pass, foreground included, so a deliberate refresh that
+  // found nothing new still tells the next background pass what is on screen.
+  const changed = paintOnce('journals', next);
+  if (background && !changed) return;
+
+  journalDataCache.pending = next.pending;
+  journalDataCache.approved = next.approved;
+  journalDataCache.returned = next.returned;
 
   updateJournalCounts();
-  filterJournals(null, defaultFilter);
+
+  // A deliberate load keeps its old behaviour of switching queue and starting
+  // fresh. A background pass may not do that: re-running filterJournals() would
+  // close the journal being read, every ten seconds if it had its way.
+  if (!background) {
+    filterJournals(null, defaultFilter);
+    return;
+  }
+
+  // Repaint the list only - tab, selection and the open journal stay put.
+  renderJournalList(currentJournalFilter);
+
+  // The journal under review can leave its list when somebody else acts on it;
+  // only then does the viewer get cleared.
+  const stillOpen = (journalDataCache[currentJournalFilter] || [])
+    .some(journal => journal._id === selectedJournalId);
+  if (selectedJournalId && !stillOpen) {
+    selectedJournalId = null;
+    clearJournalViewer(currentJournalFilter);
+  }
 }
 
 function updateJournalCounts() {
@@ -2416,15 +2628,40 @@ function renderNarrative(narrative) {
   `).join('');
 }
 
-async function loadAnalyticsData() {
+/**
+ * Analytics is regenerated on every request, so two fields are timestamps
+ * rather than data: `generatedAt` and `programPeriod.to`. Stripping them keeps
+ * an unchanged report from looking new. `programPeriod.label` is day-granular
+ * and still changes at midnight, which is a change worth repainting for.
+ */
+function analyticsSignature(analytics) {
+  const { generatedAt, ...rest } = analytics;
+  if (rest.programPeriod) {
+    rest.programPeriod = { ...rest.programPeriod, to: null };
+  }
+  return rest;
+}
+
+async function loadAnalyticsData(options = {}) {
+  const background = options.background === true;
   const refreshBtn = document.querySelector('#analytics .btn-ghost');
-  if (refreshBtn) refreshBtn.disabled = true;
+
+  // Background passes never grab the refresh button - disabling it on every
+  // cycle made the control flicker and blocked deliberate clicks.
+  if (refreshBtn && !background) refreshBtn.disabled = true;
 
   const result = await fetchAPI('/stats/coordinator/analytics');
 
   if (refreshBtn) refreshBtn.disabled = false;
 
   if (!result || !result.success) {
+    // Silent in the background: a toast on every blip is worse than stale
+    // numbers, and the panels keep showing the last good data. A deliberate
+    // refresh reports the failure and has to clear the painted payload,
+    // because it is about to overwrite the panels.
+    if (background) return;
+
+    forgetPainted('analytics');
     updateAnalyticsSummary({}, { conceptWindowDays: 30 }, {});
     renderAttentionList([]);
     renderNarrative([]);
@@ -2433,6 +2670,9 @@ async function loadAnalyticsData() {
   }
 
   const analytics = result.data || {};
+  const changed = paintOnce('analytics', analyticsSignature(analytics));
+  if (background && !changed) return;
+
   window.analyticsData = analytics;
 
   setAnalyticsText('analytics-generated-at', `Generated ${analyticsDateTime(analytics.generatedAt)}`);
@@ -2743,27 +2983,46 @@ function closeSidebarOnMobile() {
 
 let coordinatorRealtimeTimer = null;
 
+/**
+ * Keeps whatever tab is on screen current.
+ *
+ * The loop wakes every REFRESH_TICK_MS but only does work once REFRESH_MIN_GAP_MS
+ * has passed AND the coordinator has stopped interacting. A refresh postponed
+ * by a click or a scroll is retried on a later tick rather than lost, so the
+ * view stays fresh without anything repainting while it is being read.
+ */
 function startCoordinatorRealtimeUpdates() {
   if (coordinatorRealtimeTimer) clearInterval(coordinatorRealtimeTimer);
 
+  lastRefreshAt = Date.now();
+
   coordinatorRealtimeTimer = setInterval(async () => {
     if (document.hidden) return;
+    if (Date.now() - lastRefreshAt < REFRESH_MIN_GAP_MS) return;
+    if (!interactionSettled()) return;
 
     const activeTab = document.querySelector('.tab-content.active')?.id;
+
+    // The "All Students" modal paginates off this same list, so a refresh under
+    // it would throw the coordinator back to page one. Wait until it closes.
+    if (activeTab === 'trainees' && allTraineesModalOpen()) return;
+
+    lastRefreshAt = Date.now();
+
     try {
       if (activeTab === 'overview') {
-        await loadDashboardData();
+        await loadDashboardData({ background: true });
       } else if (activeTab === 'trainees') {
-        await loadTrainees();
+        await loadTrainees({ background: true });
       } else if (activeTab === 'journal-review') {
-        await loadCoordinatorJournals(currentJournalFilter);
+        await loadCoordinatorJournals(currentJournalFilter, { background: true });
       } else if (activeTab === 'analytics') {
-        await loadAnalyticsData();
+        await loadAnalyticsData({ background: true });
       }
     } catch (error) {
       console.error('Coordinator real-time update failed:', error);
     }
-  }, 10000);
+  }, REFRESH_TICK_MS);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2785,6 +3044,9 @@ function logout() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeTheme();
+  // Tells the refresh loop when the coordinator is mid-click, mid-scroll or
+  // mid-typing so it can wait instead of repainting underneath them.
+  startInteractionTracking();
   // Load user data and populate dashboard
   loadDashboardData();
 
