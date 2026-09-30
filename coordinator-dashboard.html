@@ -519,28 +519,28 @@
       </div>
 
       <!-- Trainee Progress -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="glass-card p-6">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8 analytics-progress-grid">
+        <div class="glass-card p-6 lg:col-span-3">
           <h3 class="font-display font-700 mb-2">Trainee Progress — Completed vs Required Hours</h3>
           <p class="text-xs text-slate-500 mb-6">Top trainees ranked by supervisor-verified hours.</p>
-          <div class="chart-frame chart-frame--bars chart-frame--tall chart-frame--h">
+          <div class="chart-frame chart-frame--bars chart-frame--tall chart-frame--h chart-frame--compact">
             <canvas id="traineeProgressChart"></canvas>
           </div>
         </div>
-        <div class="glass-card p-6">
+        <div class="glass-card p-6 lg:col-span-2">
           <h3 class="font-display font-700 mb-2">Hours Rendered per Trainee</h3>
           <p class="text-xs text-slate-500 mb-6">Highest verified hour totals (top 8).</p>
-          <div class="chart-frame chart-frame--bars chart-frame--tall chart-frame--h">
+          <div class="chart-frame chart-frame--bars chart-frame--tall chart-frame--h chart-frame--compact">
             <canvas id="hoursChart"></canvas>
           </div>
         </div>
       </div>
 
       <!-- Trainee Progress Details -->
-      <div class="glass-card p-6 mb-8">
+      <div class="glass-card p-6 mb-8 trainee-progress-card">
         <h3 class="font-display font-700 mb-2">Trainee Progress Details</h3>
         <p class="text-xs text-slate-500 mb-6">Each trainee's completed and remaining required OJT hours. Activity Status is derived from the attendance history — a trainee is marked INACTIVE after missing 3 consecutive OJT days without a time in.</p>
-        <div class="analytics-table-wrap">
+        <div class="analytics-table-wrap trainee-progress-table">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-white/10">
@@ -566,17 +566,18 @@
       </div>
 
       <!-- Performance Appraisals -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div class="glass-card p-6">
+      <div class="grid grid-cols-1 xl:grid-cols-5 gap-6 mb-8 analytics-appraisal-grid">
+        <div class="glass-card p-6 xl:col-span-2">
           <h3 class="font-display font-700 mb-2">Performance Distribution</h3>
           <p class="text-xs text-slate-500 mb-6">Trainees per appraisal rating band.</p>
           <div style="position: relative; height: 280px;">
             <canvas id="performanceChart"></canvas>
           </div>
         </div>
-        <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-6">Appraisal Summary</h3>
-          <div class="analytics-stat-list">
+        <div class="glass-card p-6 xl:col-span-3">
+          <h3 class="font-display font-700 mb-2">Appraisal Summary</h3>
+          <p class="text-xs text-slate-500 mb-6">Key appraisal totals — average score, rated coverage and the most recent appraisal.</p>
+          <div class="analytics-stat-list appraisal-summary-list">
             <div class="analytics-stat-row">
               <span>Average Performance</span>
               <span id="analytics-performance-avg" class="font-semibold text-teal-400">—</span>
@@ -599,12 +600,16 @@
             </div>
           </div>
         </div>
-        <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-2">Top Performers</h3>
-          <p class="text-xs text-slate-500 mb-6">Highest supervisor appraisal ratings.</p>
-          <div class="space-y-3" id="top-performers-list">
-            <p class="text-slate-500 text-sm text-center py-4">Loading appraisals...</p>
+      </div>
+      <div class="glass-card p-6 mb-8">
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-2">
+          <div>
+            <h3 class="font-display font-700 mb-2">Top Performers</h3>
+            <p class="text-xs text-slate-500 mb-6">Highest supervisor appraisal ratings.</p>
           </div>
+        </div>
+        <div class="top-performers-grid" id="top-performers-list">
+          <p class="text-slate-500 text-sm text-center py-4">Loading appraisals...</p>
         </div>
       </div>
 

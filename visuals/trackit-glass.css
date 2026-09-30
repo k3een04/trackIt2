@@ -348,6 +348,80 @@ body.light-mode .tab-back-btn:disabled {
   color: var(--tk-text-faint);
 }
 
+/* ── 5b. COORDINATOR ANALYTICS — appraisal + trainee-progress sections ──── */
+/* Fixes two reported layout problems without touching data or chart types:
+   (1) the Appraisal Summary column was one third of a 3-up row, so long rows
+   such as "Most Recent Appraisal" wrapped/cramped; it now spans 3 of 5 grid
+   columns on wide screens with roomy two-column stat rows. (2) the Trainee
+   Progress charts + 12-column details table forced a page-level zoom-out;
+   charts get a denser 3/2 split with compact frames, and the table scrolls
+   inside its own card (sticky first column) instead of widening the page. */
+
+body .analytics-appraisal-grid,
+body .analytics-progress-grid { align-items: stretch; }
+
+body .appraisal-summary-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body .appraisal-summary-list .analytics-stat-row {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+body .appraisal-summary-list .analytics-stat-row span:first-child {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body .appraisal-summary-list .analytics-stat-row span:last-child {
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+body .top-performers-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+body .top-performers-grid > p { grid-column: 1 / -1; }
+
+body .trainee-progress-card { overflow: hidden; }
+
+body .trainee-progress-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 420px;
+}
+
+body .trainee-progress-table > table { min-width: 1080px; }
+
+body .trainee-progress-table thead th:first-child,
+body .trainee-progress-table tbody td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+body .trainee-progress-table thead th:first-child { background: var(--tk-surface-2); }
+body .trainee-progress-table tbody td:first-child { background: var(--tk-surface-1); }
+
+@media (max-width: 1280px) {
+  body .top-performers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1024px) {
+  body .appraisal-summary-list { grid-template-columns: 1fr; }
+  body .top-performers-grid { grid-template-columns: 1fr; }
+  body .trainee-progress-table { max-height: 360px; }
+}
+
 /* Empty states read as a quiet inset surface rather than plain text. */
 body .notif-empty,
 body .analytics-empty,
