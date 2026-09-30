@@ -1330,6 +1330,12 @@ function selectJournal(element, journalId) {
 
   const viewer = document.getElementById('supervisor-journal-viewer');
   
+  // Re-trigger animation on content change
+  viewer.classList.remove('supervisor-journal-viewer');
+  requestAnimationFrame(() => {
+    viewer.classList.add('supervisor-journal-viewer');
+  });
+
   // Find the selected journal data from the list
   fetchAPI(`/journal/${journalId}`).then(journalResult => {
     if (!journalResult || !journalResult.success) {
@@ -1364,44 +1370,6 @@ function selectJournal(element, journalId) {
           </div>
         </div>
 
-        ${journal.narrative && journal.narrative.trim() ? `
-          <div class="glass-card p-4 bg-white/5 border-l-4 border-teal-400 mb-6">
-            <p class="text-xs text-slate-400 mb-2">JOURNAL ENTRY</p>
-            <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${journal.narrative}</p>
-          </div>
-        ` : journal.summary ? `
-          <div class="glass-card p-4 bg-white/5 border-l-4 border-teal-400 mb-6">
-            <p class="text-xs text-slate-400 mb-2">AI-GENERATED SUMMARY</p>
-            <p class="text-sm text-slate-200">${journal.summary}</p>
-          </div>
-        ` : `
-          <div class="glass-card p-4 bg-slate-600/20 border-l-4 border-slate-500 mb-6">
-            <p class="text-xs text-slate-400 mb-2">JOURNAL ENTRY</p>
-            <p class="text-sm text-slate-300">No entry content available</p>
-          </div>
-        `}
-
-        ${journal.concepts && journal.concepts.length > 0 ? `
-          <div class="mb-6">
-            <h4 class="font-semibold mb-3">Concepts Applied</h4>
-            <div class="space-y-2">
-              ${journal.concepts.map(concept => `
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" checked disabled class="w-4 h-4 accent-teal-400">
-                  <span class="text-sm">${concept}</span>
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        ${!isSigned ? `
-          <div class="mb-6">
-            <label class="block text-sm font-semibold mb-3">Supervisor Remarks (Optional)</label>
-            <textarea id="journal-remarks" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" rows="3" placeholder="Add your remarks here..."></textarea>
-          </div>
-        ` : ''}
-
         ${journal.identifiedTheories && journal.identifiedTheories.length > 0 ? `
           <div class="mb-6">
             <h4 class="font-semibold mb-3">Identified Theories</h4>
@@ -1420,6 +1388,37 @@ function selectJournal(element, journalId) {
                 `;
               }).join('')}
             </div>
+          </div>
+        ` : ''}
+
+        ${journal.narrative && journal.narrative.trim() ? `
+          <div class="glass-card p-4 bg-white/5 border-l-4 border-teal-400 mb-6">
+            <p class="text-xs text-slate-400 mb-2">JOURNAL ENTRY</p>
+            <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${journal.narrative}</p>
+          </div>
+        ` : journal.summary ? `
+          <div class="glass-card p-4 bg-white/5 border-l-4 border-teal-400 mb-6">
+            <p class="text-xs text-slate-400 mb-2">AI-GENERATED SUMMARY</p>
+            <p class="text-sm text-slate-200">${journal.summary}</p>
+          </div>
+        ` : `
+          <div class="glass-card p-4 bg-slate-600/20 border-l-4 border-slate-500 mb-6">
+            <p class="text-xs text-slate-400 mb-2">JOURNAL ENTRY</p>
+            <p class="text-sm text-slate-300">No entry content available</p>
+          </div>
+        `}
+
+        ${journal.supervisorRemarks ? `
+          <div class="glass-card p-4 bg-white/5 border-l-4 border-amber-400 mb-6">
+            <p class="text-xs text-slate-400 mb-2">SUPERVISOR REMARKS</p>
+            <p class="text-sm text-slate-200">${escapeHtml(journal.supervisorRemarks)}</p>
+          </div>
+        ` : ''}
+
+        ${!isSigned ? `
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-3">Supervisor Remarks (Optional)</label>
+            <textarea id="journal-remarks" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" rows="3" placeholder="Add your remarks here..."></textarea>
           </div>
         ` : ''}
 

@@ -408,6 +408,26 @@ nav {
   color: #00c8aa;
 }
 
+/* Journal Review Viewer */
+.supervisor-journal-viewer {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.supervisor-journal-viewer > div {
+  animation: journalViewerEnter 0.35s ease;
+}
+
+@keyframes journalViewerEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Journal item */
 .journal-item {
   padding: 12px;
