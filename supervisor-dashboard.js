@@ -1915,14 +1915,18 @@ async function saveGeofenceLocation(event) {
 
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
-  sidebar.classList.toggle('open');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen = sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('visible', isOpen);
 }
 
 // Close sidebar when a nav link is clicked on mobile
 function closeSidebarOnMobile() {
   if (window.innerWidth <= 768) {
     const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
     sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('visible');
   }
 }
 
