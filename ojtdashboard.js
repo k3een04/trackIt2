@@ -2742,7 +2742,7 @@ function toggleSidebar() {
 
 function closeSidebarOnMobile() {
   if (window.innerWidth <= 768) {
-    const sidebar = document.query('.sidebar');
+    const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('sidebar-overlay');
     sidebar.classList.remove('open');
     if (overlay) overlay.classList.remove('visible');
