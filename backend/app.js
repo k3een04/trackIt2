@@ -141,6 +141,11 @@ app.get('/visuals/trackit-glass.css', (req, res) => {
 app.get('/visuals/trackit-calendar.css', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'visuals', 'trackit-calendar.css'));
 });
+// Verification workflow stylesheet shared by the OJT, supervisor and
+// coordinator dashboards.
+app.get('/visuals/verification-modal.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'verification-modal.css'));
+});
 app.get('/landingpage.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'landingpage.js'));
 });
@@ -159,6 +164,11 @@ app.get('/chart-theme.js', (req, res) => {
 // Reusable date/month picker; both dashboards load it before their page script.
 app.get('/trackit-calendar.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'trackit-calendar.js'));
+});
+// Verification workflow module; must load before any dashboard script that
+// calls window.VerificationModal.
+app.get('/verification-modal.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'verification-modal.js'));
 });
 app.get('/coordinator-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'coordinator-dashboard.js'));
