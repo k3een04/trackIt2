@@ -149,18 +149,27 @@ async function dismissNotification(id) {
 }
 
 /** "Clear all" - permanently deletes every notification for this user. */
-async function deleteAllNotifications() {
+function deleteAllNotifications() {
   if (supervisorNotifications.length === 0) return;
-  if (!confirm('Clear all notifications? This cannot be undone.')) return;
-  try {
-    await fetchAPI('/notifications', { method: 'DELETE' });
-  } catch (error) {
-    console.error('Error clearing notifications:', error);
-  }
-  supervisorNotifications = [];
-  notifUnreadCount = 0;
-  renderNotificationList();
-  updateNotifBadge();
+
+  VerificationModal.open({
+    type: 'confirm',
+    title: 'Clear All Notifications',
+    description: 'Every notification for this account will be permanently removed.',
+    warning: 'This cannot be undone.',
+    confirmLabel: 'Clear Notifications',
+    onConfirm: async () => {
+      try {
+        await fetchAPI('/notifications', { method: 'DELETE' });
+      } catch (error) {
+        console.error('Error clearing notifications:', error);
+      }
+      supervisorNotifications = [];
+      notifUnreadCount = 0;
+      renderNotificationList();
+      updateNotifBadge();
+    },
+  });
 }
 
 function updateNotifBadge() {
@@ -802,7 +811,7 @@ function closeTraineeDetail() {
 function saveTraineeNotes(traineeId) {
   const notes = document.getElementById('trainee-notes')?.value || '';
   console.log(`Saving notes for trainee ${traineeId}:`, notes);
-  alert('Trainee notes saved successfully');
+  showNotification('Success', 'Trainee notes saved successfully', 'success');
 }
 
 async function rateTrainee(traineeId, rating) {
@@ -835,16 +844,16 @@ async function rateTrainee(traineeId, rating) {
       }
       console.log(`Rating ${rating} submitted for trainee ${traineeId}`);
     } else {
-      alert('Failed to submit rating. Please try again.');
+      showNotification('Error', 'Failed to submit rating. Please try again.', 'error');
     }
   } catch (error) {
     console.error('Error submitting rating:', error);
-    alert('Error submitting rating. Please try again.');
+    showNotification('Error', 'Error submitting rating. Please try again.', 'error');
   }
 }
 
 function messageTrainee(traineeId) {
-  alert('Messaging feature - Open messaging dialog');
+  showNotification('Notice', 'Messaging feature - Open messaging dialog', 'info');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -860,12 +869,12 @@ async function loadDTRData() {
     console.log('DTR Load - Month Picker Value:', monthPicker?.value);
     
     if (!traineeSelect?.value) {
-      alert('Please select a trainee from the dropdown');
+      showNotification('Error', 'Please select a trainee from the dropdown', 'error');
       return;
     }
 
     if (!monthPicker?.value) {
-      alert('Please select a month');
+      showNotification('Error', 'Please select a month', 'error');
       return;
     }
 
@@ -881,13 +890,13 @@ async function loadDTRData() {
     
     if (!result) {
       console.error('No response from API - backend may not be running');
-      alert('Failed to load DTR data.\n\nThe backend server may not be running. Please:\n1. Make sure the backend is running (npm start in /backend)\n2. Refresh the page\n3. Try again');
+      showNotification('Error', 'Failed to load DTR data.\n\nThe backend server may not be running. Please:\n1. Make sure the backend is running (npm start in /backend)\n2. Refresh the page\n3. Try again', 'error');
       return;
     }
 
     if (!result.success) {
       console.error('DTR API Error:', result);
-      alert('Failed to load DTR data.\n\nError: ' + (result?.message || 'Unknown error') + '\n\nIf you see "route not found", restart the backend server.');
+      showNotification('Error', 'Failed to load DTR data.\n\nError: ' + (result?.message || 'Unknown error') + '\n\nIf you see "route not found", restart the backend server.', 'error');
       return;
     }
 
@@ -997,7 +1006,7 @@ async function loadDTRData() {
     document.getElementById('summary-total-hours').textContent = summary.totalHours;
   } catch (error) {
     console.error('Error loading DTR data:', error);
-    alert('An error occurred while loading DTR data');
+    showNotification('Error', 'An error occurred while loading DTR data', 'error');
   }
 }
 
@@ -1200,16 +1209,34 @@ function verifySelectedDTR() {
 
 function flagDTREntry() {
   const checkboxes = document.querySelectorAll('#dtr-table-body input[type="checkbox"]:checked');
-  
+
   if (checkboxes.length === 0) {
-    alert('Please select at least one DTR entry to flag');
+    showNotification('No entries selected', 'Please select at least one DTR entry to flag.', 'info');
     return;
   }
 
-  const reason = prompt('Enter reason for flagging:');
-  if (reason) {
-    alert(`${checkboxes.length} DTR entry/entries flagged with reason: ${reason}\n\nNote: Flag functionality can be implemented in the remarks field.`);
-  }
+  const count = checkboxes.length;
+
+  VerificationModal.open({
+    type: 'prompt',
+    title: 'Flag DTR Entries',
+    description: `${count} DTR ${count === 1 ? 'entry' : 'entries'} will be flagged for review.`,
+    input: {
+      label: 'Reason for flagging',
+      placeholder: 'Describe why these entries need attention...',
+      required: true,
+      requiredMessage: 'Please enter a reason for flagging.',
+      hint: 'The reason is shown alongside the flagged entries.',
+    },
+    confirmLabel: 'Flag Entries',
+    onConfirm: (reason) => {
+      showNotification(
+        'Entries flagged',
+        `${count} DTR entry/entries flagged with reason: ${reason}. Note: Flag functionality can be implemented in the remarks field.`,
+        'info'
+      );
+    },
+  });
 }
 
 function verifyAllAndSign() {
@@ -1252,7 +1279,7 @@ function verifyAllAndSign() {
 }
 
 function downloadDTRPDF() {
-  alert('Downloading DTR as PDF...\nFile: DTR_' + (window.currentUser?.fullName || 'Trainee') + '_' + new Date().toISOString().slice(0, 7) + '.pdf');
+  showNotification('Notice', 'Downloading DTR as PDF...\nFile: DTR_' + (window.currentUser?.fullName || 'Trainee') + '_' + new Date().toISOString().slice(0, 7) + '.pdf', 'info');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1583,10 +1610,20 @@ function closeJournalViewer() {
 }
 
 function returnJournalForRevision(journalId) {
-  const feedback = prompt('Enter feedback for revision:');
-  if (feedback) {
-    rejectJournal(journalId, feedback);
-  }
+  VerificationModal.open({
+    type: 'prompt',
+    title: 'Return for Revision',
+    description: 'Explain what needs to be revised before this journal can be signed.',
+    input: {
+      label: 'Feedback for revision',
+      placeholder: 'Describe the changes the trainee should make...',
+      required: true,
+      requiredMessage: 'Please enter feedback for revision.',
+      hint: 'This feedback is stored with the returned journal.',
+    },
+    confirmLabel: 'Return for Revision',
+    onConfirm: (feedback) => rejectJournal(journalId, feedback),
+  });
 }
 
 function verifyAndSignJournal(journalId) {
@@ -1740,7 +1777,7 @@ function calculateOverallRating() {
 }
 
 function saveDraftAppraisal() {
-  alert('Appraisal saved as draft');
+  showNotification('Success', 'Appraisal saved as draft', 'success');
 }
 
 function submitAppraisal(event) {
@@ -1775,7 +1812,7 @@ function submitAppraisal(event) {
 }
 
 function downloadAppraisalPDF(month) {
-  alert(`Downloading appraisal for ${month}...\nFile: Appraisal_JohnDoe_${month.toUpperCase()}2026.pdf`);
+  showNotification('Notice', `Downloading appraisal for ${month}...\nFile: Appraisal_JohnDoe_${month.toUpperCase()}2026.pdf`, 'info');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1788,14 +1825,14 @@ function markAllNotificationsRead() {
     const dot = item.querySelector('.unread-dot');
     if (dot) dot.remove();
   });
-  alert('All notifications marked as read');
+  showNotification('Success', 'All notifications marked as read', 'success');
 }
 
 function filterSupervisorNotifications(type) {
   const tabs = document.querySelectorAll('.filter-tab');
   tabs.forEach(tab => tab.classList.remove('active'));
   event.target.classList.add('active');
-  alert(`Filtering notifications: ${type}`);
+  showNotification('Notice', `Filtering notifications: ${type}`, 'info');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1927,17 +1964,17 @@ async function changeSupervisorPassword(event) {
   const confirm = document.getElementById('sup-confirm-pass').value;
 
   if (!current || !newPass || !confirm) {
-    alert('Please fill all password fields');
+    showNotification('Error', 'Please fill all password fields', 'error');
     return;
   }
 
   if (newPass !== confirm) {
-    alert('Passwords do not match');
+    showNotification('Error', 'Passwords do not match', 'error');
     return;
   }
 
   if (newPass.length < 6) {
-    alert('New password must be at least 6 characters');
+    showNotification('Error', 'New password must be at least 6 characters', 'error');
     return;
   }
 
@@ -1962,7 +1999,7 @@ async function changeSupervisorPassword(event) {
 }
 
 function saveSupervisorPreferences() {
-  alert('Notification preferences saved!');
+  showNotification('Success', 'Notification preferences saved!', 'success');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2104,12 +2141,18 @@ function closeSidebarOnMobile() {
 // ────────────────────────────────────────────────────────────────────────────
 
 function logout() {
-  if (confirm('Are you sure you want to logout?')) {
-    localStorage.removeItem('trackit_token');
-    localStorage.removeItem('trackit_user');
-    localStorage.removeItem('trackit_current_tab');
-    window.location.href = 'loginpage.html';
-  }
+  VerificationModal.open({
+    type: 'confirm',
+    title: 'Log Out',
+    description: 'You will be signed out of TrackIT on this device.',
+    confirmLabel: 'Log Out',
+    onConfirm: () => {
+      localStorage.removeItem('trackit_token');
+      localStorage.removeItem('trackit_user');
+      localStorage.removeItem('trackit_current_tab');
+      window.location.href = 'loginpage.html';
+    },
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2371,7 +2414,7 @@ async function saveTraineeSchedule(event) {
 /**
  * Clear trainee schedule
  */
-async function clearTraineeSchedule() {
+function clearTraineeSchedule() {
   const select = document.getElementById('schedule-trainee-select');
   const traineeId = select.value;
 
@@ -2380,27 +2423,31 @@ async function clearTraineeSchedule() {
     return;
   }
 
-  if (!confirm('Are you sure you want to clear this trainee\'s schedule?')) {
-    return;
-  }
+  VerificationModal.open({
+    type: 'confirm',
+    title: 'Clear Trainee Schedule',
+    description: 'All scheduled shifts for this trainee will be permanently removed.',
+    warning: 'This cannot be undone.',
+    confirmLabel: 'Clear Schedule',
+    onConfirm: async () => {
+      try {
+        const response = await fetchAPI(`/supervisor/schedule/${traineeId}`, {
+          method: 'DELETE',
+        });
 
-  try {
-    const response = await fetchAPI(`/supervisor/schedule/${traineeId}`, {
-      method: 'DELETE',
-    });
+        if (!response || !response.success) {
+          throw new Error(response?.message || 'Failed to clear schedule');
+        }
 
-    if (!response || !response.success) {
-      showNotification('Error', response?.message || 'Failed to clear schedule', 'error');
-      return;
-    }
-
-    showNotification('Success', '✓ Schedule cleared successfully', 'success');
-    clearScheduleFields();
-    await loadScheduleTraineeList(); // Refresh list
-  } catch (error) {
-    console.error('[Schedule Manager] Error clearing schedule:', error);
-    showNotification('Error', 'Failed to clear schedule', 'error');
-  }
+        showNotification('Success', '✓ Schedule cleared successfully', 'success');
+        clearScheduleFields();
+        await loadScheduleTraineeList(); // Refresh list
+      } catch (error) {
+        console.error('[Schedule Manager] Error clearing schedule:', error);
+        throw error;
+      }
+    },
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────

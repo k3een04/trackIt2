@@ -561,3 +561,105 @@
     transform: none;
   }
 }
+
+/* -- prompt (text entry) --------------------------------------------------- */
+
+.vm__field {
+  margin-bottom: 4px;
+  text-align: left;
+}
+
+.vm__label {
+  display: block;
+  margin: 0 0 8px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+/* Scoped to the modal root and flagged !important because both dashboard
+   stylesheets force `body.light-mode input/textarea` to white with !important -
+   that would punch a light field into the dark modal surface. */
+#verification-modal-root .vm__input {
+  display: block;
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #e2e8f0 !important;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  resize: vertical;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+#verification-modal-root .vm__input::placeholder {
+  color: #64748b !important;
+}
+
+#verification-modal-root .vm__input:focus {
+  outline: none;
+  border-color: #00c8aa;
+  background: rgba(0, 200, 170, 0.06) !important;
+}
+
+#verification-modal-root .vm__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vm__hint {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.vm__input-error {
+  margin: 8px 0 0;
+  padding: 8px 11px;
+  border-left: 3px solid #ef4444;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #fca5a5;
+}
+
+.vm__input-error[hidden] {
+  display: none;
+}
+
+/* Busy primary button: label is swapped for a small in-button spinner. */
+
+.vm__btn--primary.is-busy {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.vm__btn--primary.is-busy::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(4, 20, 15, 0.3);
+  border-top-color: #04140f;
+  border-radius: 50%;
+  animation: vm-spin 0.7s linear infinite;
+}
+
+/* Reduced motion: the busy indicator pulses instead of spinning. */
+@media (prefers-reduced-motion: reduce) {
+  .vm__btn--primary.is-busy::after {
+    border: none;
+    background: #04140f;
+    animation: vm-pulse 1.4s ease-in-out infinite;
+  }
+}

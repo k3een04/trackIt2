@@ -178,18 +178,27 @@ async function dismissNotification(id) {
 }
 
 /** "Clear all" - permanently deletes every notification for this user. */
-async function deleteAllNotifications() {
+function deleteAllNotifications() {
   if (coordinatorNotifications.length === 0) return;
-  if (!confirm('Clear all notifications? This cannot be undone.')) return;
-  try {
-    await fetchAPI('/notifications', { method: 'DELETE' });
-  } catch (error) {
-    console.error('Error clearing notifications:', error);
-  }
-  coordinatorNotifications = [];
-  notifUnreadCount = 0;
-  renderNotificationList();
-  updateNotifBadge();
+
+  VerificationModal.open({
+    type: 'confirm',
+    title: 'Clear All Notifications',
+    description: 'Every notification for this account will be permanently removed.',
+    warning: 'This cannot be undone.',
+    confirmLabel: 'Clear Notifications',
+    onConfirm: async () => {
+      try {
+        await fetchAPI('/notifications', { method: 'DELETE' });
+      } catch (error) {
+        console.error('Error clearing notifications:', error);
+      }
+      coordinatorNotifications = [];
+      notifUnreadCount = 0;
+      renderNotificationList();
+      updateNotifBadge();
+    },
+  });
 }
 
 function updateNotifBadge() {
@@ -1086,7 +1095,7 @@ async function confirmAssignSupervisor() {
   const supervisorId = document.getElementById('supervisor-select').value;
 
   if (!supervisorId) {
-    alert('Please select a supervisor');
+    showNotification('Error', 'Please select a supervisor', 'error');
     return;
   }
 
@@ -1103,11 +1112,11 @@ async function confirmAssignSupervisor() {
   btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Assign`;
 
   if (result && result.success) {
-    alert(result.message);
+    showNotification('Error', result.message, 'error');
     closeAssignModal();
     loadTrainees(); // Refresh the table
   } else {
-    alert(result?.message || 'Failed to assign supervisor');
+    showNotification('Error', result?.message || 'Failed to assign supervisor', 'error');
   }
 }
 
@@ -1412,7 +1421,7 @@ function setupFilterListeners() {
 }
 
 function viewTraineeProfile(traineeId) {
-  alert(`Viewing profile for trainee: ${traineeId}`);
+  showNotification('Notice', `Viewing profile for trainee: ${traineeId}`, 'info');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1723,9 +1732,24 @@ function selectJournal(element, journalId, status = currentJournalFilter) {
   `;
 }
 
-async function approveJournal(journalId) {
-  const remarks = prompt('Optional approval remarks:') || '';
+function approveJournal(journalId) {
+  VerificationModal.open({
+    type: 'prompt',
+    title: 'Approve Journal',
+    description: 'Approve this journal. You can add optional remarks for the record.',
+    input: {
+      label: 'Approval remarks (optional)',
+      placeholder: 'Add a note about this approval...',
+      required: false,
+      multiline: false,
+      hint: 'Leave blank to approve without remarks.',
+    },
+    confirmLabel: 'Approve Journal',
+    onConfirm: (remarks) => runApproveJournal(journalId, remarks || ''),
+  });
+}
 
+async function runApproveJournal(journalId, remarks) {
   const result = await fetchAPI(`/coordinator/journals/${journalId}/approve`, {
     method: 'POST',
     body: JSON.stringify({ remarks })
@@ -1743,15 +1767,30 @@ async function approveJournal(journalId) {
   await loadCoordinatorJournals('pending');
 }
 
-async function returnJournal(journalId) {
-  const feedback = prompt('Enter feedback for supervisor:');
-  if (!feedback || !feedback.trim()) {
-    return;
-  }
+function returnJournal(journalId) {
+  VerificationModal.open({
+    type: 'prompt',
+    title: 'Return Journal',
+    description: 'Send this journal back to the supervisor with feedback.',
+    input: {
+      label: 'Feedback for the supervisor',
+      placeholder: 'Describe what needs to change...',
+      required: true,
+      requiredMessage: 'Please enter feedback for the supervisor.',
+      hint: 'The supervisor sees this feedback with the returned journal.',
+    },
+    confirmLabel: 'Return Journal',
+    onConfirm: (feedback) => runReturnJournal(journalId, feedback),
+  });
+}
+
+async function runReturnJournal(journalId, feedback) {
+  const trimmed = (feedback || '').trim();
+  if (!trimmed) return;
 
   const result = await fetchAPI(`/coordinator/journals/${journalId}/reject`, {
     method: 'POST',
-    body: JSON.stringify({ remarks: feedback.trim() })
+    body: JSON.stringify({ remarks: trimmed })
   });
 
   if (!result || !result.success) {
@@ -1765,7 +1804,7 @@ async function returnJournal(journalId) {
 }
 
 function downloadJournal(journalId) {
-  alert(`Downloading journal: ${journalId}.pdf`);
+  showNotification('Notice', `Downloading journal: ${journalId}.pdf`, 'info');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2904,14 +2943,14 @@ function markAllRead() {
     const dot = item.querySelector('.unread-dot');
     if (dot) dot.remove();
   });
-  alert('All notifications marked as read');
+  showNotification('Success', 'All notifications marked as read', 'success');
 }
 
 function filterNotifications(type) {
   const tabs = document.querySelectorAll('.filter-tab');
   tabs.forEach(tab => tab.classList.remove('active'));
   event.target.classList.add('active');
-  alert(`Filtering notifications: ${type}`);
+  showNotification('Notice', `Filtering notifications: ${type}`, 'info');
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2921,7 +2960,7 @@ function filterNotifications(type) {
 function saveCoordinatorProfile(event) {
   event.preventDefault();
   const name = document.getElementById('coord-name').value;
-  alert(`Profile updated!\nName: ${name}`);
+  showNotification('Success', `Profile updated!\nName: ${name}`, 'success');
 }
 
 async function changeCoordinatorPassword(event) {
@@ -2931,17 +2970,17 @@ async function changeCoordinatorPassword(event) {
   const confirm = document.getElementById('coord-confirm-pass').value;
 
   if (!current || !newPass || !confirm) {
-    alert('Please fill all password fields');
+    showNotification('Error', 'Please fill all password fields', 'error');
     return;
   }
 
   if (newPass !== confirm) {
-    alert('Passwords do not match');
+    showNotification('Error', 'Passwords do not match', 'error');
     return;
   }
 
   if (newPass.length < 6) {
-    alert('New password must be at least 6 characters');
+    showNotification('Error', 'New password must be at least 6 characters', 'error');
     return;
   }
 
@@ -2958,10 +2997,10 @@ async function changeCoordinatorPassword(event) {
   btn.textContent = 'Update Password';
 
   if (result && result.success) {
-    alert('Password changed successfully!');
+    showNotification('Success', 'Password changed successfully!', 'success');
     document.getElementById('coord-password-form').reset();
   } else {
-    alert(result?.message || 'Failed to change password. Please try again.');
+    showNotification('Error', result?.message || 'Failed to change password. Please try again.', 'error');
   }
 }
 
@@ -3034,12 +3073,18 @@ function startCoordinatorRealtimeUpdates() {
 // ────────────────────────────────────────────────────────────────────────────
 
 function logout() {
-  if (confirm('Are you sure you want to logout?')) {
-    localStorage.removeItem('trackit_token');
-    localStorage.removeItem('trackit_user');
-    localStorage.removeItem('trackit_current_tab');
-    window.location.href = 'loginpage.html';
-  }
+  VerificationModal.open({
+    type: 'confirm',
+    title: 'Log Out',
+    description: 'You will be signed out of TrackIT on this device.',
+    confirmLabel: 'Log Out',
+    onConfirm: () => {
+      localStorage.removeItem('trackit_token');
+      localStorage.removeItem('trackit_user');
+      localStorage.removeItem('trackit_current_tab');
+      window.location.href = 'loginpage.html';
+    },
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────

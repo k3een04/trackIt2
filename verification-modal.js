@@ -56,7 +56,10 @@
     warn:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
       '<path d="M10.3 3.9L1.9 18a2 2 0 001.7 3h16.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>' +
-      '<path d="M12 9v4"/><path d="M12 17h.01"/></svg>'
+      '<path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    edit:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+      '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
   };
 
   var PRESETS = {
@@ -133,6 +136,61 @@
         text: 'TrackIT could not complete the signing. Please try again.',
         retryLabel: 'Try Again'
       }
+    },
+
+    // Non-signing confirmations (logout, clear notifications, clear schedule).
+    // Used with mode:'immediate' - confirm runs the action and closes, so no
+    // success ceremony is ever shown.
+    confirm: {
+      mode: 'immediate',
+      title: 'Are you sure?',
+      subtitle: 'Please review this action before continuing.',
+      description: '',
+      warning: '',
+      confirmLabel: 'Confirm',
+      loading: {
+        title: 'Processing...',
+        text: 'Please wait while TrackIT completes this action.'
+      },
+      success: {
+        title: 'Done',
+        text: 'The action completed successfully.',
+        badge: '',
+        doneLabel: 'Done'
+      },
+      error: {
+        title: 'Action Failed',
+        text: 'TrackIT could not complete this action. Please try again.',
+        retryLabel: 'Try Again'
+      }
+    },
+
+    // Text-entry dialogs that replace the browser's native prompt().
+    prompt: {
+      mode: 'prompt',
+      title: 'Provide Details',
+      subtitle: 'Please review this action before continuing.',
+      description: '',
+      warning: '',
+      confirmLabel: 'Submit',
+      input: {
+        label: 'Details',
+        placeholder: '',
+        value: '',
+        hint: '',
+        required: false,
+        multiline: true,
+        requiredMessage: ''
+      },
+      loading: {
+        title: 'Submitting...',
+        text: 'Please wait while TrackIT saves your entry.'
+      },
+      error: {
+        title: 'Submission Failed',
+        text: 'TrackIT could not save your entry. Please try again.',
+        retryLabel: 'Try Again'
+      }
     }
   };
 
@@ -177,6 +235,9 @@
     copy(options.success, merged.success);
     merged.error = copy(preset.error, {});
     copy(options.error, merged.error);
+    merged.input = copy(preset.input, {});
+    copy(options.input, merged.input);
+    if (!merged.mode) merged.mode = 'verify';
     return merged;
   }
 
@@ -293,9 +354,46 @@
       '<h2 class="vm__title" id="vm-title">' + esc(c.title) + '</h2>' +
       (c.subtitle ? '<p class="vm__subtitle" id="vm-subtitle">' + esc(c.subtitle) + '</p>' : '') +
       '</div>' +
-      '<p class="vm__desc" id="vm-desc">' + esc(c.description) + '</p>' +
+      (c.description ? '<p class="vm__desc" id="vm-desc">' + esc(c.description) + '</p>' : '') +
       infoMarkup(c) +
       warnMarkup(c) +
+      '</div>' +
+      footMarkup(c, [
+        { action: 'cancel', label: 'Cancel', variant: 'ghost' },
+        { action: 'confirm', label: c.confirmLabel, variant: 'primary' }
+      ])
+    );
+  }
+
+  function promptMarkup(c) {
+    var input = c.input || {};
+    var fieldMarkup =
+      input.multiline === false
+        ? '<input id="vm-input" class="vm__input" type="text" value="' +
+          esc(input.value) +
+          '" placeholder="' +
+          esc(input.placeholder) +
+          '">'
+        : '<textarea id="vm-input" class="vm__input" rows="4" placeholder="' +
+          esc(input.placeholder) +
+          '">' +
+          esc(input.value) +
+          '</textarea>';
+
+    return (
+      '<div class="vm__scroll">' +
+      '<div class="vm__head">' +
+      '<span class="vm__badge">' + ICONS.edit + '</span>' +
+      '<h2 class="vm__title" id="vm-title">' + esc(c.title) + '</h2>' +
+      (c.subtitle ? '<p class="vm__subtitle" id="vm-subtitle">' + esc(c.subtitle) + '</p>' : '') +
+      '</div>' +
+      (c.description ? '<p class="vm__desc" id="vm-desc">' + esc(c.description) + '</p>' : '') +
+      '<div class="vm__field">' +
+      '<label class="vm__label" for="vm-input">' + esc(input.label) + '</label>' +
+      fieldMarkup +
+      (input.hint ? '<p class="vm__hint" id="vm-hint">' + esc(input.hint) + '</p>' : '') +
+      '<p class="vm__input-error" id="vm-input-error" hidden></p>' +
+      '</div>' +
       '</div>' +
       footMarkup(c, [
         { action: 'cancel', label: 'Cancel', variant: 'ghost' },
@@ -374,6 +472,9 @@
   }
 
   function renderMarkup(currentState, config, context) {
+    // The prompt variant is rendered once and mutated in place, so the value the
+    // user typed is never destroyed by a re-render.
+    if (config.mode === 'prompt') return promptMarkup(config);
     if (currentState === STATE.LOADING) return loadingMarkup(config);
     if (currentState === STATE.SUCCESS) return successMarkup(config, context);
     if (currentState === STATE.ERROR) return errorMarkup(config, context);
@@ -383,6 +484,15 @@
   function describedBy(currentState, config, context) {
     var result = context && context.result;
     var detail = context && context.detail;
+
+    if (config.mode === 'prompt') {
+      var promptRefs = ['vm-title'];
+      if (config.description) promptRefs.push('vm-desc');
+      if (config.input && config.input.hint) promptRefs.push('vm-hint');
+      promptRefs.push('vm-input-error');
+      return promptRefs.join(' ');
+    }
+
     if (currentState === STATE.LOADING) return 'vm-title vm-loading-text';
     if (currentState === STATE.SUCCESS) {
       return result && result.warning ? 'vm-title vm-success-text vm-warning' : 'vm-title vm-success-text';
@@ -392,7 +502,10 @@
         ? 'vm-title vm-error-text vm-error-detail'
         : 'vm-title vm-error-text';
     }
-    return config.warning ? 'vm-title vm-desc vm-warn' : 'vm-title vm-desc';
+    var refs = ['vm-title'];
+    if (config.description) refs.push('vm-desc');
+    if (config.warning) refs.push('vm-warn');
+    return refs.join(' ');
   }
 
   // ── dom ────────────────────────────────────────────────────────────────────
@@ -441,6 +554,13 @@
     else panelHost.removeAttribute('aria-busy');
 
     if (liveRegion) liveRegion.textContent = stateAnnouncement();
+
+    if (cfg.mode === 'prompt') {
+      // Land on the field itself so the user can start typing straight away.
+      var inputEl = document.getElementById('vm-input');
+      if (inputEl) inputEl.focus({ preventScroll: true });
+      return;
+    }
 
     var active = document.activeElement;
     if (!active || !overlay.contains(active)) {
@@ -511,7 +631,9 @@
     requestTimer = setTimeout(function () {
       if (state !== STATE.LOADING) return;
       settled = true;
-      showError(new Error('The request timed out. Please check your connection and try again.'));
+      var timeoutError = new Error('The request timed out. Please check your connection and try again.');
+      if (cfg.mode === 'prompt') showPromptFailure(timeoutError.message);
+      else showError(timeoutError);
     }, REQUEST_TIMEOUT_MS);
   }
 
@@ -566,14 +688,119 @@
     }
   }
 
+  // ── prompt (text-entry) variant ──────────────────────────────────────────
+  function promptInput() {
+    return document.getElementById('vm-input');
+  }
+
+  function promptErrorEl() {
+    return document.getElementById('vm-input-error');
+  }
+
+  function setPromptBusy(busy) {
+    if (!panelHost) return;
+    var buttons = panelHost.querySelectorAll('.vm__btn');
+    Array.prototype.forEach.call(buttons, function (button) {
+      button.disabled = !!busy;
+    });
+    var primary = panelHost.querySelector('.vm__btn--primary');
+    if (primary) primary.classList.toggle('is-busy', !!busy);
+    var input = promptInput();
+    if (input) input.disabled = !!busy;
+    if (busy) panelHost.setAttribute('aria-busy', 'true');
+    else panelHost.removeAttribute('aria-busy');
+  }
+
+  function showPromptFailure(message) {
+    settled = true;
+    state = STATE.CONFIRM;
+    if (requestTimer) {
+      clearTimeout(requestTimer);
+      requestTimer = null;
+    }
+    setPromptBusy(false);
+
+    var errorEl = promptErrorEl();
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+    }
+    if (liveRegion) liveRegion.textContent = (cfg.error.title || 'Error') + '. ' + message;
+
+    var input = promptInput();
+    if (input) input.focus({ preventScroll: true });
+  }
+
+  function runPromptConfirm() {
+    var input = promptInput();
+    var inputCfg = cfg.input || {};
+    var value = input ? input.value : '';
+    var errorEl = promptErrorEl();
+
+    if (errorEl) errorEl.hidden = true;
+
+    if (inputCfg.required && !String(value).trim()) {
+      var requiredMessage =
+        inputCfg.requiredMessage || 'Please enter ' + (inputCfg.label || 'this field').toLowerCase() + '.';
+      if (errorEl) {
+        errorEl.textContent = requiredMessage;
+        errorEl.hidden = false;
+      }
+      if (input) input.focus({ preventScroll: true });
+      if (liveRegion) liveRegion.textContent = requiredMessage;
+      return;
+    }
+
+    var outcome;
+    try {
+      outcome = typeof cfg.onConfirm === 'function' ? cfg.onConfirm(value) : undefined;
+    } catch (error) {
+      showPromptFailure(error && error.message ? error.message : cfg.error.text);
+      return;
+    }
+
+    if (outcome && typeof outcome.then === 'function') {
+      state = STATE.LOADING;
+      settled = false;
+      setPromptBusy(true);
+      if (liveRegion) liveRegion.textContent = cfg.loading.title + ' ' + cfg.loading.text;
+      armRequestTimeout();
+      outcome.then(
+        function () {
+          if (settled) return;
+          settled = true;
+          clearTimers();
+          succeeded = true;
+          close();
+        },
+        function (error) {
+          if (settled) return;
+          showPromptFailure(error && error.message ? error.message : cfg.error.text);
+        }
+      );
+      return;
+    }
+
+    // Synchronous action: nothing to wait for, so submit immediately.
+    succeeded = true;
+    close();
+  }
+
   function runConfirm() {
     if (state === STATE.LOADING) return;
+
+    if (cfg.mode === 'prompt') {
+      runPromptConfirm();
+      return;
+    }
+
     // A partial success keeps the modal on screen so "Try Again" can re-run it.
     if (state === STATE.SUCCESS && !(lastResult && lastResult.warning)) return;
 
     clearTimers();
     if (state === STATE.SUCCESS) succeeded = false;
 
+    var immediate = cfg.mode === 'immediate';
     var outcome;
     try {
       outcome = typeof cfg.onConfirm === 'function' ? cfg.onConfirm() : undefined;
@@ -588,6 +815,13 @@
       outcome.then(
         function (result) {
           if (settled) return;
+          if (immediate) {
+            settled = true;
+            clearTimers();
+            succeeded = true;
+            close();
+            return;
+          }
           showSuccess(result);
         },
         function (error) {
@@ -599,6 +833,11 @@
     }
 
     // No request to wait for: never fake a delay, go straight to the result.
+    if (immediate) {
+      succeeded = true;
+      close();
+      return;
+    }
     showSuccess(outcome);
   }
 
