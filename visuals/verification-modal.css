@@ -337,7 +337,7 @@
   border-top-color: #00c8aa;
   border-right-color: rgba(0, 200, 170, 0.6);
   box-shadow: 0 0 26px rgba(0, 200, 170, 0.28), inset 0 0 14px rgba(0, 200, 170, 0.14);
-  animation: vm-spin 0.85s linear infinite;
+  animation: vm-spin 1.5s linear infinite;
 }
 
 /* Counter-rotating arc outside the main ring. */
@@ -348,7 +348,7 @@
   border-radius: 50%;
   border: 2px solid transparent;
   border-bottom-color: rgba(0, 200, 170, 0.42);
-  animation: vm-spin 1.7s linear infinite reverse;
+  animation: vm-spin 2.5s linear infinite reverse;
 }
 
 /* Pulsing core so the ring reads as "working" rather than merely spinning. */
@@ -358,7 +358,7 @@
   inset: 8px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(0, 200, 170, 0.45), rgba(0, 200, 170, 0));
-  animation: vm-glow 1.7s ease-in-out infinite;
+  animation: vm-glow 2.5s ease-in-out infinite;
 }
 
 /* ── verification in progress: ripple rings + indeterminate sweep ────────── */
@@ -418,15 +418,15 @@
 }
 
 .vm__state--loading .vm__title {
-  animation-delay: 70ms;
+  animation-delay: 200ms;
 }
 
 .vm__state--loading .vm__desc {
-  animation-delay: 150ms;
+  animation-delay: 270ms;
 }
 
 .vm__state--loading .vm__progress {
-  animation-delay: 240ms;
+  animation-delay: 400ms;
 }
 
 /* Success ceremony: icon scales in and draws first, the copy then rises, and
@@ -446,15 +446,15 @@
 }
 
 .vm__state--success .vm__title {
-  animation-delay: 160ms;
+  animation-delay: 250ms;
 }
 
 .vm__state--success .vm__desc {
-  animation-delay: 230ms;
+  animation-delay: 300ms;
 }
 
 .vm__state--success .vm__note {
-  animation-delay: 300ms;
+  animation-delay: 400ms;
 }
 
 .vm__panel[data-vm-state="success"] .vm__ok,

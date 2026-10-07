@@ -38,6 +38,9 @@
 
   var REQUEST_TIMEOUT_MS = 30000;
   var AUTO_CLOSE_MS = 1500;
+  // Success announcements (journal submission) linger longer so the message
+  // and its supporting line can actually be read.
+  var ANNOUNCE_CLOSE_MS = 2500;
 
   var ICONS = {
     shield:
@@ -688,7 +691,7 @@
     if (autoCloseTimer) clearTimeout(autoCloseTimer);
     autoCloseTimer = setTimeout(function () {
       attemptClose();
-    }, AUTO_CLOSE_MS);
+    }, cfg.mode === 'announce' ? ANNOUNCE_CLOSE_MS : AUTO_CLOSE_MS);
   }
 
   function transition(nextState) {
