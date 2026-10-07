@@ -165,6 +165,34 @@
       }
     },
 
+    // One-shot success announcements. There is no confirm step: open() lands
+    // straight in the success state, plays the confirmation animation and then
+    // auto-closes. Used for journal submission feedback.
+    success: {
+      mode: 'announce',
+      title: '',
+      subtitle: '',
+      description: '',
+      warning: '',
+      confirmLabel: 'Done',
+      loading: {
+        title: 'Saving...',
+        text: 'Please wait while TrackIT saves your entry.'
+      },
+      success: {
+        title: 'Done',
+        text: '',
+        note: '',
+        badge: '',
+        doneLabel: 'Done'
+      },
+      error: {
+        title: 'Not Submitted',
+        text: 'TrackIT could not save your journal. Please try again.',
+        retryLabel: 'Try Again'
+      }
+    },
+
     // Text-entry dialogs that replace the browser's native prompt().
     prompt: {
       mode: 'prompt',
@@ -247,7 +275,14 @@
 
   function stateAnnouncement() {
     if (state === STATE.LOADING) return cfg.loading.title + ' ' + cfg.loading.text;
-    if (state === STATE.SUCCESS) return cfg.success.title + '. ' + cfg.success.text;
+    if (state === STATE.SUCCESS) {
+      return (
+        cfg.success.title +
+        '. ' +
+        cfg.success.text +
+        (cfg.success.note ? ' ' + cfg.success.note : '')
+      );
+    }
     if (state === STATE.ERROR) {
       return cfg.error.title + '. ' + cfg.error.text + (stateDetail ? ' ' + stateDetail : '');
     }
@@ -432,10 +467,11 @@
     var info = infoPanel('Confirmation summary', rows);
     var body =
       '<div class="vm__scroll vm__scroll--center">' +
-      '<div class="vm__state">' +
+      '<div class="vm__state vm__state--success">' +
       '<span class="vm__state-icon vm__state-icon--ok">' + ICONS.check + '</span>' +
       '<h2 class="vm__title" id="vm-title">' + esc(c.success.title) + '</h2>' +
       '<p class="vm__desc" id="vm-success-text">' + esc(c.success.text) + '</p>' +
+      (c.success.note ? '<p class="vm__note" id="vm-success-note">' + esc(c.success.note) + '</p>' : '') +
       '</div>' +
       (c.success.badge
         ? '<p class="vm__ok"><span class="vm__ok-mark" aria-hidden="true">&#10003;</span>' + esc(c.success.badge) + '</p>'
@@ -500,7 +536,10 @@
 
     if (currentState === STATE.LOADING) return 'vm-title vm-loading-text';
     if (currentState === STATE.SUCCESS) {
-      return result && result.warning ? 'vm-title vm-success-text vm-warning' : 'vm-title vm-success-text';
+      var successRefs = ['vm-title', 'vm-success-text'];
+      if (config.success && config.success.note) successRefs.push('vm-success-note');
+      if (result && result.warning) successRefs.push('vm-warning');
+      return successRefs.join(' ');
     }
     if (currentState === STATE.ERROR) {
       return detail && detail !== config.error.text
@@ -555,6 +594,8 @@
     panelHost.setAttribute('aria-labelledby', 'vm-title');
     panelHost.setAttribute('aria-describedby', describedBy(state, cfg, context));
     panelHost.setAttribute('tabindex', '-1');
+    // Lets the stylesheet key the entrance stagger off the visible state.
+    panelHost.setAttribute('data-vm-state', state);
     if (state === STATE.LOADING) panelHost.setAttribute('aria-busy', 'true');
     else panelHost.removeAttribute('aria-busy');
 
@@ -907,11 +948,14 @@
     if (overlay) close();
 
     cfg = mergeConfig(options);
-    state = STATE.CONFIRM;
+    // Announcements skip the confirm step and open on their success frame,
+    // where the entrance animation plays before the auto-close timer starts.
+    var announce = cfg.mode === 'announce';
+    state = announce ? STATE.SUCCESS : STATE.CONFIRM;
     stateDetail = '';
     lastResult = null;
-    succeeded = false;
-    settled = false;
+    succeeded = announce;
+    settled = announce;
     lastFocused = document.activeElement;
     prevBodyOverflow = document.body.style.overflow;
 
@@ -921,6 +965,7 @@
 
     paint();
 
+    if (announce) scheduleAutoClose();
     if (typeof options.onOpen === 'function') options.onOpen();
     return cfg;
   }

@@ -2619,15 +2619,19 @@ async function submitJournal(event) {
   const identifiedTheories = window.currentIdentifiedTheories || [];
 
   if (!narrative.trim()) {
-    alert('Please write a journal entry');
+    showNotification('Error', 'Please write a journal entry', 'error');
     return;
   }
 
   if (!journalWeekState.submitEnabled) {
     const banner = document.getElementById('journal-block-banner');
-    alert(banner && banner.textContent.trim()
-      ? banner.textContent.trim()
-      : 'Journal submission is not available right now.');
+    showNotification(
+      'Notice',
+      banner && banner.textContent.trim()
+        ? banner.textContent.trim()
+        : 'Journal submission is not available right now.',
+      'info'
+    );
     return;
   }
 
@@ -2666,18 +2670,33 @@ async function submitJournal(event) {
 
     if (!result || !result.success) {
       const detail = result?.error || result?.message || 'Unknown error';
-      alert(detail);
+      showNotification('Error', detail, 'error');
       restore();
       return;
     }
 
     const submittedWeek = result.data?.week || weekLabel;
-    alert(`Journal for ${submittedWeek} submitted successfully!`);
     document.getElementById('journal-form').reset();
     document.getElementById('theories-result').classList.add('hidden');
     resetJournalPhotoPreview();
     window.currentIdentifiedTheories = [];
     clearJournalEditing();
+
+    // Success confirmation replaces the old browser alert. The progress UI is
+    // refreshed behind it, so the week already reads "Submitted" when Done is
+    // clicked - no page reload, and the entered data has been persisted.
+    VerificationModal.open({
+      type: 'success',
+      success: {
+        title: 'Journal Submitted Successfully!',
+        text: submittedWeek
+          ? 'Your ' + submittedWeek + ' journal has been submitted and recorded successfully.'
+          : 'Your journal has been submitted and recorded successfully.',
+        note: 'Your journal is now available for review.',
+        badge: '',
+        doneLabel: 'Done'
+      }
+    });
 
     await loadPreviousJournals();
     await refreshJournalWeek();
@@ -2685,7 +2704,7 @@ async function submitJournal(event) {
     restore();
   } catch (error) {
     console.error('Error submitting journal:', error);
-    alert('Error submitting journal. Please try again.');
+    showNotification('Error', 'Error submitting journal. Please try again.', 'error');
     restore();
   }
 }
@@ -2694,7 +2713,7 @@ async function submitJournal(event) {
 async function autoExtractTheories(event) {
   const narrative = document.getElementById('journal-narrative').value;
   if (!narrative.trim()) {
-    alert('Please write a journal entry first');
+    showNotification('Error', 'Please write a journal entry first', 'error');
     return;
   }
 
@@ -5421,9 +5440,13 @@ setInterval(() => {
 function openJournalReview() {
   if (!journalWeekState.submitEnabled) {
     const banner = document.getElementById('journal-block-banner');
-    alert(banner && banner.textContent.trim()
-      ? banner.textContent.trim()
-      : 'Journal submission is not available right now.');
+    showNotification(
+      'Notice',
+      banner && banner.textContent.trim()
+        ? banner.textContent.trim()
+        : 'Journal submission is not available right now.',
+      'info'
+    );
     return;
   }
 

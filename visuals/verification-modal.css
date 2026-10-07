@@ -16,7 +16,7 @@
   background: rgba(3, 7, 18, 0.62);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  animation: vm-fade 180ms ease-out;
+  animation: vm-fade 220ms ease-out;
 }
 
 .vm__panel {
@@ -100,6 +100,15 @@
   font-size: 0.86rem;
   line-height: 1.6;
   color: #cbd5e1;
+  text-align: center;
+}
+
+/* Optional supporting line shown under the success description. */
+.vm__note {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #8496ad;
   text-align: center;
 }
 
@@ -311,7 +320,7 @@
   border-radius: 50%;
   border: 2px solid rgba(0, 200, 170, 0.55);
   opacity: 0;
-  animation: vm-burst 900ms ease-out forwards;
+  animation: vm-burst 700ms ease-out forwards;
 }
 
 .vm__state-icon--err {
@@ -418,6 +427,44 @@
 
 .vm__state--loading .vm__progress {
   animation-delay: 240ms;
+}
+
+/* Success ceremony: icon scales in and draws first, the copy then rises, and
+   the action lands last - whole sequence inside ~760ms. */
+.vm__state--success .vm__desc {
+  margin-bottom: 0;
+}
+
+.vm__state--success .vm__title,
+.vm__state--success .vm__desc,
+.vm__state--success .vm__note,
+.vm__panel[data-vm-state="success"] .vm__ok,
+.vm__panel[data-vm-state="success"] .vm__info,
+.vm__panel[data-vm-state="success"] .vm__warn,
+.vm__panel[data-vm-state="success"] .vm__foot .vm__btn {
+  animation: vm-rise 340ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.vm__state--success .vm__title {
+  animation-delay: 160ms;
+}
+
+.vm__state--success .vm__desc {
+  animation-delay: 230ms;
+}
+
+.vm__state--success .vm__note {
+  animation-delay: 300ms;
+}
+
+.vm__panel[data-vm-state="success"] .vm__ok,
+.vm__panel[data-vm-state="success"] .vm__info,
+.vm__panel[data-vm-state="success"] .vm__warn {
+  animation-delay: 360ms;
+}
+
+.vm__panel[data-vm-state="success"] .vm__foot .vm__btn {
+  animation-delay: 420ms;
 }
 
 .vm-check {
@@ -579,7 +626,7 @@
 @keyframes vm-pop {
   from {
     opacity: 0;
-    transform: scale(0.98);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -668,6 +715,17 @@
   }
 }
 
+@keyframes vm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ── responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 520px) {
@@ -738,6 +796,18 @@
     animation: none;
     opacity: 0.45;
     transform: scale(1.2);
+  }
+
+  .vm__state--success .vm__title,
+  .vm__state--success .vm__desc,
+  .vm__state--success .vm__note,
+  .vm__panel[data-vm-state="success"] .vm__ok,
+  .vm__panel[data-vm-state="success"] .vm__info,
+  .vm__panel[data-vm-state="success"] .vm__warn,
+  .vm__panel[data-vm-state="success"] .vm__foot .vm__btn {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 
   .vm__state--loading .vm__title,
