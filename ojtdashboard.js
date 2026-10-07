@@ -139,6 +139,21 @@ function buildVerifiedHoursByOjtWeek(dtrRecords, registrationDate) {
   return map;
 }
 
+/**
+ * Length of the OJT programme in weeks. Mirrors TOTAL_OJT_WEEKS in
+ * backend/routes/stats.js, which is what the missing-journal check uses, so
+ * the KPI card and the coordinator's expectations agree on one number.
+ */
+const OV_OJT_TOTAL_WEEKS = 17;
+
+/** Mon-Fri span of the week containing `date`, e.g. "Oct 5 – Oct 9". */
+function ovWeekRangeLabel(date = new Date()) {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - ((date.getDay() + 6) % 7));
+  const friday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 4);
+  const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `${fmt(monday)} – ${fmt(friday)}`;
+}
+
 function ojtWeekNumbersFromJournals(journals, registrationDate) {
   const reg = registrationDate ? new Date(registrationDate) : null;
   const nums = (journals || []).map((j) => {
@@ -855,7 +870,7 @@ async function loadDashboardData() {
   loadOverviewToday().catch(err => console.error('Error loading today overview:', err));
   loadOverviewCalendar().catch(err => console.error('Error loading attendance calendar:', err));
   loadOverviewJournal().catch(err => console.error('Error loading journal overview:', err));
-  loadOverviewUpdates().catch(err => console.error('Error loading updates:', err));
+  loadOverviewDtrData().catch(err => console.error('Error loading DTR data:', err));
 
   // ── My Progress tab (unchanged) ────────────────────────────────────────
   const progressTabCircle = document.querySelector('#progress .progress-circle');
@@ -990,41 +1005,34 @@ function renderOverviewHeader(student) {
 }
 
 /**
- * Fills the three KPI cards. `stats` is the /stats/student payload.
- * Completed Hours carries the only overall OJT progress indicator on this
- * dashboard - there is deliberately no separate progress ring or milestone
- * tracker restating the same 486-hour figure.
+ * Fills the two top KPI cards from the /stats/student payload.
+ *
+ * Overall Progress is the single home for OJT completion: hours, percentage,
+ * programme week, date range and streak live in one card so the same figure is
+ * never restated beside itself, and Days Present keeps the attendance count it
+ * has always owned.
  */
 function renderOverviewKpis(stats, student) {
   const completed = Number(stats.completedHours) || 0;
   const required = Number(stats.totalRequired) || 486;
   const remaining = Number(stats.remainingHours) ?? Math.max(0, required - completed);
   const days = Number(stats.daysPresent) || 0;
-  const pct = Math.max(0, Math.min(100, Math.round((completed / required) * 100)));
+  const pct = Math.max(0, Math.min(100, Number(stats.progressPercentage) ?? Math.round((completed / required) * 100)));
 
   ovText('ov-kpi-hours', completed % 1 === 0 ? String(completed) : completed.toFixed(1));
   ovText('ov-kpi-hours-required', `/ ${required} hrs`);
-  ovText('ov-kpi-hours-pct', `${pct}%`);
-  ovText('ov-kpi-hours-note', 'verified by supervisor');
+  ovText('ov-kpi-pct', `${pct}%`);
+  ovText('ov-kpi-estimate', completed > 0 ? `${remaining} hrs remaining` : 'Clock in to start tracking');
 
-  // Ring progress
-  const ringFill = document.getElementById('ov-kpi-ring-fill');
-  const ringPct = document.getElementById('ov-kpi-ring-pct');
+  // Ring: teal arc on a quiet track, animated from zero on first paint and
+  // frozen outright when the visitor prefers reduced motion.
+  const ring = document.getElementById('ov-progress-ring');
+  const ringFill = document.getElementById('ov-progress-fill');
+  if (ring) ring.setAttribute('aria-label', `OJT progress: ${pct}% of ${required} hours completed`);
   if (ringFill) {
-    const circumference = 2 * Math.PI * 24;
+    const circumference = 2 * Math.PI * 52;
     ringFill.style.strokeDasharray = String(circumference);
     ringFill.style.strokeDashoffset = String(circumference * (1 - pct / 100));
-  }
-  if (ringPct) ringPct.textContent = `${pct}%`;
-
-  // Estimate text
-  const estimateEl = document.getElementById('ov-kpi-estimate');
-  if (estimateEl) {
-    if (completed > 0) {
-      estimateEl.textContent = `${remaining} hrs remaining`;
-    } else {
-      estimateEl.textContent = 'Clock in to start tracking';
-    }
   }
 
   ovText('ov-kpi-days', String(days));
@@ -1033,8 +1041,15 @@ function renderOverviewKpis(stats, student) {
     daysNote.textContent = days === 0 ? 'Your attendance will appear here after your first time-in.' : 'This month';
   }
 
-  ovText('ov-kpi-remaining', remaining % 1 === 0 ? String(remaining) : remaining.toFixed(1));
-  ovText('ov-kpi-remaining-note', `of ${required} required`);
+  // Week 1 is the first supervisor placement, so the card only has a number to
+  // show once the trainee has actually been assigned. The streak needs the DTR
+  // records and is filled in by loadOverviewDtrData once they arrive.
+  const assignedAt = student?.supervisorAssignedAt || null;
+  const weekNumber = assignedAt ? ojtWeekNumberFromDate(new Date(), assignedAt) : null;
+  ovText('ov-kpi-week', weekNumber ? `Week ${weekNumber}` : 'Not started');
+  ovText('ov-kpi-week-total', weekNumber ? `of ${OV_OJT_TOTAL_WEEKS}` : '');
+  ovText('ov-kpi-week-range', weekNumber ? ovWeekRangeLabel() : 'Awaiting supervisor assignment');
+  ovText('ov-kpi-streak', '—');
 
   renderOverviewHeader(student);
 }
@@ -1627,150 +1642,237 @@ function renderCalendarDayDetail(key) {
  * submitted, reviewed, plus the supervisorSigned and coordinatorApproved
  * flags. There is no deadline field in the schema, so none is shown.
  */
-async function loadOverviewJournal() {
-  const container = document.getElementById('ov-journal');
-  const weekMeta = document.getElementById('ov-journal-week');
-  if (!container) return;
+/**
+ * Shared state behind the This Week card. Two independent requests feed it -
+ * the DTR records and the journal list - and a single renderer paints the card
+ * from both, so whichever loader settles last cannot wipe out the section the
+ * other one already filled. `journal`/`journalState` stay undefined until the
+ * journal request has run, which is how the card keeps its placeholder instead
+ * of claiming there is no journal while the request is still in flight.
+ */
+const ovWeekState = {
+  records: null,
+  journal: undefined,
+  journalState: null,
+  journalLoaded: false,
+};
 
+const OV_WEEK_ABBRS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+const OV_WEEK_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+/**
+ * Day marks for the timeline. Every cell also carries a written state in its
+ * aria-label, so colour is never the only signal.
+ */
+const OV_WEEK_ICONS = {
+  present: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6.5 9.5 17 4 11.5"></polyline></svg>',
+  late: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><polyline points="12 7.5 12 12 15 13.5"></polyline></svg>',
+  absent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="7.5" y1="7.5" x2="16.5" y2="16.5"></line><line x1="16.5" y1="7.5" x2="7.5" y2="16.5"></line></svg>',
+  excused: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="6.5" y1="12" x2="17.5" y2="12"></line></svg>',
+  today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="8.5"></circle></svg>',
+  upcoming: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>',
+};
+OV_WEEK_ICONS.missed = OV_WEEK_ICONS.absent;
+
+const OV_WEEK_STATE_LABELS = {
+  present: 'Present',
+  late: 'Late',
+  absent: 'Absent',
+  excused: 'Excused',
+  missed: 'Missed',
+  today: 'Not timed in',
+  upcoming: 'Upcoming',
+};
+
+/** Monday through Friday of the week containing `date`, as local days. */
+function ovWeekDays(date = new Date()) {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - ((date.getDay() + 6) % 7));
+  return OV_WEEK_ABBRS.map((abbr, i) => ({
+    abbr,
+    name: OV_WEEK_NAMES[i],
+    date: new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i),
+  })).map((day) => ({ ...day, key: ovDateKey(day.date) }));
+}
+
+/**
+ * Friday deadline for the journal, plus how much of the Mon-Fri window has
+ * already passed. Pure calendar maths: the deadline exists whether or not a
+ * journal has been written, so this needs no request of its own.
+ */
+function ovWeekDeadline() {
+  const now = new Date();
+  const mondayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+  const fridayEnd = new Date(mondayStart.getFullYear(), mondayStart.getMonth(), mondayStart.getDate() + 4, 23, 59, 59, 999);
+  const msLeft = fridayEnd.getTime() - now.getTime();
+  const daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
+  const span = fridayEnd.getTime() - mondayStart.getTime();
+  const elapsed = Math.min(span, Math.max(0, now.getTime() - mondayStart.getTime()));
+
+  let state = 'ok';
+  let label = `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left`;
+  if (msLeft <= 0) {
+    state = 'overdue';
+    label = 'Overdue';
+  } else if (daysLeft <= 1) {
+    state = 'warn';
+    label = msLeft < 24 * 60 * 60 * 1000 ? 'Due today' : `${daysLeft} day left`;
+  }
+
+  return { state, label, progress: Math.max(4, Math.min(100, Math.round((elapsed / span) * 100))) };
+}
+
+/** Attendance state for one day of the current week. */
+function ovWeekDayState(day, records, todayKey) {
+  if (records && records.length) {
+    const status = String(records[0].status || '').toLowerCase();
+    if (status === 'late') return 'late';
+    if (status === 'absent') return 'absent';
+    if (status === 'excused') return 'excused';
+    return 'present';
+  }
+  if (day.key === todayKey) return 'today';
+  return day.date > new Date() ? 'upcoming' : 'missed';
+}
+
+/**
+ * Paints the whole This Week card from whatever has arrived so far: the
+ * Monday-Friday timeline and the hours figure come from the DTR records, the
+ * journal line, deadline and button label from the journal list.
+ */
+function renderThisWeek() {
+  const daysEl = document.getElementById('ov-week-days');
+  if (!daysEl) return;
+
+  ovText('ov-week-range', ovWeekRangeLabel());
+
+  const days = ovWeekDays();
+  const todayKey = ovDateKey(new Date());
+  const journal = ovWeekState.journal;
+  const journalDay = journal && journal.dayCovered ? journal.dayCovered : null;
+  const journalMark = !journal
+    ? 'none'
+    : journal.status === 'draft' ? 'draft' : 'submitted';
+
+  if (ovWeekState.records === 'error') {
+    daysEl.innerHTML = '<p class="ov-week__loading">This week\'s activity is unavailable right now.</p>';
+  } else if (!ovWeekState.records) {
+    daysEl.innerHTML = '<p class="ov-week__loading">Checking this week\'s activity…</p>';
+  } else {
+    const byDay = new Map();
+    ovWeekState.records.forEach((record) => {
+      const key = ovDateKey(record.date);
+      if (!key) return;
+      const list = byDay.get(key) || [];
+      list.push(record);
+      byDay.set(key, list);
+    });
+
+    let weeklyHours = 0;
+    daysEl.innerHTML = days.map((day) => {
+      const records = byDay.get(day.key) || [];
+      const hours = records.reduce((sum, record) => sum + (Number(record.hoursRendered) || 0), 0);
+      weeklyHours += hours;
+      const state = ovWeekDayState(day, records, todayKey);
+      const stateLabel = OV_WEEK_STATE_LABELS[state] || state;
+      const covered = journalDay === day.name;
+      const book = covered ? journalMark : 'none';
+      const hoursLabel = hours > 0 ? `${Math.round(hours * 10) / 10}h` : '—';
+      const journalLabel = covered
+        ? (journalMark === 'draft' ? 'journal draft' : 'journal submitted')
+        : 'no journal entry';
+      const aria = `${day.name}: ${stateLabel}, ${hours > 0 ? `${hoursLabel} logged` : 'no hours'}, ${journalLabel}`;
+
+      return `
+        <div class="ov-week__day" data-state="${state}" data-today="${day.key === todayKey}" role="img" aria-label="${aria}">
+          <span class="ov-week__dayName">${day.abbr}</span>
+          <span class="ov-week__mark" aria-hidden="true">${OV_WEEK_ICONS[state]}</span>
+          <span class="ov-week__dayHours">${hoursLabel}</span>
+          <span class="ov-week__book" data-book="${book}" aria-hidden="true">${OV_JOURNAL_MARKS[book === 'submitted' ? 'approved' : 'draft']}</span>
+        </div>`;
+    }).join('');
+
+    ovText('ov-week-hours', ovFormatHours(weeklyHours));
+  }
+
+  // Journal state: one document per OJT week, so the card reports the state of
+  // that journal instead of a per-day submission count the system cannot make.
+  const journalState = ovWeekState.journalState;
+  const journalEl = document.getElementById('ov-week-journal');
+  if (journalEl) {
+    journalEl.textContent = ovWeekState.journalLoaded && journalState ? journalState.headline : '—';
+    if (ovWeekState.journalLoaded && journalState) journalEl.dataset.state = journalState.state;
+    else delete journalEl.dataset.state;
+  }
+
+  const deadline = ovWeekDeadline();
+  const deadlineEl = document.getElementById('ov-week-deadline');
+  if (deadlineEl) deadlineEl.dataset.state = deadline.state;
+  ovText('ov-week-days-left', deadline.label);
+  const fill = document.getElementById('ov-week-deadline-fill');
+  if (fill) fill.style.width = `${deadline.progress}%`;
+
+  const cta = document.getElementById('ov-week-cta');
+  if (cta && ovWeekState.journalLoaded && journalState) {
+    const label = journalState.cta || 'Write Journal';
+    cta.childNodes[0].nodeValue = ` ${label} `;
+  }
+
+  const container = document.getElementById('ov-week');
+  if (container) {
+    container.dataset.state = ovWeekState.records === 'error'
+      ? 'error'
+      : (ovWeekState.records ? 'ready' : 'loading');
+  }
+}
+
+/**
+ * Fills the journal half of the This Week card.
+ *
+ * Every path ends by handing a state to renderThisWeek() instead of painting
+ * the card itself: the timeline and the journal line belong to one card, so
+ * neither loader may write into the other's section.
+ */
+function ovWeekJournalUnavailable(headline, cta) {
+  ovWeekState.journal = null;
+  ovWeekState.journalState = { state: 'error', headline, cta };
+  ovWeekState.journalLoaded = true;
+  renderThisWeek();
+}
+
+async function loadOverviewJournal() {
   // OJT weeks only start counting once a supervisor is assigned.
   if (window.studentHasSupervisor === false) {
-    ovText('ov-journal-week', '—');
-    container.dataset.state = 'pending';
-    container.innerHTML = `
-<div class="ov-journal__status" data-state="pending">
-          <span class="ov-journal__mark" aria-hidden="true">${OV_JOURNAL_MARKS.pending}</span>
-          <p class="ov-journal__statusText">Waiting for a supervisor</p>
-        </div>
-      <p class="ov-journal__loading">Week 1 starts as soon as a supervisor is assigned to you. You can keep writing drafts until then.</p>
-      <button type="button" class="btn-primary ov-journal__cta ov-journal__cta--compact" onclick="switchTab('journal')">Open Weekly Journal</button>`;
+    ovWeekJournalUnavailable('Waiting for supervisor', 'Open Weekly Journal');
     return;
   }
 
   const registration = getOjtStartDate();
   const week = ojtWeekNumberFromDate(new Date(), registration);
-
   if (!week) {
-    ovText('ov-journal-week', '—');
-    container.dataset.state = 'pending';
-    container.innerHTML = `
-<div class="ov-journal__status" data-state="pending">
-          <span class="ov-journal__mark" aria-hidden="true">${OV_JOURNAL_MARKS.pending}</span>
-          <p class="ov-journal__statusText">Current week unavailable</p>
-        </div>
-      <p class="ov-journal__loading">Your OJT start date could not be determined.</p>`;
+    ovWeekJournalUnavailable('Week unavailable', 'Write Journal');
     return;
   }
-
-  const label = `Week ${week}`;
-  ovText('ov-journal-week', label);
 
   try {
     const result = await fetchAPI('/journal/my-journals');
     if (!result || !result.success) {
-      container.innerHTML = `
-        <div class="ov-journal__status" data-state="pending">
-          <span class="ov-journal__mark" aria-hidden="true">${OV_JOURNAL_MARKS.error}</span>
-          <p class="ov-journal__statusText">Could not load journal status</p>
-        </div>
-        <button type="button" class="btn-primary ov-journal__cta" onclick="switchTab('journal')">Open Weekly Journal</button>`;
+      ovWeekJournalUnavailable('Status unavailable', 'Write Journal');
       return;
     }
 
+    // One journal per OJT week: find this week's document and read its state.
     const journals = result.data || [];
-    const match = journals.find(j => parseJournalWeekNumber(j.week) === week) || null;
-    const resolved = resolveJournalState(match);
-
-    const submittedDate = match && match.submittedAt
-      ? new Date(match.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : null;
-
-    // Build Mon–Fri week strip only.
-    const dayMap = {};
-    journals.forEach(j => {
-      const d = j.dayCovered;
-      if (d) dayMap[d] = true;
-    });
-    const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-    const weekStrip = ['Monday','Tuesday','Wednesday','Thursday','Friday'].map(day => {
-      const has = !!dayMap[day];
-      const isToday = day === todayName;
-      return `<div class="ov-journal__day">
-        <span class="ov-journal__day-label">${day.slice(0,1)}</span>
-        <span class="ov-journal__dot ${has ? 'ov-journal__dot--filled' : ''} ${isToday ? 'ov-journal__dot--today' : ''}" aria-hidden="true"></span>
-      </div>`;
-    }).join('');
-
-    // Client-side due date: Friday of the current OJT week.
-    const registrationDate = new Date(registration);
-    const now = new Date();
-    const daysSinceStart = Math.floor((now.getTime() - registrationDate.getTime()) / (24 * 60 * 60 * 1000));
-    const currentWeekStart = new Date(registrationDate.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000);
-    const friday = new Date(currentWeekStart);
-    // Monday is day 1 of OJT week (assuming registration aligns near Monday); find Friday.
-    // Simpler: target Friday of the calendar week containing today.
-    const dayOfWeek = now.getDay(); // 0=Sun, 5=Fri
-    const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
-    friday.setDate(now.getDate() + daysUntilFriday);
-    friday.setHours(23, 59, 59, 999);
-    const msLeft = friday.getTime() - now.getTime();
-    const daysLeft = Math.ceil(msLeft / (24 * 60 * 60 * 1000));
-    let dueClass = '';
-    let dueLabel = '';
-    if (msLeft < 0) {
-      dueClass = 'ov-journal__due--overdue';
-      dueLabel = 'Overdue';
-    } else if (daysLeft <= 1) {
-      dueClass = 'ov-journal__due--warn';
-      dueLabel = 'Due today';
-    } else if (daysLeft <= 3) {
-      dueClass = 'ov-journal__due--warn';
-      dueLabel = `Due Friday · ${daysLeft} days left`;
-    } else {
-      dueLabel = `Due Friday · ${daysLeft} days left`;
-    }
-
-    container.dataset.state = resolved.state;
-
-    // Build compact facts only when there is non-status metadata.
-    const extraFacts = [];
-    if (submittedDate) extraFacts.push(['Submitted', submittedDate]);
-    if (match && match.supervisorSigned) extraFacts.push(['Supervisor', 'Signed']);
-    if (match && match.coordinatorApproved) extraFacts.push(['Coordinator', 'Approved']);
-    if (match && match.supervisorReview) extraFacts.push(['Supervisor note', match.supervisorReview]);
-
-    container.innerHTML = `
-      <div class="ov-journal__stack">
-        <p class="ov-journal__headline">${resolved.headline}</p>
-        <div class="ov-journal__weekstrip" aria-label="Journal days this week">
-          ${weekStrip}
-        </div>
-        <p class="ov-journal__due ${dueClass}">${dueLabel}</p>
-        <button type="button" class="btn-primary ov-journal__cta ov-journal__cta--compact" onclick="switchTab('journal')">
-          ${resolved.cta}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </button>
-      </div>
-      ${extraFacts.length > 0 ? `
-      <dl class="ov-journal__facts ov-journal__facts--compact">
-        ${extraFacts.map(([k, v]) => `
-          <div class="ov-journal__fact"><dt>${k}</dt><dd>${escapeHtml(String(v))}</dd></div>
-        `).join('')}
-      </dl>` : ''}`;
+    const match = journals.find((j) => parseJournalWeekNumber(j.week) === week) || null;
+    ovWeekState.journal = match;
+    ovWeekState.journalState = resolveJournalState(match);
+    ovWeekState.journalLoaded = true;
+    renderThisWeek();
   } catch (error) {
     console.error('Error loading journal overview:', error);
-    container.innerHTML = `
-      <div class="ov-journal__status" data-state="pending">
-        <span class="ov-journal__mark" aria-hidden="true">${OV_JOURNAL_MARKS.error}</span>
-        <p class="ov-journal__statusText">Could not load journal status</p>
-      </div>`;
+    ovWeekJournalUnavailable('Status unavailable', 'Write Journal');
   }
 }
 
-/**
- * Collapses the Journal model's flags into the states the card renders. A
- * returned journal is stored as a draft with supervisor feedback, which is why
- * draft is surfaced as "Needs revision" rather than "Not started".
- */
 /**
  * Journal status marks, as inline SVG in the same stroke style used across the
  * app. A glyph character was mixing a second visual language into the card and
@@ -1814,42 +1916,178 @@ function resolveJournalState(journal) {
   return { state: 'submitted', headline: 'Journal Submitted', label: 'Awaiting supervisor signature', cta: 'View Journal' };
 }
 
-// ── Updates feed ───────────────────────────────────────────────────────────
+// ── DTR verification & weekly activity ─────────────────────────────────────
 
-async function loadOverviewUpdates() {
-  const container = document.getElementById('ov-updates');
+const OV_DTR_ICONS = {
+  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><polyline points="14 3 14 8 19 8"></polyline><line x1="8.5" y1="13" x2="15" y2="13"></line><line x1="8.5" y1="16.5" x2="13" y2="16.5"></line></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6.5 9.5 17 4 11.5"></polyline></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><polyline points="12 7.5 12 12 15 13.5"></polyline></svg>',
+};
+
+/**
+ * Consecutive attended days ending today - or yesterday, when today's record
+ * does not exist yet. A day with an absent or excused record, or with no record
+ * at all, breaks the chain. Derived from the DTR records the dashboard already
+ * fetches, so no endpoint or stored field was added for it.
+ */
+function renderStreak(records) {
+  const attended = new Set();
+  const recorded = new Set();
+  (records || []).forEach((record) => {
+    const key = ovDateKey(record.date);
+    if (!key) return;
+    recorded.add(key);
+    const status = String(record.status || '').toLowerCase();
+    if (status === 'present' || status === 'late') attended.add(key);
+  });
+
+  let cursor = new Date();
+  if (!recorded.has(ovDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+
+  let streak = 0;
+  while (attended.has(ovDateKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  ovText('ov-kpi-streak', `${streak} ${streak === 1 ? 'day' : 'days'} streak`);
+}
+
+/**
+ * Hands the fetched DTR records to the This Week timeline. Kept separate from
+ * the card renderer so the DTR card and the week timeline keep one source.
+ */
+function renderWeekAttendance(records) {
+  ovWeekState.records = records;
+  renderThisWeek();
+}
+
+/**
+ * DTR Verification card: a two-segment donut, the verified / pending counts,
+ * the current state as a badge, then the latest entries.
+ *
+ * The DTR model stores `verifiedBySupervisor` and nothing else, so verified and
+ * pending are the only states that exist to count - a rejected segment would
+ * have to be invented rather than read. Entries (records), not calendar days,
+ * are the unit here because that is what the supervisor actually signs off.
+ *
+ * @param {Array|null} records - all DTR records since the OJT start; null when
+ *   there is nothing to show.
+ */
+function renderDtrVerification(records) {
+  const container = document.getElementById('ov-dtr');
   if (!container) return;
 
+  if (!records || records.length === 0) {
+    container.dataset.state = 'empty';
+    container.innerHTML = `
+      <div class="ov-dtr__empty">
+        <span class="ov-dtr__emptyIcon" aria-hidden="true">${OV_DTR_ICONS.doc}</span>
+        <p class="ov-dtr__emptyTitle">No DTR entries yet</p>
+        <p class="ov-dtr__emptyText">Your attendance records will appear here after you start your OJT.</p>
+      </div>`;
+    return;
+  }
+
+  const sorted = records.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  const total = sorted.length;
+  const verified = sorted.filter((record) => record.verifiedBySupervisor).length;
+  const pending = total - verified;
+  const state = pending === 0 ? 'verified' : 'pending';
+
+  const circumference = 2 * Math.PI * 42;
+  const verifiedLen = (verified / total) * circumference;
+  const pendingLen = circumference - verifiedLen;
+
+  const recent = sorted.slice(0, 4).map((record) => {
+    const status = String(record.status || '').toLowerCase();
+    const date = new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    let when;
+    if (status === 'absent') when = 'Absent';
+    else if (status === 'excused') when = 'Excused';
+    else {
+      const timeIn = ovFormatTime(record.timeIn);
+      const timeOut = ovFormatTime(record.timeOut);
+      when = timeIn === '—' && timeOut === '—' ? 'No times recorded' : `${timeIn} – ${timeOut}`;
+    }
+    const ok = Boolean(record.verifiedBySupervisor);
+    return `
+        <li class="ov-dtr__entry" data-state="${ok ? 'verified' : 'pending'}">
+          <span class="ov-dtr__entryDate">${date}</span>
+          <span class="ov-dtr__entryTime">${when}</span>
+          <span class="ov-dtr__entryState"><span class="ov-dtr__entryIcon" aria-hidden="true">${ok ? OV_DTR_ICONS.check : OV_DTR_ICONS.clock}</span>${ok ? 'Verified' : 'Pending'}</span>
+        </li>`;
+  }).join('');
+
+  container.dataset.state = state;
+  container.innerHTML = `
+    <p class="ov-dtr__badge" data-state="${state}">
+      <span class="ov-dtr__badgeMark" aria-hidden="true">${state === 'verified' ? OV_DTR_ICONS.check : OV_DTR_ICONS.clock}</span>
+      ${state === 'verified' ? 'Verified' : 'Pending verification'}
+    </p>
+
+    <div class="ov-dtr__top">
+      <div class="ov-dtr__donut" role="img" aria-label="${verified} of ${total} DTR entries verified, ${pending} pending verification">
+        <svg class="ov-dtr__donutSvg" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <circle class="ov-dtr__donutTrack" cx="50" cy="50" r="42"></circle>
+          <circle class="ov-dtr__donutSeg ov-dtr__donutSeg--pending" cx="50" cy="50" r="42" style="stroke-dasharray: ${pendingLen} ${circumference - pendingLen}; stroke-dashoffset: ${-verifiedLen}"></circle>
+          <circle class="ov-dtr__donutSeg ov-dtr__donutSeg--verified" cx="50" cy="50" r="42" style="stroke-dasharray: ${verifiedLen} ${circumference - verifiedLen}"></circle>
+        </svg>
+        <span class="ov-dtr__donutCenter" aria-hidden="true"><b>${total}</b><span>${total === 1 ? 'entry' : 'entries'}</span></span>
+      </div>
+
+      <dl class="ov-dtr__counts">
+        <div class="ov-dtr__count"><dt>Verified</dt><dd data-state="verified">${verified}</dd></div>
+        <div class="ov-dtr__count"><dt>Pending</dt><dd data-state="pending">${pending}</dd></div>
+      </dl>
+    </div>
+
+    <div class="ov-dtr__entries">
+      <p class="ov-dtr__entriesHead">Recent entries</p>
+      <ul class="ov-dtr__list">${recent}</ul>
+    </div>`;
+}
+
+/**
+ * One request for every DTR record since the OJT start, feeding three cards:
+ * the streak on Overall Progress, the Monday-Friday timeline in This Week, and
+ * the verification card itself. Fetched once so the dashboard never asks for
+ * the same records twice while it is loading.
+ */
+async function loadOverviewDtrData() {
+  const container = document.getElementById('ov-dtr');
+  if (container) {
+    container.dataset.state = 'loading';
+    container.innerHTML = '<p class="ov-dtr__loading">Checking your DTR records…</p>';
+  }
+
+  const traineeId = window.currentUser?._id;
+  const start = getOjtStartDate();
+  if (!traineeId || !start) {
+    renderWeekAttendance([]);
+    renderStreak([]);
+    renderDtrVerification([]);
+    return;
+  }
+
   try {
-    const result = await fetchAPI('/notifications?limit=5');
-    if (!result || !result.success) {
-      container.innerHTML = '<p class="ov-updates__empty">No updates yet</p>';
-      return;
-    }
-    const items = (result.data || []).slice(0, 5);
-    if (items.length === 0) {
-      container.innerHTML = `
-        <p class="ov-updates__empty">No updates yet</p>
-        <p class="ov-updates__empty" style="font-size:0.75rem;margin-top:4px;">
-          Supervisor feedback, journal changes, and DTR verification updates will appear here.
-        </p>`;
-      return;
-    }
-    container.innerHTML = items.map(n => {
-      const icon = getNotifIcon(n.type);
-      return `
-        <div class="ov-updates__item">
-          <span class="ov-updates__icon" aria-hidden="true">${icon}</span>
-          <div class="ov-updates__content">
-            <p class="ov-updates__title">${escapeHtml(n.title || 'Notification')}</p>
-            <p class="ov-updates__message">${escapeHtml(n.message || n.text || '')}</p>
-            <p class="ov-updates__time">${timeAgo(n.createdAt || n.time)}</p>
-          </div>
-        </div>`;
-    }).join('');
+    const records = await fetchAllDtrRecords(
+      traineeId,
+      new Date(start).toISOString(),
+      new Date().toISOString()
+    );
+
+    renderWeekAttendance(records || []);
+    renderStreak(records || []);
+    renderDtrVerification(records || []);
   } catch (error) {
-    console.error('Error loading updates:', error);
-    container.innerHTML = '<p class="ov-updates__empty">Could not load updates</p>';
+    console.error('Error loading DTR verification:', error);
+    ovWeekState.records = 'error';
+    renderThisWeek();
+    if (container) {
+      container.dataset.state = 'error';
+      container.innerHTML = '<p class="ov-dtr__loading">Your DTR verification status is unavailable right now.</p>';
+    }
   }
 }
 
@@ -1911,7 +2149,7 @@ function switchTab(tabName, options = {}) {
     loadOverviewToday().catch(err => console.error('Error loading today overview:', err));
     loadOverviewCalendar().catch(err => console.error('Error loading attendance calendar:', err));
     loadOverviewJournal().catch(err => console.error('Error loading journal overview:', err));
-    loadOverviewUpdates().catch(err => console.error('Error loading updates:', err));
+    loadOverviewDtrData().catch(err => console.error('Error loading DTR data:', err));
   } else if (tabName === 'dtr') {
     loadDTRRecords().catch(err => console.error('Error loading DTR:', err));
   } else if (tabName === 'journal') {

@@ -23,7 +23,7 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=8">
+  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=11">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
@@ -161,29 +161,50 @@
         <p class="ov-pagehead__greeting" id="ov-welcome">Loading your OJT summary…</p>
       </div>
 
-      <!-- ROW 1 — three KPI cards. Completed Hours carries the only overall
-           progress indicator, so the accent is spent there and nowhere else. -->
+      <!-- ROW 1 — Overall Progress carries every figure about OJT completion
+           (hours, percentage, week, date range, streak) so the same number is
+           never shown twice in one row. Days Present stays its own card. -->
       <section class="ov-kpi-row" aria-label="Key OJT metrics">
-        <article class="glass-card ov-card ov-kpi">
+        <article class="glass-card ov-card ov-kpi ov-kpi--wide">
           <div class="ov-kpi__head">
-            <h3 class="ov-kpi__label">Completed Hours</h3>
+            <h3 class="ov-kpi__label">Overall Progress</h3>
             <span class="ov-kpi__icon" aria-hidden="true">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 13.5"></polyline></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="4.5"></circle></svg>
             </span>
           </div>
-          <p class="ov-kpi__value"><span id="ov-kpi-hours">0</span><span class="ov-kpi__unit" id="ov-kpi-hours-required">/ 486 hrs</span></p>
+
+          <div class="ov-progress">
+            <div class="ov-progress__ring" id="ov-progress-ring" role="img" aria-label="OJT progress: 0% of 486 hours completed">
+              <svg class="ov-progress__svg" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+                <circle class="ov-progress__track" cx="60" cy="60" r="52"></circle>
+                <circle class="ov-progress__fill" id="ov-progress-fill" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <span class="ov-progress__pct" id="ov-kpi-pct">0%</span>
+            </div>
+
+            <div class="ov-progress__body">
+              <p class="ov-kpi__value"><span id="ov-kpi-hours">0</span><span class="ov-kpi__unit" id="ov-kpi-hours-required">/ 486 hrs</span></p>
+              <ul class="ov-progress__meta">
+                <li class="ov-progress__metaItem">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="16" y1="2.5" x2="16" y2="6.5"></line></svg>
+                  <span id="ov-kpi-week-range">—</span>
+                </li>
+                <li class="ov-progress__metaItem">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                  <span id="ov-kpi-week">Week —</span> <span class="ov-progress__of" id="ov-kpi-week-total">of 17</span>
+                </li>
+                <li class="ov-progress__metaItem">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                  <span id="ov-kpi-streak">—</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
           <div class="ov-kpi__foot">
-            <span class="ov-kpi__note" id="ov-kpi-hours-note">verified by supervisor</span>
-            <span class="ov-kpi__pct ov-kpi__pct--accent" id="ov-kpi-hours-pct">0%</span>
+            <span class="ov-kpi__note">verified hours only</span>
+            <span class="ov-kpi__estimate" id="ov-kpi-estimate">—</span>
           </div>
-          <div class="ov-kpi__ring" aria-hidden="true">
-            <svg class="ov-kpi__ring-svg" width="56" height="56" viewBox="0 0 56 56">
-              <circle class="ov-kpi__ring-bg" cx="28" cy="28" r="24" />
-              <circle class="ov-kpi__ring-fill" id="ov-kpi-ring-fill" cx="28" cy="28" r="24" />
-            </svg>
-            <span class="ov-kpi__ring-pct" id="ov-kpi-ring-pct">0%</span>
-          </div>
-          <p class="ov-kpi__estimate" id="ov-kpi-estimate">Clock in to start tracking</p>
         </article>
 
         <article class="glass-card ov-card ov-kpi">
@@ -199,23 +220,10 @@
             <span class="ov-kpi__pct" id="ov-kpi-attendance">—</span>
           </div>
         </article>
-
-        <article class="glass-card ov-card ov-kpi">
-          <div class="ov-kpi__head">
-            <h3 class="ov-kpi__label">Remaining Hours</h3>
-            <span class="ov-kpi__icon" aria-hidden="true">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-            </span>
-          </div>
-          <p class="ov-kpi__value"><span id="ov-kpi-remaining">486</span><span class="ov-kpi__unit">hrs</span></p>
-          <div class="ov-kpi__foot">
-            <span class="ov-kpi__note" id="ov-kpi-remaining-note">of 486 required</span>
-          </div>
-        </article>
       </section>
 
-      <!-- ROW 2 — Today's OJT, composed as ONE panel: status band on the left,
-           hairline, metrics strip, action. -->
+      <!-- ROW 2 — Today's OJT: tinted status band, hairline-divided metrics
+           strip, then the actions. One summary, not four tiles. -->
       <section class="ov-row-2" aria-label="Today's attendance">
         <article class="glass-card ov-card" id="ov-today-card">
           <div class="ov-card__head">
@@ -257,24 +265,64 @@
         </article>
       </section>
 
-      <!-- ROW 3 — equal-width Journal Progress, Updates, and Attendance. -->
-      <section class="ov-row-3" aria-label="Journal progress, updates and attendance calendar">
-        <article class="glass-card ov-card" id="ov-journal-card">
+      <!-- ROW 3 — This Week, DTR Verification and Attendance. The three heads
+            share one block height so their content starts on the same line, and
+            the cards stretch to a common height so the row reads as a single
+            band rather than three separate widgets. -->
+      <section class="ov-row-3" aria-label="This week, DTR verification and attendance calendar">
+        <!-- This Week: Monday-Friday OJT activity from the DTR records, plus
+             the journal state and its Friday deadline in one card. The journal
+             is one document per OJT week, so the status is reported as a state
+             rather than a per-day submission count the system cannot produce. -->
+        <article class="glass-card ov-card" id="ov-week-card">
           <div class="ov-card__head">
-            <h3 class="ov-card__title">Journal Progress</h3>
-            <span class="ov-card__meta" id="ov-journal-week">—</span>
+            <h3 class="ov-card__title">This Week</h3>
+            <span class="ov-card__meta" id="ov-week-range">—</span>
           </div>
-          <div class="ov-journal" id="ov-journal" data-state="loading">
-            <p class="ov-journal__loading">Checking this week's journal…</p>
+          <div class="ov-week" id="ov-week" data-state="loading">
+            <div class="ov-week__days" id="ov-week-days" role="group" aria-label="Monday to Friday OJT activity">
+              <p class="ov-week__loading">Checking this week's activity…</p>
+            </div>
+
+            <dl class="ov-week__stats">
+              <div class="ov-week__stat">
+                <dt>Weekly hours</dt>
+                <dd id="ov-week-hours">—</dd>
+              </div>
+              <div class="ov-week__stat">
+                <dt>Journal</dt>
+                <dd id="ov-week-journal">—</dd>
+              </div>
+            </dl>
+
+            <div class="ov-week__foot">
+              <div class="ov-week__deadline" id="ov-week-deadline">
+                <div class="ov-week__deadlineHead">
+                  <span class="ov-week__deadlineLabel">Journal due Friday</span>
+                  <span class="ov-week__deadlineLeft" id="ov-week-days-left">—</span>
+                </div>
+                <span class="ov-meter" aria-hidden="true"><span class="ov-meter__fill" id="ov-week-deadline-fill" style="width:0%"></span></span>
+              </div>
+
+              <button type="button" class="btn-primary ov-week__cta" id="ov-week-cta" onclick="switchTab('journal')">
+                Write Journal
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </button>
+            </div>
           </div>
         </article>
 
-        <article class="glass-card ov-card" id="ov-updates-card">
+        <!-- DTR verification status: supervisor sign-off on the trainee's own
+             time records, counted over the whole OJT period. The DTR model
+             carries verified / not verified only, so the donut reports those
+             two states and never invents a rejected segment. -->
+        <article class="glass-card ov-card" id="ov-dtr-card">
           <div class="ov-card__head">
-            <h3 class="ov-card__title">Updates</h3>
+            <h3 class="ov-card__title">DTR Verification</h3>
+            <span class="ov-card__meta" id="ov-dtr-meta">All time</span>
           </div>
-          <div class="ov-updates" id="ov-updates">
-            <p class="ov-updates__loading">Loading updates…</p>
+          <div class="ov-dtr" id="ov-dtr" data-state="loading">
+            <p class="ov-dtr__loading">Checking your DTR records…</p>
           </div>
         </article>
 
@@ -287,7 +335,6 @@
           <div class="ov-card__head ov-card__head--stack">
             <div class="ov-cal__titles">
               <h3 class="ov-card__title">Attendance</h3>
-              <p class="ov-card__caption" id="ov-cal-caption">Your attendance this month</p>
             </div>
             <div class="tk-cal-head ov-cal__head">
               <span class="ov-cal__label" id="ov-cal-label" aria-live="polite">—</span>
@@ -1090,6 +1137,6 @@
   <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
        which writes .value and listens for the change events it re-dispatches. -->
   <script src="trackit-calendar.js?v=1"></script>
-  <script src="ojtdashboard.js?v=7"></script>
+  <script src="ojtdashboard.js?v=10"></script>
 </body>
 </html>

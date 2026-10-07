@@ -2955,12 +2955,6 @@ body.light-mode #overview {
   color: var(--ov-text-muted);
 }
 
-.ov-card__caption {
-  margin: 3px 0 0;
-  font-size: 0.74rem;
-  color: var(--ov-text-muted);
-}
-
 /* Card head that stacks a title block above a control row. */
 .ov-card__head--stack {
   align-items: flex-start;
@@ -2983,6 +2977,19 @@ body.light-mode #overview {
 
 .ov-card--flush {
   padding-bottom: 16px;
+}
+
+/* One shared hover treatment across the dashboard's cards: a slightly
+   brighter border and a one-pixel lift. Feedback, not decoration. */
+.ov-card {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+@media (hover: hover) {
+  .ov-card:hover {
+    border-color: var(--ov-hairline-strong);
+    transform: translateY(-1px);
+  }
 }
 
 .ov-card__head {
@@ -3016,11 +3023,29 @@ body.light-mode #overview {
 
 /* --- ROW 1 · KPI cards --------------------------------------------------- */
 
+/* One wide card beside one narrow one: Overall Progress carries every figure
+   about OJT completion, so the row only needs two columns. */
 .ov-kpi-row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--ov-gap);
   margin-bottom: var(--ov-gap);
+}
+
+@media (min-width: 640px) {
+  .ov-kpi-row {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ov-kpi-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ov-kpi--wide {
+    grid-column: span 2;
+  }
 }
 
 .ov-kpi {
@@ -3104,11 +3129,6 @@ body.light-mode #overview {
   font-variant-numeric: tabular-nums;
 }
 
-/* The one place the accent earns its keep: the overall progress figure. */
-.ov-kpi__pct--accent {
-  color: var(--ov-teal);
-}
-
 .ov-meter {
   display: block;
   margin-top: 10px;
@@ -3126,49 +3146,129 @@ body.light-mode #overview {
   transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Circular progress ring on the Completed Hours card */
-.ov-kpi__ring {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  margin-top: 8px;
+/* Secondary figure on the right of a KPI foot (remaining hours). Kept on the
+   foot rather than below it so all three cards put their second line on the
+   same baseline. */
+.ov-kpi__estimate {
+  font-size: 0.72rem;
+  color: var(--ov-text-muted);
+  text-align: right;
+  min-width: 0;
 }
 
-.ov-kpi__ring-svg {
+/* --- Overall Progress ----------------------------------------------------- */
+
+/* Ring beside the supporting figures on desktop, stacked on a phone. The card
+   is the only place the hours figure appears, so it has room to breathe. */
+.ov-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1 1 auto;
+}
+
+@media (min-width: 640px) {
+  .ov-progress {
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+  }
+}
+
+.ov-progress__ring {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .ov-progress__ring {
+    width: 134px;
+    height: 134px;
+  }
+}
+
+.ov-progress__svg {
+  width: 100%;
+  height: 100%;
   transform: rotate(-90deg);
 }
 
-.ov-kpi__ring-bg {
+.ov-progress__track {
   fill: none;
   stroke: var(--ov-surface-2);
-  stroke-width: 4;
+  stroke-width: 11;
 }
 
-.ov-kpi__ring-fill {
+/* Starts fully offset so the arc animates from zero to its real value on load. */
+.ov-progress__fill {
   fill: none;
   stroke: var(--ov-teal);
-  stroke-width: 4;
+  stroke-width: 11;
   stroke-linecap: round;
-  stroke-dasharray: 150.8;
-  stroke-dashoffset: 150.8;
-  transition: stroke-dashoffset 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  stroke-dasharray: 326.73;
+  stroke-dashoffset: 326.73;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ov-kpi__ring-pct {
+.ov-progress__pct {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--ov-teal);
+  display: grid;
+  place-items: center;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
 }
 
-.ov-kpi__estimate {
-  margin-top: 6px;
-  font-size: 0.72rem;
+.ov-progress__body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ov-progress__meta {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ov-progress__metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: var(--ov-surface-2);
+  border: 1px solid var(--ov-hairline);
+  font-size: 0.74rem;
+  font-weight: 600;
   color: var(--ov-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-progress__metaItem svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.ov-progress__of {
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+/* The foot is pushed to the bottom of the card so its baseline lands on the
+   Days Present baseline no matter how much content sits above it. */
+.ov-kpi--wide .ov-kpi__foot {
+  margin-top: auto;
+  padding-top: 16px;
 }
 
 /* --- ROW 2 · layout ------------------------------------------------------ */
@@ -3181,157 +3281,665 @@ body.light-mode #overview {
   margin-bottom: var(--ov-gap);
 }
 
-/* Equal-width desktop row for Journal Progress + Updates + Attendance */
+/* Equal-width desktop row for Journal Progress + DTR Verification +
+   Attendance. The cards stretch to one shared height instead of hugging their
+   own content, and every head reserves the same block height, so the three
+   titles line up and each body starts on the same line - the row reads as one
+   band rather than three widgets that happened to be placed together. */
 @media (min-width: 1024px) {
   .ov-row-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
+    align-items: stretch;
   }
 
   .ov-row-3 > .ov-card {
     display: flex;
     flex-direction: column;
-    height: auto;
+    height: 100%;
     min-height: 0;
+  }
+
+  /* Sized for the calendar's month controls, the tallest head in the row, so
+     the other two cards gain the same block instead of starting higher up. */
+  .ov-row-3 > .ov-card > .ov-card__head {
+    min-height: 32px;
+    align-items: center;
+  }
+
+  /* Both status cards fill whatever height the calendar sets: This Week pins
+     its deadline and button to the bottom, DTR Verification spreads its
+     sections, so neither leaves a stranded gap under a tall neighbour. */
+  .ov-row-3 .ov-week {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .ov-row-3 .ov-dtr {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
   }
 }
 
-/* Updates feed */
-.ov-updates {
+/* DTR Verification card: status badge, a two-segment donut with the counts
+   beside it, then the latest entries. Two states only - the DTR model has no
+   rejected flag, so there is no third segment to draw. */
+.ov-dtr {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
-.ov-updates__loading,
-.ov-updates__empty {
+.ov-dtr__loading {
+  margin: 0;
+  padding: 30px 0;
   font-size: 0.85rem;
+  line-height: 1.5;
   color: var(--ov-text-muted);
   text-align: center;
-  padding: 16px 0;
 }
 
-.ov-updates__item {
+/* Empty state: sized so a brand-new trainee sees a deliberate panel rather
+   than a hole where the donut would be. */
+.ov-dtr__empty {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  flex: 1 1 auto;
+  justify-content: center;
+  padding: 24px 8px;
+  text-align: center;
 }
 
-.ov-updates__icon {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--ov-surface-2);
-  border: 1px solid var(--ov-hairline);
-  display: flex;
+.ov-dtr__emptyIcon {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: var(--ov-surface-2);
+  border: 1px solid var(--ov-hairline);
+  color: var(--ov-text-muted);
+}
+
+.ov-dtr__emptyIcon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.ov-dtr__emptyTitle {
+  margin: 6px 0 0;
+  font-size: 0.93rem;
+  font-weight: 700;
+  color: var(--ov-text);
+}
+
+.ov-dtr__emptyText {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 0.79rem;
+  line-height: 1.55;
+  color: var(--ov-text-muted);
+}
+
+.ov-dtr__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  margin: 0;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.ov-dtr__badgeMark {
+  display: inline-flex;
+}
+
+.ov-dtr__badgeMark svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ov-dtr__badge[data-state='verified'] {
+  background: var(--ov-teal-soft);
+  border: 1px solid var(--ov-teal-line);
   color: var(--ov-teal);
 }
 
-.ov-updates__content {
-  min-width: 0;
-}
-
-.ov-updates__title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--ov-text);
-  margin: 0;
-}
-
-.ov-updates__message {
-  font-size: 0.78rem;
-  color: var(--ov-text-muted);
-  margin: 2px 0 0;
-}
-
-.ov-updates__time {
-  font-size: 0.72rem;
-  color: var(--ov-text-muted);
-  margin-top: 2px;
-}
-
-.ov-today__late {
-  font-size: 0.82rem;
+.ov-dtr__badge[data-state='pending'] {
+  background: var(--ov-amber-soft);
+  border: 1px solid color-mix(in srgb, var(--ov-amber) 34%, transparent);
   color: var(--ov-amber);
-  margin: 4px 0 0;
 }
 
-.ov-today__actions {
+.ov-dtr__top {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 12px;
+  align-items: center;
+  gap: 14px;
 }
 
-/* Week strip inside Journal Progress */
-.ov-journal__weekstrip {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
+.ov-dtr__donut {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  flex-shrink: 0;
 }
 
-.ov-journal__day {
+.ov-dtr__donutSvg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ov-dtr__donutTrack {
+  fill: none;
+  stroke: var(--ov-surface-2);
+  stroke-width: 10;
+}
+
+.ov-dtr__donutSeg {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: butt;
+  transition: stroke-dasharray 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ov-dtr__donutSeg--verified {
+  stroke: var(--ov-teal);
+}
+
+.ov-dtr__donutSeg--pending {
+  stroke: var(--ov-amber);
+}
+
+.ov-dtr__donutCenter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
   text-align: center;
+}
+
+.ov-dtr__donutCenter b {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-dtr__donutCenter span {
+  font-size: 0.66rem;
+  font-weight: 500;
+  color: var(--ov-text-muted);
+}
+
+.ov-dtr__counts {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-.ov-journal__day-label {
-  font-size: 0.65rem;
-  color: var(--ov-text-muted);
-  display: block;
-  margin-bottom: 4px;
-}
-
-.ov-journal__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
+.ov-dtr__count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
   background: var(--ov-surface-2);
-  border: 1px solid var(--ov-hairline);
-  display: block;
-  margin: 0 auto 4px;
 }
 
-.ov-journal__dot--filled {
-  background: var(--ov-teal);
-  border-color: var(--ov-teal);
-}
-
-.ov-journal__dot--today {
-  box-shadow: 0 0 0 2px var(--ov-teal-line);
-}
-
-.ov-journal__due {
-  margin-top: 10px;
-  font-size: 0.78rem;
+.ov-dtr__count dt {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--ov-text-muted);
 }
 
-.ov-journal__due--warn {
+.ov-dtr__count dd {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-dtr__count dd[data-state='verified'] {
+  color: var(--ov-teal);
+}
+
+.ov-dtr__count dd[data-state='pending'] {
   color: var(--ov-amber);
 }
 
-.ov-journal__due--overdue {
+.ov-dtr__entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--ov-hairline);
+}
+
+.ov-dtr__entriesHead {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ov-text-muted);
+}
+
+.ov-dtr__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ov-dtr__entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: var(--ov-surface-2);
+  font-size: 0.74rem;
+}
+
+.ov-dtr__entryDate {
+  font-weight: 700;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-dtr__entryTime {
+  color: var(--ov-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-dtr__entryState {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.ov-dtr__entryIcon {
+  display: inline-flex;
+}
+
+.ov-dtr__entryIcon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.ov-dtr__entry[data-state='verified'] .ov-dtr__entryState {
+  color: var(--ov-green);
+}
+
+.ov-dtr__entry[data-state='pending'] .ov-dtr__entryState {
+  color: var(--ov-amber);
+}
+
+/* --- This Week ------------------------------------------------------------ */
+
+.ov-week {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ov-week__loading {
+  /* The days container is a five-column grid, so a placeholder must claim the
+     whole row instead of sitting in the Monday column. */
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 26px 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ov-text-muted);
+  text-align: center;
+}
+
+/* Monday-Friday timeline: five equal cells, sized so the row still reads at
+   375px where each cell is about 60px wide. */
+.ov-week__days {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ov-week__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 3px 9px;
+  border-radius: 11px;
+  background: var(--ov-surface-2);
+  border: 1px solid transparent;
+  text-align: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.ov-week__dayName {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ov-text-muted);
+}
+
+.ov-week__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--ov-hairline-strong);
+  color: var(--ov-text-muted);
+}
+
+.ov-week__mark svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ov-week__dayHours {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-week__book {
+  display: inline-flex;
+  color: var(--ov-text-muted);
+  opacity: 0.32;
+}
+
+.ov-week__book svg {
+  width: 12px;
+  height: 12px;
+}
+
+.ov-week__book[data-book='submitted'] {
+  opacity: 1;
+  color: var(--ov-green);
+}
+
+.ov-week__book[data-book='draft'] {
+  opacity: 1;
+  color: var(--ov-amber);
+}
+
+/* Day states. Every cell also carries its state in the aria-label, so the
+   meaning never depends on hue alone. */
+.ov-week__day[data-state='present'] .ov-week__mark {
+  background: var(--ov-teal-soft);
+  border-color: color-mix(in srgb, var(--ov-teal) 38%, transparent);
+  color: var(--ov-teal);
+}
+
+.ov-week__day[data-state='late'] .ov-week__mark,
+.ov-week__day[data-state='today'] .ov-week__mark {
+  background: var(--ov-amber-soft);
+  border-color: color-mix(in srgb, var(--ov-amber) 38%, transparent);
+  color: var(--ov-amber);
+}
+
+.ov-week__day[data-state='absent'] .ov-week__mark,
+.ov-week__day[data-state='missed'] .ov-week__mark {
+  background: var(--ov-red-soft);
+  border-color: color-mix(in srgb, var(--ov-red) 38%, transparent);
   color: var(--ov-red);
 }
 
-/* --- ROW 2 · Today's OJT ------------------------------------------------- */
+.ov-week__day[data-state='excused'] .ov-week__mark {
+  background: var(--ov-blue-soft);
+  border-color: color-mix(in srgb, var(--ov-blue) 38%, transparent);
+  color: var(--ov-blue);
+}
+
+.ov-week__day[data-state='upcoming'] .ov-week__mark {
+  border-style: dashed;
+}
+
+/* Today gets a ring around its mark and a lighter cell, so the eye finds the
+   current day without the row turning into five competing highlights. */
+.ov-week__day[data-today='true'] {
+  background: var(--ov-surface);
+  border-color: var(--ov-teal-line);
+}
+
+.ov-week__day[data-today='true'] .ov-week__dayName {
+  color: var(--ov-teal);
+}
+
+.ov-week__day[data-today='true'] .ov-week__mark {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ov-teal) 22%, transparent);
+}
+
+/* Summary under the timeline. */
+.ov-week__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--ov-hairline);
+}
+
+.ov-week__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ov-week__stat dt {
+  margin: 0;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ov-text-muted);
+}
+
+.ov-week__stat dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ov-text);
+  overflow-wrap: anywhere;
+}
+
+.ov-week__stat dd[data-state='submitted'],
+.ov-week__stat dd[data-state='reviewed'],
+.ov-week__stat dd[data-state='approved'] {
+  color: var(--ov-green);
+}
+
+.ov-week__stat dd[data-state='draft'] {
+  color: var(--ov-amber);
+}
+
+.ov-week__stat dd[data-state='error'] {
+  color: var(--ov-red);
+}
+
+/* Deadline and button pinned to the bottom of the card so the three cards in
+   this row finish on the same line. */
+.ov-week__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.ov-week__deadline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ov-week__deadlineHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ov-week__deadlineLabel {
+  font-size: 0.76rem;
+  color: var(--ov-text-muted);
+}
+
+.ov-week__deadlineLeft {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-week__deadline[data-state='warn'] .ov-week__deadlineLeft {
+  color: var(--ov-amber);
+}
+
+.ov-week__deadline[data-state='overdue'] .ov-week__deadlineLeft {
+  color: var(--ov-red);
+}
+
+.ov-week__deadline .ov-meter {
+  margin-top: 0;
+}
+
+.ov-week__deadline[data-state='warn'] .ov-meter__fill {
+  background: var(--ov-amber);
+}
+
+.ov-week__deadline[data-state='overdue'] .ov-meter__fill {
+  background: var(--ov-red);
+}
+
+.ov-week__cta {
+  width: 100%;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+/* --- Interaction --------------------------------------------------------- */
+
+/* Visible keyboard focus for the primary button, including the Write Journal
+   button on the This Week card. */
+.btn-primary:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* The progress arc, donut segments, meters and card hovers are the only
+   motion this dashboard adds; switch all of it off for visitors who ask. */
+@media (prefers-reduced-motion: reduce) {
+  .ov-progress__fill,
+  .ov-dtr__donutSeg,
+  .ov-meter__fill,
+  .ov-week__day,
+  .ov-card,
+  .btn-primary {
+    transition: none !important;
+  }
+}
+
+/* --- Responsive ---------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+  .ov-card { padding: 22px 24px; }
+}
+
+/* Narrow phones: single-column detail rows, tighter calendar. */
+@media (max-width: 559px) {
+  .ov-card { padding: 16px; }
+}
+
+/* ── Today's OJT ───────────────────────────────────────────────────────────
+   Three tiers in one card rather than three separate widgets: a tinted status
+   band that states the day's outcome, a metrics strip divided by hairlines
+   only, then the actions. The band carries the state colour, so the card reads
+   as a single attendance summary. */
+
+.ov-today__body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+/* Status band ------------------------------------------------------------- */
 
 .ov-today__state {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1 1 230px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   min-width: 0;
-  padding: 0;
   margin: 0;
-  border: 0;
-  background: none;
+  padding: 11px 14px;
+  border: 1px solid var(--ov-hairline);
+  border-radius: 12px;
+  background: var(--ov-surface-2);
 }
 
+/* The band borrows the badge's state colour at the same strength the badge
+   already uses, so the colour says where the trainee is without adding a new
+   palette to the card. */
+.ov-today__state[data-state='not-started'],
+.ov-today__state[data-state='late'] {
+  background: var(--ov-amber-soft);
+  border-color: color-mix(in srgb, var(--ov-amber) 30%, transparent);
+}
+
+.ov-today__state[data-state='ongoing'] {
+  background: var(--ov-green-soft);
+  border-color: color-mix(in srgb, var(--ov-green) 30%, transparent);
+}
+
+.ov-today__state[data-state='completed'] {
+  background: var(--ov-blue-soft);
+  border-color: color-mix(in srgb, var(--ov-blue) 30%, transparent);
+}
+
+/* The badge sits on that tinted band, so it starts as the card's own surface
+   and takes the state colour only as a pill - it stays legible on every state
+   in both themes. */
 .ov-today__badge {
   display: inline-flex;
   align-items: center;
@@ -3342,266 +3950,59 @@ body.light-mode #overview {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  background: var(--ov-teal-soft);
-  color: var(--ov-teal);
-  border: 1px solid var(--ov-teal-line);
+  background: var(--ov-surface);
+  color: var(--ov-text);
+  border: 1px solid var(--ov-hairline-strong);
+}
+
+.ov-today__state[data-state='not-started'] .ov-today__badge,
+.ov-today__state[data-state='late'] .ov-today__badge {
+  background: var(--ov-amber-soft);
+  color: var(--ov-amber);
+  border-color: color-mix(in srgb, var(--ov-amber) 40%, transparent);
+}
+
+.ov-today__state[data-state='ongoing'] .ov-today__badge {
+  background: var(--ov-green-soft);
+  color: var(--ov-green);
+  border-color: color-mix(in srgb, var(--ov-green) 40%, transparent);
+}
+
+.ov-today__state[data-state='completed'] .ov-today__badge {
+  background: var(--ov-blue-soft);
+  color: var(--ov-blue);
+  border-color: color-mix(in srgb, var(--ov-blue) 40%, transparent);
 }
 
 .ov-today__message {
   margin: 0;
-  font-size: 0.85rem;
+  min-width: 0;
+  font-size: 0.84rem;
   line-height: 1.45;
   color: var(--ov-text-muted);
 }
 
-/* State colours are driven from one attribute so the JS only sets a value. */
-.ov-today__state[data-state='not-started'] .ov-today__badge {
-  background: var(--ov-amber-soft);
+/* Takes its own line under the badge + message when the day is late. */
+.ov-today__late {
+  flex: 1 1 100%;
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--ov-amber);
-  border-color: color-mix(in srgb, var(--ov-amber) 34%, transparent);
-}
-.ov-today__state[data-state='ongoing'] .ov-today__badge {
-  background: var(--ov-green-soft);
-  color: var(--ov-green);
-  border-color: color-mix(in srgb, var(--ov-green) 34%, transparent);
-}
-.ov-today__state[data-state='late'] .ov-today__badge {
-  background: var(--ov-amber-soft);
-  color: var(--ov-amber);
-  border-color: color-mix(in srgb, var(--ov-amber) 34%, transparent);
-}
-.ov-today__state[data-state='completed'] .ov-today__badge {
-  background: var(--ov-blue-soft);
-  color: var(--ov-blue);
-  border-color: color-mix(in srgb, var(--ov-blue) 34%, transparent);
 }
 
+/* Metrics strip ----------------------------------------------------------- */
+
 .ov-today__grid {
-  flex: 2 1 340px;
   margin: 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
+  /* The cells are the card's own surface, so this hairline only shows through
+     the 1px gutters: dividers between facts, not four boxed tiles. */
   background: var(--ov-hairline);
-  border: 1px solid var(--ov-hairline);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.ov-today__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 11px 14px;
-  background: var(--ov-surface);
-}
-
-.ov-today__key {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--ov-text-muted);
-}
-
-.ov-today__val {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ov-text);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  /* A long schedule range must wrap rather than widen the card. */
-  overflow-wrap: anywhere;
-}
-
-.ov-today__cta {
-  margin-top: 16px;
-  width: 100%;
-  min-height: 44px;
-}
-
-/* --- ROW 4 · Journal progress -------------------------------------------- */
-
-.ov-journal__loading {
-  margin: 0;
-  padding: 18px 0;
-  font-size: 0.85rem;
-  color: var(--ov-text-muted);
-  text-align: center;
-}
-
-.ov-journal__status {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 0 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--ov-hairline);
-}
-
-.ov-journal__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--ov-surface-2);
-  border: 1px solid var(--ov-hairline-strong);
-  color: var(--ov-text-muted);
-}
-
-.ov-journal__mark svg {
-  width: 14px;
-  height: 14px;
-}
-
-.ov-journal__status[data-state='submitted'] .ov-journal__mark,
-.ov-journal__status[data-state='reviewed'] .ov-journal__mark,
-.ov-journal__status[data-state='approved'] .ov-journal__mark {
-  background: var(--ov-green-soft);
-  border-color: color-mix(in srgb, var(--ov-green) 40%, transparent);
-  color: var(--ov-green);
-}
-
-.ov-journal__status[data-state='returned'] .ov-journal__mark,
-.ov-journal__status[data-state='draft'] .ov-journal__mark {
-  background: var(--ov-amber-soft);
-  border-color: color-mix(in srgb, var(--ov-amber) 40%, transparent);
-  color: var(--ov-amber);
-}
-
-.ov-journal__status[data-state='pending'] .ov-journal__mark {
-  background: var(--ov-blue-soft);
-  border-color: color-mix(in srgb, var(--ov-blue) 40%, transparent);
-  color: var(--ov-blue);
-}
-
-.ov-journal__statusText {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ov-text);
-}
-
-.ov-journal__facts {
-  margin: 0 0 14px;
-  display: grid;
-  gap: 7px;
-}
-
-.ov-journal__fact {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 0.79rem;
-}
-
-.ov-journal__fact dt { color: var(--ov-text-muted); margin: 0; }
-.ov-journal__fact dd { margin: 0; color: var(--ov-text); font-weight: 600; text-align: right; overflow-wrap: anywhere; }
-
-.ov-journal__cta {
-  width: 100%;
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-}
-
-/* Compact Journal Progress card */
-.ov-journal__stack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ov-journal__headline {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--ov-text);
-}
-
-.ov-journal__facts--compact {
-  margin: 10px 0 0;
-  display: grid;
-  gap: 4px;
-}
-
-.ov-journal__facts--compact .ov-journal__fact {
-  font-size: 0.78rem;
-}
-
-.ov-journal__cta--compact {
-  width: fit-content;
-  align-self: flex-start;
-  padding: 10px 20px;
-  min-height: 38px;
-  font-size: 0.88rem;
-}
-
-/* --- Responsive ---------------------------------------------------------- */
-
-/* Tablet / small laptop: two KPI columns, side-by-side row 2 and row 4. */
-@media (min-width: 640px) {
-  .ov-kpi-row { grid-template-columns: repeat(2, 1fr); }
-  .ov-today__grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (min-width: 1024px) {
-  .ov-card { padding: 22px 24px; }
-  .ov-kpi-row { grid-template-columns: repeat(3, 1fr); }
-}
-
-/* Narrow phones: single-column detail rows, tighter calendar. */
-@media (max-width: 559px) {
-  .ov-card { padding: 16px; }
-}
-
-/* ── Today's OJT (compact) ────────────────────────────────────────────────
-   One horizontal band instead of a stack: the status reads as a single line,
-   and the four facts sit in a tight 4-up strip. Collapses to a 2-up grid on
-   narrow screens so nothing is squeezed. */
-
-.ov-today__body {
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px 20px;
-}
-
-.ov-today__state {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 240px;
-  min-width: 0;
-  padding: 0;
-  margin: 0;
   border: 0;
-  background: none;
-}
-
-.ov-today__message {
-  margin: 0;
-  font-size: 0.82rem;
-  line-height: 1.4;
-  color: var(--ov-text-muted);
-}
-
-.ov-today__grid {
-  flex: 2 1 340px;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--ov-hairline);
-  border: 1px solid var(--ov-hairline);
-  border-radius: 10px;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -3610,7 +4011,7 @@ body.light-mode #overview {
   flex-direction: column;
   gap: 3px;
   min-width: 0;
-  padding: 9px 11px;
+  padding: 10px 12px;
   background: var(--ov-surface);
 }
 
@@ -3626,12 +4027,20 @@ body.light-mode #overview {
 
 .ov-today__val {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--ov-text);
   font-variant-numeric: tabular-nums;
   /* A long schedule range wraps instead of widening the card. */
   overflow-wrap: anywhere;
+}
+
+/* Actions ----------------------------------------------------------------- */
+
+.ov-today__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .ov-today__cta {
@@ -3640,6 +4049,12 @@ body.light-mode #overview {
   min-height: 40px;
   padding: 0 18px;
   flex: 0 0 auto;
+}
+
+/* Two-up metrics on phones and small tablets so the values stay readable. */
+@media (max-width: 767px) {
+  .ov-today__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ov-today__cta { width: 100%; }
 }
 
 /* ── ROW 3 · Attendance calendar ───────────────────────────────────────────
@@ -3867,12 +4282,15 @@ body.light-mode #overview {
    fill that column at a readable size instead of sitting as a small island
    inside a much wider card. */
 
+/* Stretches with the rest of the bottom row so the three cards share a height;
+   the day cells are what set that height, so it never leaves dead space. */
 #ov-calendar-card {
-  align-self: start;
+  align-self: stretch;
 }
 
+/* Keeps the base head margin, so the calendar head occupies exactly the same
+   block height as the Journal Progress and DTR Verification heads beside it. */
 #ov-calendar-card .ov-card__head--stack {
-  margin-bottom: 10px;
   gap: 8px;
 }
 
@@ -3928,17 +4346,6 @@ body.light-mode #overview {
   padding: 10px;
 }
 
-@media (min-width: 640px) {
-  .ov-today__body { flex-wrap: nowrap; }
-}
-
-@media (max-width: 639px) {
-  /* 4-up is too tight for a phone: drop to 2-up so values stay readable. */
-  .ov-today__grid { flex: 1 1 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ov-today__state { flex: 1 1 100%; }
-  .ov-today__cta { width: 100%; }
-}
-
 @media (max-width: 420px) {
   /* Keep the month title readable when the controls crowd it. */
   #ov-calendar-card .ov-cal__head { width: 100%; justify-content: space-between; }
@@ -3966,19 +4373,6 @@ body.light-mode #overview {
     position: absolute;
     inset: -7px;
     border-radius: 50%;
-  }
-}
-
-@media (min-width: 860px) {
-  /* Hairline between the status band and the metrics strip. */
-  #ov-today-card .ov-today__body::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    bottom: 2px;
-    left: calc(50% - 0.5px);
-    width: 1px;
-    background: var(--ov-hairline);
   }
 }
 
