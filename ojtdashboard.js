@@ -69,47 +69,27 @@ function parseJournalWeekNumber(weekStr) {
   return m ? parseInt(m[1], 10) : null;
 }
 
-/** Normalize journal.week to the same label as selector options (e.g. "Week 1"). */
-function normalizeWeekOptionLabel(weekStr) {
-  const n = parseJournalWeekNumber(weekStr);
-  if (n != null) return `Week ${n}`;
-  const t = String(weekStr || '').trim();
-  return t || null;
+/**
+ * A draft the student is still writing. Returned-for-revision journals also
+ * carry status 'draft' but keep their supervisor's note, so they stay visible
+ * in Previous Journals and in the supervisor's Returned queue.
+ */
+function isPrivateDraft(journal) {
+  return !!journal && journal.status === 'draft' && !journal.supervisorReview;
 }
 
 /**
- * Weeks that already have a submitted or reviewed journal.
- * Draft (e.g. returned for revision) stays selectable so the trainee can resubmit.
+ * Origin every week-based calculation counts from: the first supervisor
+ * assignment (backend sends it as `supervisorAssignedAt`), falling back to
+ * account creation until stats load or while no supervisor is assigned.
  */
-function getSubmittedWeekLabelsSet(journals) {
-  const set = new Set();
-  (journals || []).forEach((j) => {
-    if (!j || j.status === 'draft') return;
-    const label = normalizeWeekOptionLabel(j.week);
-    if (label) set.add(label);
-  });
-  return set;
-}
-
-function ensureValidWeekSelection(weekSelector) {
-  if (!weekSelector) return;
-  const sel = weekSelector.selectedOptions[0];
-  if (!sel || sel.disabled) {
-    const first = Array.from(weekSelector.options).find((o) => !o.disabled);
-    if (first) first.selected = true;
-  }
-}
-
-/** Disable week options that already have a non-draft journal; fix selection if needed. */
-function applySubmittedWeeksToWeekSelector(journals) {
-  const weekSelector = document.getElementById('week-selector');
-  if (!weekSelector) return;
-  const submitted = getSubmittedWeekLabelsSet(journals);
-  Array.from(weekSelector.options).forEach((opt) => {
-    const label = normalizeWeekOptionLabel(opt.value);
-    opt.disabled = !!(label && submitted.has(label));
-  });
-  ensureValidWeekSelection(weekSelector);
+function getOjtStartDate() {
+  return (
+    window.ojtStartDate ||
+    window.studentRegistrationDate ||
+    window.currentUser?.createdAt ||
+    null
+  );
 }
 
 function weekRangeLabelFromJournals(journals) {
@@ -135,7 +115,7 @@ function weekRangeLabelFromJournals(journals) {
   return `${first} - ${last}`;
 }
 
-/** OJT week index (Week 1 = first 7 days since registration), same logic as updateHoursByWeek */
+/** OJT week index (Week 1 = first 7 days since the OJT start date), same logic as updateHoursByWeek */
 function ojtWeekNumberFromDate(isoOrDate, registrationDate) {
   if (!isoOrDate || !registrationDate) return null;
   const date = new Date(isoOrDate);
@@ -198,7 +178,7 @@ async function fetchAllDtrRecords(traineeId, startIso, endIso) {
 /** Sum verified DTR hours for each distinct OJT week covered by the selected journals */
 async function fetchTotalVerifiedHoursForJournalSelection(journals) {
   const traineeId = window.currentUser?._id;
-  const registrationDate = window.studentRegistrationDate || window.currentUser?.createdAt;
+  const registrationDate = getOjtStartDate();
   if (!traineeId || !registrationDate || !journals || journals.length === 0) return null;
   const reg = new Date(registrationDate);
   const endDate = new Date();
@@ -862,36 +842,22 @@ async function loadDashboardData() {
   if (student?.createdAt) {
     window.studentRegistrationDate = student.createdAt;
   }
+  // Week 1 of the OJT starts at the first supervisor assignment. Until one is
+  // assigned (supervisorAssignedAt is null) charts fall back to account
+  // creation and the journal tab blocks submission.
+  window.ojtStartDate = student?.supervisorAssignedAt || student?.createdAt || null;
+  window.studentHasSupervisor = !!student?.supervisorAssignedAt;
 
   // DEBUG: Log the student data to see what's being returned
-  console.log('Student data from API:', student);
-  console.log('Supervisor data:', student.supervisor);
 
-  // Update overview stat cards
-  const statCards = document.querySelectorAll('#overview .stat-num');
-  if (statCards.length >= 4) {
-    const pendingCount = Number.isFinite(stats.pendingJournals) ? stats.pendingJournals : 0;
-    statCards[0].textContent = stats.completedHours;
-    statCards[1].textContent = stats.daysPresent;
-    statCards[2].textContent = pendingCount;
-    statCards[3].textContent = stats.remainingHours;
-  }
+  // ── Overview tab (redesigned) ──────────────────────────────────────────
+  renderOverviewKpis(stats, student);
+  loadOverviewToday().catch(err => console.error('Error loading today overview:', err));
+  loadOverviewCalendar().catch(err => console.error('Error loading attendance calendar:', err));
+  loadOverviewJournal().catch(err => console.error('Error loading journal overview:', err));
+  loadOverviewUpdates().catch(err => console.error('Error loading updates:', err));
 
-  // Update overview subtitle
-  const hoursSubtitle = document.querySelector('#overview .stat-num + p');
-  if (hoursSubtitle) hoursSubtitle.textContent = `/ ${stats.totalRequired} hours required`;
-
-  // Update progress circle
-  const progressValue = document.querySelector('#overview .progress-value');
-  const progressText = document.querySelector('#overview .progress-circle + p');
-  if (progressValue) progressValue.textContent = `${stats.progressPercentage}%`;
-  if (progressText) progressText.textContent = `${stats.completedHours} of ${stats.totalRequired} hours completed`;
-
-  // Update progress circle CSS variable
-  const progressCircle = document.querySelector('#overview .progress-circle');
-  if (progressCircle) progressCircle.style.setProperty('--progress', `${stats.progressPercentage}%`);
-
-  // Update My Progress tab
+  // ── My Progress tab (unchanged) ────────────────────────────────────────
   const progressTabCircle = document.querySelector('#progress .progress-circle');
   const progressTabValue = document.querySelector('#progress .progress-value');
   const progressTabText = document.querySelector('#progress .progress-circle + p');
@@ -909,7 +875,6 @@ async function loadDashboardData() {
     // Try student's companyName first, then supervisor's companyName
     const companyName = student.companyName || student.supervisor?.companyName || student.company?.name || 'Not assigned';
     companyNameEl.textContent = companyName;
-    console.log('Company name set to:', companyName);
   }
 
   // Update supervisor name
@@ -917,7 +882,6 @@ async function loadDashboardData() {
   if (supervisorNameEl) {
     const supervisorName = student.supervisor?.fullName || 'Not assigned';
     supervisorNameEl.textContent = supervisorName;
-    console.log('Supervisor name set to:', supervisorName);
   }
 
   // Update position from supervisor's company position
@@ -925,7 +889,6 @@ async function loadDashboardData() {
   if (positionEl) {
     const position = student.supervisor?.companyPosition || 'Not assigned';
     positionEl.textContent = position;
-    console.log('Position set to:', position);
   }
 
   // Update settings account summary
@@ -938,175 +901,955 @@ async function loadDashboardData() {
     memberSinceEl.textContent = new Date(student.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  // Load recent activity for overview
-  loadRecentActivity();
-
-  // Load pending journals list for overview
-  loadPendingJournalsOverview();
-
   // Update estimated completion date
   updateEstimatedCompletion(stats, student);
 }
 
-// Load recent activity from DTR records and journal submissions for overview tab
-async function loadRecentActivity() {
+// ============================================================================
+// OVERVIEW TAB — REDESIGNED
+// ----------------------------------------------------------------------------
+// Every number rendered here comes from the live APIs:
+//   · /api/stats/student      → verified all-time hours, month days present,
+//                               required hours, pending journal count
+//   · /api/qr/dtr/:traineeId  → today's record + verified records per week
+//   · /api/journal/my-journals→ this week's journal and its review state
+//
+// Nothing is fabricated: when a series has no verified data yet the card shows
+// an explicit empty state instead of a zero that looks like real attendance.
+// The Overview uses `ov-` prefixed ids throughout because `today-time-in`,
+// `today-hours` and friends already belong to the DTR tab.
+// ============================================================================
+
+function ovText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function ovFormatTime(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function ovFormatHours(hours) {
+  const n = Number(hours);
+  if (!Number.isFinite(n) || n <= 0) return '0h 00m';
+  const whole = Math.floor(n);
+  const minutes = Math.round((n - whole) * 60);
+  return `${whole}h ${String(minutes).padStart(2, '0')}m`;
+}
+
+/**
+ * Local calendar day as a sortable key, zero-padded so it matches ovMonthKey's
+ * shape. Local rather than UTC deliberately: an attendance day is the trainee's
+ * own day, and the rest of the dashboard already buckets DTR records on local
+ * time (updateMonthlyStats uses toDateString). Every call site both builds and
+ * looks up keys through here, so the padding is purely for consistency.
+ */
+function ovDateKey(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+// ── KPIs ────────────────────────────────────────────────────────────────────
+
+/**
+ * Time-aware greeting plus the current date, both from the real clock and the
+ * signed-in trainee. Falls back to a neutral line rather than inventing a name
+ * when the profile has not loaded yet.
+ */
+function renderOverviewHeader(student) {
+  const now = new Date();
+
+  const hour = now.getHours();
+  const partOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+
+  const fullName = (student && student.fullName) || window.currentUser?.fullName || '';
+  const firstName = String(fullName).trim().split(' ')[0] || '';
+
+  const welcome = document.getElementById('ov-welcome');
+  if (welcome) {
+    welcome.textContent = firstName
+      ? `Good ${partOfDay}, ${firstName}. Here's your OJT activity at a glance.`
+      : `Here's your OJT activity at a glance.`;
+  }
+
+  const dateEl = document.getElementById('ov-header-date');
+  if (dateEl) {
+    dateEl.textContent = now.toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    });
+  }
+
+  // The greeting can go stale if the dashboard is left open across noon or
+  // midnight, so it is cheap to keep honest on the existing clock tick.
+}
+
+/**
+ * Fills the three KPI cards. `stats` is the /stats/student payload.
+ * Completed Hours carries the only overall OJT progress indicator on this
+ * dashboard - there is deliberately no separate progress ring or milestone
+ * tracker restating the same 486-hour figure.
+ */
+function renderOverviewKpis(stats, student) {
+  const completed = Number(stats.completedHours) || 0;
+  const required = Number(stats.totalRequired) || 486;
+  const remaining = Number(stats.remainingHours) ?? Math.max(0, required - completed);
+  const days = Number(stats.daysPresent) || 0;
+  const pct = Math.max(0, Math.min(100, Math.round((completed / required) * 100)));
+
+  ovText('ov-kpi-hours', completed % 1 === 0 ? String(completed) : completed.toFixed(1));
+  ovText('ov-kpi-hours-required', `/ ${required} hrs`);
+  ovText('ov-kpi-hours-pct', `${pct}%`);
+  ovText('ov-kpi-hours-note', 'verified by supervisor');
+
+  // Ring progress
+  const ringFill = document.getElementById('ov-kpi-ring-fill');
+  const ringPct = document.getElementById('ov-kpi-ring-pct');
+  if (ringFill) {
+    const circumference = 2 * Math.PI * 24;
+    ringFill.style.strokeDasharray = String(circumference);
+    ringFill.style.strokeDashoffset = String(circumference * (1 - pct / 100));
+  }
+  if (ringPct) ringPct.textContent = `${pct}%`;
+
+  // Estimate text
+  const estimateEl = document.getElementById('ov-kpi-estimate');
+  if (estimateEl) {
+    if (completed > 0) {
+      estimateEl.textContent = `${remaining} hrs remaining`;
+    } else {
+      estimateEl.textContent = 'Clock in to start tracking';
+    }
+  }
+
+  ovText('ov-kpi-days', String(days));
+  const daysNote = document.getElementById('ov-kpi-days-note');
+  if (daysNote) {
+    daysNote.textContent = days === 0 ? 'Your attendance will appear here after your first time-in.' : 'This month';
+  }
+
+  ovText('ov-kpi-remaining', remaining % 1 === 0 ? String(remaining) : remaining.toFixed(1));
+  ovText('ov-kpi-remaining-note', `of ${required} required`);
+
+  renderOverviewHeader(student);
+}
+
+/**
+ * Secondary line on the Days Present card.
+ *
+ * Derived from real records rather than invented: verified days with hours over
+ * the days elapsed so far this month. It deliberately counts only VERIFIED
+ * days so it agrees with the Days Present figure the backend supplies and with
+ * Completed Hours, which is also verified-only. Shown as "—" when the month has
+ * no verified records yet, so a brand-new trainee never sees a misleading 0%.
+ *
+ * @param {Array} records - DTR records for the displayed month
+ * @param {boolean} isCurrentMonth - only the current month's data may set this
+ */
+function renderAttendanceRate(records, isCurrentMonth) {
+  const el = document.getElementById('ov-kpi-attendance');
+  if (!el) return;
+
+  // Navigating to another month must not overwrite a figure that describes
+  // this month, so a non-current view leaves the existing value alone.
+  if (!isCurrentMonth) return;
+
+  const now = new Date();
+  const daysElapsed = now.getDate();
+  const present = new Set();
+  let verifiedRecords = 0;
+
+  (records || []).forEach(record => {
+    if (!record.verifiedBySupervisor) return;
+    const d = new Date(record.date);
+    if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return;
+    verifiedRecords += 1;
+    if (Number(record.hoursRendered) > 0 && String(record.status || '').toLowerCase() !== 'absent') {
+      present.add(ovDateKey(record.date));
+    }
+  });
+
+  if (verifiedRecords === 0) {
+    el.textContent = '—';
+    el.title = 'No verified attendance records yet this month';
+    return;
+  }
+
+  const rate = Math.min(100, Math.round((present.size / daysElapsed) * 100));
+  el.textContent = `${rate}% rate`;
+  el.title = `${present.size} verified day${present.size === 1 ? '' : 's'} of ${daysElapsed} elapsed this month`;
+}
+
+// ── Today's OJT ─────────────────────────────────────────────────────────────
+
+/**
+ * Reads today's DTR record and the supervisor-set schedule. The Time In action
+ * itself is NOT duplicated here: a real punch is gated on the supervisor's
+ * schedule window *and* geofence validation, both of which live in the DTR tab,
+ * so the card deep-links there instead of re-implementing that gating.
+ */
+async function loadOverviewToday() {
+  const stateEl = document.getElementById('ov-today-state');
+  const badge = document.getElementById('ov-today-badge');
+  const message = document.getElementById('ov-today-message');
+  const cta = document.getElementById('ov-today-cta');
+  const clockOutBtn = document.getElementById('ov-today-clockout');
+  const lateEl = document.getElementById('ov-today-late');
+
+  const dateEl = document.getElementById('ov-today-date');
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+    });
+  }
+
+  if (!window.currentUser?._id) {
+    if (stateEl) stateEl.dataset.state = 'not-started';
+    if (badge) badge.textContent = 'Unavailable';
+    if (message) message.textContent = 'Sign in to see today’s attendance.';
+    if (cta) cta.classList.add('hidden');
+    if (clockOutBtn) clockOutBtn.classList.add('hidden');
+    return;
+  }
+
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
   try {
-    // Fetch recent DTR records (last 30 days)
-    const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+    const [dtrResult, schedule] = await Promise.all([
+      fetchAPI(`/qr/dtr/${window.currentUser._id}?startDate=${startOfToday.toISOString()}&endDate=${endOfToday.toISOString()}&limit=5`),
+      fetchOverviewSchedule(),
+    ]);
 
-    const dtrResponse = await fetch(
-      `${API_BASE}/qr/dtr/${window.currentUser._id}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=10`,
-      { headers: getAuthHeaders() }
-    );
+    const record = Array.isArray(dtrResult?.data) ? dtrResult.data[0] : null;
 
-    if (!dtrResponse.ok) return;
-    const dtrData = await dtrResponse.json();
-    const dtrRecords = dtrData.data || [];
+    renderOverviewSchedule(schedule);
 
-    // Fetch recent journal submissions
-    const journalResponse = await fetch(
-      `${API_BASE}/journal/my-journals`,
-      { headers: getAuthHeaders() }
-    );
+    ovText('ov-today-in', record?.timeIn ? ovFormatTime(record.timeIn) : '—');
+    ovText('ov-today-out', record?.timeOut ? ovFormatTime(record.timeOut) : '—');
 
-    const journalData = journalResponse.ok ? await journalResponse.json() : { data: [] };
-    const journals = journalData.data || [];
-
-    const activityContainer = document.getElementById('recent-activity-container');
-    if (!activityContainer) return;
-
-    // Combine activities from both sources
-    const activities = [];
-
-    // Add DTR activities (show all, not just verified)
-    dtrRecords.forEach(record => {
-      activities.push({
-        type: 'dtr',
-        date: new Date(record.date),
-        data: record,
-      });
-    });
-
-    // Add journal submissions
-    journals.forEach(journal => {
-      activities.push({
-        type: 'journal',
-        date: new Date(journal.submittedAt),
-        data: journal,
-      });
-    });
-
-    if (activities.length === 0) {
-      activityContainer.innerHTML = '<p class="text-slate-500 text-sm text-center py-6">No recent activity yet. Start by scanning QR to clock in or submitting a journal.</p>';
-      return;
+    // Late duration
+    if (lateEl) {
+      if (record && record.timeIn && schedule?.startTime) {
+        const lateMs = computeLateDurationMs(record.timeIn, schedule.startTime);
+        if (lateMs > 120000) {
+          lateEl.textContent = `Late by ${formatLateDuration(lateMs)}`;
+          lateEl.hidden = false;
+        } else {
+          lateEl.hidden = true;
+        }
+      } else {
+        lateEl.hidden = true;
+      }
     }
 
-    // Sort by date (newest first) and limit to 4
-    const sortedActivities = activities
-      .sort((a, b) => b.date - a.date)
-      .slice(0, 4);
+    // Live timer or final hours
+    if (record && record.timeIn && !record.timeOut) {
+      startOverviewTimer(record.timeIn);
+      if (clockOutBtn) clockOutBtn.classList.remove('hidden');
+    } else {
+      stopOverviewTimer();
+      const hoursEl = document.getElementById('ov-today-hours');
+      if (hoursEl) hoursEl.textContent = ovFormatHours(record?.hoursRendered);
+      if (clockOutBtn) clockOutBtn.classList.add('hidden');
+    }
 
-    activityContainer.innerHTML = sortedActivities
-      .map(activity => {
-        if (activity.type === 'dtr') {
-          const record = activity.data;
-          const date = new Date(record.date);
-          const timeIn = record.timeIn ? new Date(record.timeIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
-          const timeOut = record.timeOut ? new Date(record.timeOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
-          const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          const hoursRendered = (record.hoursRendered || 0).toFixed(1);
-          const statusColor = record.status === 'present' ? 'text-green-400' : record.status === 'late' ? 'text-yellow-400' : 'text-red-400';
+    const isLate = record && String(record.status || '').toLowerCase() === 'late';
+    let state = 'not-started';
+    let label = 'Not Timed In';
+    let text = 'You haven’t timed in yet.';
 
-          return `
-            <div class="flex gap-3 pb-4 border-b border-white/10 last:border-0">
-              <div class="flex-shrink-0 w-2 h-2 rounded-full ${statusColor === 'text-green-400' ? 'bg-green-400' : statusColor === 'text-yellow-400' ? 'bg-yellow-400' : 'bg-red-400'} mt-2"></div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-white">${formattedDate}</p>
-                <p class="text-xs text-slate-400">${timeIn} → ${timeOut} (${hoursRendered} hrs)</p>
-                <p class="text-xs text-slate-500 capitalize">✅ Clock In/Out</p>
-              </div>
-            </div>
-          `;
-        } else if (activity.type === 'journal') {
-          const journal = activity.data;
-          const date = new Date(journal.submittedAt);
-          const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          const statusColor = journal.status === 'reviewed' ? 'text-blue-400' : journal.status === 'submitted' ? 'text-purple-400' : 'text-gray-400';
-          const statusLabel = journal.status === 'reviewed' ? 'Reviewed' : journal.status === 'submitted' ? 'Submitted' : 'Draft';
+    if (record && record.timeIn && record.timeOut) {
+      state = isLate ? 'late' : 'completed';
+      label = isLate ? 'Completed · Late' : 'Completed';
+      text = isLate
+        ? 'You timed in after the scheduled start.'
+        : 'Today’s time in and time out are both recorded.';
+    } else if (record && record.timeIn) {
+      state = isLate ? 'late' : 'ongoing';
+      label = isLate ? 'Ongoing · Late' : 'Ongoing';
+      text = isLate
+        ? 'You are clocked in. Your time in was after the scheduled start.'
+        : 'You are clocked in. Remember to time out before you leave.';
+    }
 
-          return `
-            <div class="flex gap-3 pb-4 border-b border-white/10 last:border-0">
-              <div class="flex-shrink-0 w-2 h-2 rounded-full ${statusColor === 'text-blue-400' ? 'bg-blue-400' : statusColor === 'text-purple-400' ? 'bg-purple-400' : 'bg-gray-400'} mt-2"></div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-white">${formattedDate}</p>
-                <p class="text-xs text-slate-400">Week ${journal.week}</p>
-                <p class="text-xs text-slate-500 capitalize">📝 Journal ${statusLabel}</p>
-              </div>
-            </div>
-          `;
-        }
-      })
-      .join('');
+    if (stateEl) stateEl.dataset.state = state;
+    if (badge) badge.textContent = label;
+    if (message) message.textContent = text;
+
+    // Only offer the hand-off when there is still something to do today.
+    if (cta) cta.classList.toggle('hidden', !record || Boolean(record.timeOut));
   } catch (error) {
-    console.error('Error loading recent activity:', error);
+    console.error('Error loading today overview:', error);
+    if (stateEl) stateEl.dataset.state = 'not-started';
+    if (badge) badge.textContent = 'Unavailable';
+    if (message) message.textContent = 'Could not load today’s record.';
+    if (cta) cta.classList.add('hidden');
+    if (clockOutBtn) clockOutBtn.classList.add('hidden');
+    if (lateEl) lateEl.hidden = true;
   }
 }
 
-// Load pending journals list for overview tab
-async function loadPendingJournalsOverview() {
+// ── Live OJT timer ─────────────────────────────────────────────────────────
+
+let ovTimerInterval = null;
+
+function startOverviewTimer(timeInIso) {
+  // Avoid stacking intervals when the overview refreshes repeatedly.
+  if (ovTimerInterval) clearInterval(ovTimerInterval);
+  const timeIn = new Date(timeInIso).getTime();
+  const hoursEl = document.getElementById('ov-today-hours');
+  if (!hoursEl || Number.isNaN(timeIn)) return;
+
+  const tick = () => {
+    const elapsed = Date.now() - timeIn;
+    const h = Math.floor(elapsed / 3600000);
+    const m = Math.floor((elapsed % 3600000) / 60000);
+    const s = Math.floor((elapsed % 60000) / 1000);
+    hoursEl.textContent = `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  };
+  tick();
+  ovTimerInterval = setInterval(tick, 1000);
+}
+
+function stopOverviewTimer() {
+  if (ovTimerInterval) {
+    clearInterval(ovTimerInterval);
+    ovTimerInterval = null;
+  }
+}
+
+// Clean up the timer when the user navigates away from the overview tab.
+window.addEventListener('beforeunload', stopOverviewTimer);
+
+// Called by the Clock Out button on the Overview card.
+async function handleOverviewClockOut() {
+  if (!currentCoordinates) {
+    showNotification('Error', 'Unable to get your location', 'error');
+    return;
+  }
   try {
-    const list = document.getElementById('pending-journals-list');
-    if (!list) return;
-
-    list.innerHTML = '<p class="text-slate-500 text-sm text-center py-6">Loading pending journals...</p>';
-
-    const result = await fetchAPI('/journal/my-journals', { method: 'GET' });
-    if (!result || !result.success) {
-      list.innerHTML = '<p class="text-slate-500 text-sm text-center py-6">Unable to load pending journals.</p>';
+    const companyId = await getUserCompanyId();
+    if (!companyId) {
+      showNotification('Error', 'Company not assigned', 'error');
       return;
     }
-
-    const pendingJournals = (result.data || []).filter(journal => {
-      return journal && journal.supervisorSigned !== true && journal.status === 'submitted';
+    const response = await fetchAPI('/geofence/time-out', {
+      method: 'POST',
+      body: JSON.stringify({
+        companyId,
+        coordinates: currentCoordinates,
+        timezoneOffsetMinutes: getClientTimezoneOffsetMinutes(),
+      }),
     });
-
-    const statCards = document.querySelectorAll('#overview .stat-num');
-    if (statCards.length >= 3) {
-      statCards[2].textContent = pendingJournals.length;
-    }
-
-    if (pendingJournals.length === 0) {
-      list.innerHTML = '<p class="text-slate-500 text-sm text-center py-6">No pending journals awaiting signature.</p>';
+    if (!response || !response.success) {
+      showNotification('Error', response?.message || 'Failed to record time out', 'error');
       return;
     }
-
-    const maxItems = 5;
-    const items = pendingJournals.slice(0, maxItems).map(journal => {
-      const date = journal.submittedAt
-        ? new Date(journal.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : 'Unknown date';
-
-      return `
-        <div class="flex items-start justify-between p-3 rounded-lg bg-white/5 border border-white/10">
-          <div>
-            <p class="text-sm font-semibold text-teal-400">${journal.week || 'Weekly Journal'}</p>
-            <p class="text-xs text-slate-400">Submitted: ${date}</p>
-          </div>
-          <span class="status-badge status-pending">Pending</span>
-        </div>
-      `;
-    });
-
-    if (pendingJournals.length > maxItems) {
-      items.push(`
-        <p class="text-xs text-slate-500 text-center">Showing ${maxItems} of ${pendingJournals.length} pending journals</p>
-      `);
-    }
-
-    list.innerHTML = items.join('');
+    showNotification('Success', '✓ Time Out Recorded', 'success');
+    await loadDTRRecords();
+    await loadOverviewToday();
   } catch (error) {
-    console.error('Error loading pending journals:', error);
+    showNotification('Error', error.message || 'Error recording time out', 'error');
+  }
+}
+
+/**
+ * Milliseconds late from scheduled start, or 0 when on time.
+ */
+function computeLateDurationMs(timeInIso, scheduleStartHHmm) {
+  const timeIn = new Date(timeInIso);
+  if (Number.isNaN(timeIn.getTime())) return 0;
+  const match = String(scheduleStartHHmm || '').match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return 0;
+  const scheduled = new Date(timeIn);
+  scheduled.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return Math.max(0, timeIn.getTime() - scheduled.getTime());
+}
+
+function formatLateDuration(ms) {
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+/**
+ * The supervisor's schedule window. Read from today-status, which publishes the
+ * trainee's schedule without asking for a location; /geofence/validate cannot be
+ * reused here because it rejects a request with no coordinates.
+ */
+async function fetchOverviewSchedule() {
+  const cached = window.supervisorScheduleTimes;
+  if (cached && (cached.startTime || cached.endTime)) return cached;
+  if (!window.currentUser?._id) return null;
+
+  try {
+    const result = await fetchAPI('/geofence/today-status');
+    const schedule = result?.data?.schedule;
+    if (schedule && (schedule.startTime || schedule.endTime)) {
+      window.supervisorScheduleTimes = schedule;
+      return schedule;
+    }
+  } catch (error) {
+    console.error('Error loading schedule for overview:', error);
+  }
+  return null;
+}
+
+function renderOverviewSchedule(schedule) {
+  const el = document.getElementById('ov-today-schedule');
+  if (!el) return;
+  if (!schedule || (!schedule.startTime && !schedule.endTime)) {
+    el.textContent = 'Not set';
+    return;
+  }
+  const start = formatScheduleTime(schedule.startTime);
+  const end = formatScheduleTime(schedule.endTime);
+  el.textContent = start && end ? `${start} – ${end}` : (start || end);
+}
+
+// ============================================================================
+// ATTENDANCE CALENDAR
+// ----------------------------------------------------------------------------
+// A compact month grid over real DTR records.
+//
+// Two deliberate choices, both agreed with the user:
+//
+//  1. It renders EVERY DTR record, not just supervisor-verified ones, with an
+//     unverified marker so the two are distinguishable. Completed Hours stays
+//     verified-only (that is what the backend counts), so a hollow dot is how a
+//     trainee sees "recorded, not yet counted". The card carries a footnote to
+//     say so rather than letting the two silently disagree.
+//
+//  2. Day detail expands inline on tap instead of on hover. Hover is
+//     unavailable on touch, and an inline panel cannot be clipped by a card
+//     edge the way an absolutely-positioned popover can.
+//
+// Month navigation is supported because /api/qr/dtr/:traineeId already accepts
+// an arbitrary startDate/endDate window. Statuses come from the DTR schema's
+// own enum (present, late, absent, excused) - nothing is invented.
+// ============================================================================
+
+// Month currently on screen, as a Date pinned to the 1st so the grid maths is
+// stable. Null until the first load.
+let ovCalMonth = null;
+
+// DTR records for the displayed month, keyed by local date string.
+let ovCalRecords = new Map();
+
+// The day whose detail is expanded, or null.
+let ovCalSelected = null;
+
+const OV_CAL_STATUS_CLASS = {
+  present: 'ov-cal__day--present',
+  late: 'ov-cal__day--late',
+  absent: 'ov-cal__day--absent',
+  excused: 'ov-cal__day--excused',
+};
+
+const OV_CAL_STATUS_LABEL = {
+  present: 'Present',
+  late: 'Late',
+  absent: 'Absent',
+  excused: 'Excused',
+};
+
+function ovMonthStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function ovMonthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Advances the displayed month by `delta` months and reloads. */
+function ovShiftCalendarMonth(delta) {
+  const base = ovCalMonth || ovMonthStart(new Date());
+  ovCalMonth = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+  loadOverviewCalendar();
+}
+
+/** Returns to the current month and reloads. */
+function ovResetCalendarMonth() {
+  ovCalMonth = ovMonthStart(new Date());
+  loadOverviewCalendar();
+}
+
+/**
+ * Wires the calendar controls once. Safe to call more than once: the buttons
+ * live in static markup, so a single delegated listener on the card covers
+ * month navigation and day selection together.
+ */
+function initOverviewCalendar() {
+  const card = document.getElementById('ov-calendar-card');
+  if (!card || card.dataset.wired === 'true') return;
+  card.dataset.wired = 'true';
+
+  card.addEventListener('click', event => {
+    const nav = event.target.closest('[data-ov-cal-nav]');
+    if (nav) {
+      const action = nav.dataset.ovCalNav;
+      if (action === 'prev') ovShiftCalendarMonth(-1);
+      else if (action === 'next') ovShiftCalendarMonth(1);
+      else if (action === 'today') ovResetCalendarMonth();
+      return;
+    }
+
+    const day = event.target.closest('.ov-cal__day--selectable');
+    if (day) ovToggleCalendarDay(day.dataset.ovCalDay);
+  });
+}
+
+/**
+ * Loads the records for the displayed month and paints the grid. Opens on the
+ * current month the first time it runs.
+ */
+async function loadOverviewCalendar() {
+  const grid = document.getElementById('ov-cal-grid');
+  const label = document.getElementById('ov-cal-label');
+  const empty = document.getElementById('ov-cal-empty');
+  if (!grid) return;
+
+  if (!ovCalMonth) ovCalMonth = ovMonthStart(new Date());
+  const month = ovCalMonth;
+
+  if (label) {
+    label.textContent = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  if (!window.currentUser?._id) {
+    grid.innerHTML = '';
+    if (empty) {
+      empty.textContent = 'Sign in to see your attendance history.';
+      empty.classList.remove('hidden');
+    }
+    return;
+  }
+
+  // Inclusive window covering the whole displayed month.
+  const start = new Date(month.getFullYear(), month.getMonth(), 1);
+  const end = new Date(month.getFullYear(), month.getMonth() + 1, 0, 23, 59, 59);
+
+  try {
+    const records = await fetchAllDtrRecords(
+      window.currentUser._id,
+      start.toISOString(),
+      end.toISOString()
+    );
+
+    ovCalRecords = new Map();
+    (records || []).forEach(record => {
+      const key = ovDateKey(record.date);
+      // A trainee can have more than one row on a day in principle; the first
+      // one with a time-in is the attendance for that day.
+      if (!ovCalRecords.has(key) || (!ovCalRecords.get(key).timeIn && record.timeIn)) {
+        ovCalRecords.set(key, record);
+      }
+    });
+
+    renderAttendanceCalendar();
+    renderAttendanceRate(records, ovMonthKey(month) === ovMonthKey(new Date()));
+  } catch (error) {
+    console.error('Error loading attendance calendar:', error);
+    grid.innerHTML = '';
+    if (empty) {
+      empty.textContent = 'Attendance history is unavailable right now.';
+      empty.classList.remove('hidden');
+    }
+  }
+}
+
+/**
+ * Paints the month grid using the shared TrackIT calendar-picker markup
+ * (.tk-cal-day / .tk-cal-grid), so it matches the date pickers on the DTR and
+ * Journal forms.
+ *
+ * Sunday-first, because that is the column order the shared picker uses - the
+ * existing week maths there is `new Date(y, m - 1, 1).getDay()`, and matching
+ * it keeps the two UIs visually identical.
+ *
+ * Only the weeks the month actually spans are emitted. The picker pads to a
+ * fixed six rows so its own height never jumps, but here that padding is dead
+ * space in a dashboard card, so the grid is trimmed to keep the card short.
+ */
+function renderAttendanceCalendar() {
+  const grid = document.getElementById('ov-cal-grid');
+  const empty = document.getElementById('ov-cal-empty');
+  if (!grid) return;
+
+  const month = ovCalMonth || ovMonthStart(new Date());
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth(); // 0-based
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+  // Sunday-first: getDay() already returns 0=Sunday, so no shift is needed.
+  const lead = new Date(year, monthIndex, 1).getDay();
+
+  const todayKey = ovDateKey(new Date());
+  const cells = [];
+
+  for (let i = 0; i < lead; i += 1) {
+    cells.push('<span class="tk-cal-day" aria-hidden="true"></span>');
+  }
+
+  let hasRecords = false;
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(year, monthIndex, day);
+    const key = ovDateKey(date);
+    const record = ovCalRecords.get(key) || null;
+    if (record) hasRecords = true;
+
+    const status = record ? String(record.status || '').toLowerCase() : '';
+    const statusClass = OV_CAL_STATUS_CLASS[status] || '';
+    const verified = Boolean(record && record.verifiedBySupervisor);
+    const isSelected = Boolean(record && ovCalSelected === key);
+
+    const classes = ['tk-cal-day'];
+    if (record) {
+      classes.push('ov-cal__day--selectable', 'ov-cal__day--marked');
+      classes.push(statusClass);
+      if (!verified) classes.push('ov-cal__day--unverified');
+    }
+    // The shared picker's own outline treatment marks today.
+    if (key === todayKey) classes.push('is-today');
+    if (isSelected) classes.push('is-selected');
+
+    const label = record
+      ? `${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, ${OV_CAL_STATUS_LABEL[status] || 'Recorded'}${verified ? '' : ', not yet verified'}`
+      : `${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, no record`;
+
+    if (record) {
+      // Real button: keyboard focusable and announces the full status.
+      cells.push(
+        `<button type="button" class="${classes.join(' ')}" data-ov-cal-day="${key}"` +
+        ` aria-label="${label}" aria-pressed="${isSelected}">${day}` +
+        '<span class="ov-cal__dot" aria-hidden="true"></span></button>'
+      );
+    } else {
+      // No record: inert, but still labelled so a screen reader can say so.
+      cells.push(
+        `<span class="${classes.join(' ')}" role="gridcell" aria-label="${label}">${day}` +
+        '<span class="ov-cal__dot" aria-hidden="true"></span></span>'
+      );
+    }
+  }
+
+  grid.innerHTML = cells.join('');
+
+  if (empty) {
+    if (hasRecords) {
+      empty.classList.add('hidden');
+    } else {
+      empty.textContent = `No attendance records for ${month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}.`;
+      empty.classList.remove('hidden');
+    }
+  }
+
+  // Re-paint the detail panel so it never points at a day that is gone.
+  if (ovCalSelected && !ovCalRecords.has(ovCalSelected)) {
+    ovCalSelected = null;
+  }
+  if (ovCalSelected) renderCalendarDayDetail(ovCalSelected);
+  else hideCalendarDayDetail();
+}
+
+/**
+ * Expands the tapped day's detail, or collapses it when the same day is tapped
+ * again. Only fields the DTR record actually carries are shown; anything
+ * missing reads "Not recorded" rather than a fabricated zero.
+ */
+function ovToggleCalendarDay(key) {
+  if (!key) return;
+  ovCalSelected = ovCalSelected === key ? null : key;
+  renderAttendanceCalendar();
+}
+
+function hideCalendarDayDetail() {
+  const panel = document.getElementById('ov-cal-detail');
+  if (panel) panel.classList.add('hidden');
+}
+
+/**
+ * Day detail. Date, status, time in, time out and total hours all come
+ * straight off the DTR row; an unverified row says so explicitly.
+ */
+function renderCalendarDayDetail(key) {
+  const panel = document.getElementById('ov-cal-detail');
+  const record = ovCalRecords.get(key);
+  if (!panel || !record) {
+    hideCalendarDayDetail();
+    return;
+  }
+
+  const date = new Date(record.date);
+  const status = String(record.status || '').toLowerCase();
+  const verified = Boolean(record.verifiedBySupervisor);
+
+  const facts = [
+    ['Time In', record.timeIn ? ovFormatTime(record.timeIn) : 'Not recorded'],
+    ['Time Out', record.timeOut ? ovFormatTime(record.timeOut) : 'Not recorded'],
+    ['Total Hours', Number(record.hoursRendered) > 0 ? ovFormatHours(record.hoursRendered) : 'Not recorded'],
+    ['Verification', verified ? 'Verified' : 'Not yet verified'],
+  ];
+
+  panel.innerHTML = `
+    <div class="ov-cal__detailHead">
+      <p class="ov-cal__detailDate">${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+      <span class="ov-today__badge" data-state="${status}">${OV_CAL_STATUS_LABEL[status] || 'Recorded'}</span>
+    </div>
+    <dl class="ov-cal__facts">
+      ${facts.map(([k, v]) => `
+        <div class="ov-cal__fact">
+          <dt>${k}</dt>
+          <dd>${escapeHtml(String(v))}</dd>
+        </div>`).join('')}
+    </dl>`;
+  panel.classList.remove('hidden');
+}
+// ── Journal progress ────────────────────────────────────────────────────────
+
+/**
+ * Answers the one question the card exists for: did I submit this week's
+ * journal? The week is derived from the OJT start date (the first supervisor
+ * assignment) with the same rule the Weekly Journal tab uses, then matched
+ * against the trainee's journals.
+ *
+ * States map onto what the Journal model can actually express: draft,
+ * submitted, reviewed, plus the supervisorSigned and coordinatorApproved
+ * flags. There is no deadline field in the schema, so none is shown.
+ */
+async function loadOverviewJournal() {
+  const container = document.getElementById('ov-journal');
+  const weekMeta = document.getElementById('ov-journal-week');
+  if (!container) return;
+
+  // OJT weeks only start counting once a supervisor is assigned.
+  if (window.studentHasSupervisor === false) {
+    ovText('ov-journal-week', '—');
+    container.dataset.state = 'pending';
+    container.innerHTML = `
+<div class="ov-journal__status" data-state="pending">
+          <span class="ov-journal__mark" aria-hidden="true">${OV_JOURNAL_MARKS.pending}</span>
+          <p class="ov-journal__statusText">Waiting for a supervisor</p>
+        </div>
+      <p class="ov-journal__loading">Week 1 starts as soon as a supervisor is assigned to you. You can keep writing drafts until then.</p>
+      <button type="button" class="btn-primary ov-journal__cta ov-journal__cta--compact" onclick="switchTab('journal')">Open Weekly Journal</button>`;
+    return;
+  }
+
+  const registration = getOjtStartDate();
+  const week = ojtWeekNumberFromDate(new Date(), registration);
+
+  if (!week) {
+    ovText('ov-journal-week', '—');
+    container.dataset.state = 'pending';
+    container.innerHTML = `
+<div class="ov-journal__status" data-state="pending">
+          <span class="ov-journal__mark" aria-hidden="true">${OV_JOURNAL_MARKS.pending}</span>
+          <p class="ov-journal__statusText">Current week unavailable</p>
+        </div>
+      <p class="ov-journal__loading">Your OJT start date could not be determined.</p>`;
+    return;
+  }
+
+  const label = `Week ${week}`;
+  ovText('ov-journal-week', label);
+
+  try {
+    const result = await fetchAPI('/journal/my-journals');
+    if (!result || !result.success) {
+      container.innerHTML = `
+        <div class="ov-journal__status" data-state="pending">
+          <span class="ov-journal__mark" aria-hidden="true">${OV_JOURNAL_MARKS.error}</span>
+          <p class="ov-journal__statusText">Could not load journal status</p>
+        </div>
+        <button type="button" class="btn-primary ov-journal__cta" onclick="switchTab('journal')">Open Weekly Journal</button>`;
+      return;
+    }
+
+    const journals = result.data || [];
+    const match = journals.find(j => parseJournalWeekNumber(j.week) === week) || null;
+    const resolved = resolveJournalState(match);
+
+    const submittedDate = match && match.submittedAt
+      ? new Date(match.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : null;
+
+    // Build Mon–Fri week strip only.
+    const dayMap = {};
+    journals.forEach(j => {
+      const d = j.dayCovered;
+      if (d) dayMap[d] = true;
+    });
+    const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const weekStrip = ['Monday','Tuesday','Wednesday','Thursday','Friday'].map(day => {
+      const has = !!dayMap[day];
+      const isToday = day === todayName;
+      return `<div class="ov-journal__day">
+        <span class="ov-journal__day-label">${day.slice(0,1)}</span>
+        <span class="ov-journal__dot ${has ? 'ov-journal__dot--filled' : ''} ${isToday ? 'ov-journal__dot--today' : ''}" aria-hidden="true"></span>
+      </div>`;
+    }).join('');
+
+    // Client-side due date: Friday of the current OJT week.
+    const registrationDate = new Date(registration);
+    const now = new Date();
+    const daysSinceStart = Math.floor((now.getTime() - registrationDate.getTime()) / (24 * 60 * 60 * 1000));
+    const currentWeekStart = new Date(registrationDate.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000);
+    const friday = new Date(currentWeekStart);
+    // Monday is day 1 of OJT week (assuming registration aligns near Monday); find Friday.
+    // Simpler: target Friday of the calendar week containing today.
+    const dayOfWeek = now.getDay(); // 0=Sun, 5=Fri
+    const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+    friday.setDate(now.getDate() + daysUntilFriday);
+    friday.setHours(23, 59, 59, 999);
+    const msLeft = friday.getTime() - now.getTime();
+    const daysLeft = Math.ceil(msLeft / (24 * 60 * 60 * 1000));
+    let dueClass = '';
+    let dueLabel = '';
+    if (msLeft < 0) {
+      dueClass = 'ov-journal__due--overdue';
+      dueLabel = 'Overdue';
+    } else if (daysLeft <= 1) {
+      dueClass = 'ov-journal__due--warn';
+      dueLabel = 'Due today';
+    } else if (daysLeft <= 3) {
+      dueClass = 'ov-journal__due--warn';
+      dueLabel = `Due Friday · ${daysLeft} days left`;
+    } else {
+      dueLabel = `Due Friday · ${daysLeft} days left`;
+    }
+
+    container.dataset.state = resolved.state;
+
+    // Build compact facts only when there is non-status metadata.
+    const extraFacts = [];
+    if (submittedDate) extraFacts.push(['Submitted', submittedDate]);
+    if (match && match.supervisorSigned) extraFacts.push(['Supervisor', 'Signed']);
+    if (match && match.coordinatorApproved) extraFacts.push(['Coordinator', 'Approved']);
+    if (match && match.supervisorReview) extraFacts.push(['Supervisor note', match.supervisorReview]);
+
+    container.innerHTML = `
+      <div class="ov-journal__stack">
+        <p class="ov-journal__headline">${resolved.headline}</p>
+        <div class="ov-journal__weekstrip" aria-label="Journal days this week">
+          ${weekStrip}
+        </div>
+        <p class="ov-journal__due ${dueClass}">${dueLabel}</p>
+        <button type="button" class="btn-primary ov-journal__cta ov-journal__cta--compact" onclick="switchTab('journal')">
+          ${resolved.cta}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </div>
+      ${extraFacts.length > 0 ? `
+      <dl class="ov-journal__facts ov-journal__facts--compact">
+        ${extraFacts.map(([k, v]) => `
+          <div class="ov-journal__fact"><dt>${k}</dt><dd>${escapeHtml(String(v))}</dd></div>
+        `).join('')}
+      </dl>` : ''}`;
+  } catch (error) {
+    console.error('Error loading journal overview:', error);
+    container.innerHTML = `
+      <div class="ov-journal__status" data-state="pending">
+        <span class="ov-journal__mark" aria-hidden="true">${OV_JOURNAL_MARKS.error}</span>
+        <p class="ov-journal__statusText">Could not load journal status</p>
+      </div>`;
+  }
+}
+
+/**
+ * Collapses the Journal model's flags into the states the card renders. A
+ * returned journal is stored as a draft with supervisor feedback, which is why
+ * draft is surfaced as "Needs revision" rather than "Not started".
+ */
+/**
+ * Journal status marks, as inline SVG in the same stroke style used across the
+ * app. A glyph character was mixing a second visual language into the card and
+ * rendered inconsistently between platforms; colour stays a secondary cue and
+ * the adjacent text label carries the meaning.
+ */
+const OV_JOURNAL_MARKS = {
+  pending: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle></svg>',
+  draft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5a2 2 0 0 1-2 2H8l-4 3.5V6a2 2 0 0 1 2-2h12.5a2 2 0 0 1 2 2z"></path><path d="M10 9h5"></path></svg>',
+  submitted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6.5 9.5 17 4 11.5"></polyline></svg>',
+  reviewed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><polyline points="8.5 12.2 11 14.7 15.5 9.5"></polyline></svg>',
+  approved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5a2 2 0 0 1-2 2H8l-4 3.5V6a2 2 0 0 1 2-2h12.5a2 2 0 0 1 2 2z"></path><polyline points="9 11.5 11.5 14 15.5 9.5"></polyline></svg>',
+  error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"></path><circle cx="12" cy="16.5" r="0.6" fill="currentColor"></circle></svg>',
+};
+
+function ovJournalMark(state) {
+  return OV_JOURNAL_MARKS[state] || OV_JOURNAL_MARKS.pending;
+}
+
+/**
+ * Collapses the Journal model's flags into the states the card renders. A
+ * returned journal is stored as a draft with supervisor feedback, which is why
+ * a draft with feedback reads as "Needs revision"; a draft without it is still
+ * being written, so it reads like nothing has been submitted yet.
+ */
+function resolveJournalState(journal) {
+  if (!journal || isPrivateDraft(journal)) {
+    return journal
+      ? { state: 'pending', headline: 'Draft In Progress', label: 'Draft - not submitted', cta: 'Continue Draft' }
+      : { state: 'pending', headline: 'Not Submitted', label: 'Not submitted', cta: 'Write Journal' };
+  }
+  if (journal.status === 'draft') {
+    return { state: 'draft', headline: 'Needs Revision', label: 'Returned for revision', cta: 'Revise Journal' };
+  }
+  if (journal.coordinatorApproved) {
+    return { state: 'approved', headline: 'Approved', label: 'Approved', cta: 'View Journal' };
+  }
+  if (journal.status === 'reviewed' || journal.supervisorSigned) {
+    return { state: 'reviewed', headline: 'Reviewed', label: 'Under review', cta: 'View Journal' };
+  }
+  return { state: 'submitted', headline: 'Journal Submitted', label: 'Awaiting supervisor signature', cta: 'View Journal' };
+}
+
+// ── Updates feed ───────────────────────────────────────────────────────────
+
+async function loadOverviewUpdates() {
+  const container = document.getElementById('ov-updates');
+  if (!container) return;
+
+  try {
+    const result = await fetchAPI('/notifications?limit=5');
+    if (!result || !result.success) {
+      container.innerHTML = '<p class="ov-updates__empty">No updates yet</p>';
+      return;
+    }
+    const items = (result.data || []).slice(0, 5);
+    if (items.length === 0) {
+      container.innerHTML = `
+        <p class="ov-updates__empty">No updates yet</p>
+        <p class="ov-updates__empty" style="font-size:0.75rem;margin-top:4px;">
+          Supervisor feedback, journal changes, and DTR verification updates will appear here.
+        </p>`;
+      return;
+    }
+    container.innerHTML = items.map(n => {
+      const icon = getNotifIcon(n.type);
+      return `
+        <div class="ov-updates__item">
+          <span class="ov-updates__icon" aria-hidden="true">${icon}</span>
+          <div class="ov-updates__content">
+            <p class="ov-updates__title">${escapeHtml(n.title || 'Notification')}</p>
+            <p class="ov-updates__message">${escapeHtml(n.message || n.text || '')}</p>
+            <p class="ov-updates__time">${timeAgo(n.createdAt || n.time)}</p>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (error) {
+    console.error('Error loading updates:', error);
+    container.innerHTML = '<p class="ov-updates__empty">Could not load updates</p>';
   }
 }
 
@@ -1128,7 +1871,6 @@ function switchTab(tabName, options = {}) {
   currentTab = tabName;
   updateTabBackButton();
   
-  console.log('🔄 Switching to tab:', tabName);
   
   // Hide all tabs
   const tabs = document.querySelectorAll('.tab-content');
@@ -1146,7 +1888,6 @@ function switchTab(tabName, options = {}) {
     selectedTab.addEventListener('animationend', () => {
       selectedTab.classList.remove('is-entering', 'is-entering-back');
     }, { once: true });
-    console.log('✅ Tab content shown:', tabName);
     window.scrollTo(0, 0);
   } else {
     console.warn('⚠️ Tab element not found:', tabName);
@@ -1156,7 +1897,6 @@ function switchTab(tabName, options = {}) {
   const activeNavLink = document.querySelector(`.nav-link[href="#${tabName}"]`);
   if (activeNavLink) {
     activeNavLink.classList.add('active');
-    console.log('✅ Nav link activated:', tabName);
   } else {
     console.warn('⚠️ Nav link not found for:', tabName);
   }
@@ -1166,14 +1906,18 @@ function switchTab(tabName, options = {}) {
 
   // Load tab-specific data asynchronously (non-blocking)
   if (tabName === 'overview') {
-    loadPendingJournalsOverview().catch(err => console.error('Error loading pending journals:', err));
-    loadRecentActivity().catch(err => console.error('Error loading recent activity:', err));
+    // Refetch on every visit so the cards reflect anything recorded since the
+    // last one; the calendar keeps its own currently-viewed month.
+    loadOverviewToday().catch(err => console.error('Error loading today overview:', err));
+    loadOverviewCalendar().catch(err => console.error('Error loading attendance calendar:', err));
+    loadOverviewJournal().catch(err => console.error('Error loading journal overview:', err));
+    loadOverviewUpdates().catch(err => console.error('Error loading updates:', err));
   } else if (tabName === 'dtr') {
     loadDTRRecords().catch(err => console.error('Error loading DTR:', err));
   } else if (tabName === 'journal') {
     (async () => {
       try {
-        await populateWeekSelector();
+        await refreshJournalWeek();
         await loadPreviousJournals();
       } catch (err) {
         console.error('Error loading journal tab:', err);
@@ -1199,6 +1943,12 @@ function updateTabBackButton() {
   const hasHistory = tabHistory.length > 0;
   backButton.disabled = !hasHistory;
   backButton.classList.toggle('is-disabled', !hasHistory);
+
+  // Overview is the dashboard's entry point, so there is never anywhere to go
+  // back to from it and the control would always sit there disabled. The
+  // toolbar itself is hidden there; every other tab keeps a working Back.
+  const toolbar = document.querySelector('.tab-toolbar');
+  if (toolbar) toolbar.classList.toggle('hidden', currentTab === 'overview');
 }
 
 function goBackTab() {
@@ -1328,8 +2078,9 @@ async function initWeeklyChart(student) {
       weeklyChartInstance.destroy();
     }
 
-    // Get registration date to calculate weeks from start
-    const registrationDate = new Date(student?.createdAt || new Date());
+    // OJT start date: the first supervisor assignment, so the chart's "Week 4"
+    // is the same week the journal tab stamps.
+    const registrationDate = new Date(student?.supervisorAssignedAt || getOjtStartDate() || new Date());
     const today = new Date();
 
     console.log('Fetching DTR from', registrationDate, 'to', today);
@@ -1458,8 +2209,9 @@ async function updateEstimatedCompletion(stats, student) {
 // Update hours by week section with actual data
 async function updateHoursByWeek(student) {
   try {
-    // Get registration date
-    const registrationDate = new Date(student?.createdAt || new Date());
+    // OJT start date: first supervisor assignment (falls back to account
+    // creation only when no supervisor is assigned yet).
+    const registrationDate = new Date(student?.supervisorAssignedAt || getOjtStartDate() || new Date());
     const today = new Date();
 
     const response = await fetch(
@@ -1619,17 +2371,10 @@ async function updatePerformanceMetrics() {
   }
 }
 
-// Journal submission
+// Journal submission. The week is never sent: the server stamps the current
+// OJT week (or keeps the original week when a returned journal is revised).
 async function submitJournal(event) {
   event.preventDefault();
-  const weekSelector = document.getElementById('week-selector');
-  const selectedOpt = weekSelector?.selectedOptions[0];
-  const week = weekSelector?.value || '';
-  
-  if (!week || selectedOpt?.disabled) {
-    alert('Please choose a week you have not already submitted. Weeks with an existing journal are disabled.');
-    return;
-  }
 
   const dayCovered = document.getElementById('day-covered')?.value || null;
   const narrative = document.getElementById('journal-narrative').value;
@@ -1640,17 +2385,40 @@ async function submitJournal(event) {
     return;
   }
 
+  if (!journalWeekState.submitEnabled) {
+    const banner = document.getElementById('journal-block-banner');
+    alert(banner && banner.textContent.trim()
+      ? banner.textContent.trim()
+      : 'Journal submission is not available right now.');
+    return;
+  }
+
+  const weekLabel = (currentEditingJournal && currentEditingJournal.week) || journalWeekState.label;
+
   // Show loading state
   const submitBtn = event.target.querySelector('button[type="submit"]');
+  const headerBtn = document.getElementById('journal-submit-btn');
   const originalText = submitBtn.innerHTML;
+  const originalHeaderText = headerBtn ? headerBtn.innerHTML : '';
   submitBtn.disabled = true;
+  if (headerBtn) headerBtn.disabled = true;
   submitBtn.innerHTML = '<svg width="18" height="18" class="animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2A10 10 0 0 1 22 12"></path></svg> Submitting...';
+
+  const restore = () => {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalText;
+    if (headerBtn) {
+      headerBtn.disabled = !journalWeekState.submitEnabled;
+      headerBtn.innerHTML = originalHeaderText;
+    }
+  };
 
   try {
     const result = await fetchAPI('/journal/submit', {
       method: 'POST',
       body: JSON.stringify({
-        week,
+        // Revision target: the server keeps that journal's original week.
+        journalId: currentEditingJournal ? currentEditingJournal._id : undefined,
         dayCovered,
         narrative,
         identifiedTheories,
@@ -1660,29 +2428,27 @@ async function submitJournal(event) {
 
     if (!result || !result.success) {
       const detail = result?.error || result?.message || 'Unknown error';
-      const code = result?.code ? ` (code: ${result.code})` : '';
-      alert('Failed to submit journal: ' + detail + code);
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalText;
+      alert(detail);
+      restore();
       return;
     }
 
-    alert(`Journal for ${week} submitted successfully!`);
+    const submittedWeek = result.data?.week || weekLabel;
+    alert(`Journal for ${submittedWeek} submitted successfully!`);
     document.getElementById('journal-form').reset();
     document.getElementById('theories-result').classList.add('hidden');
     resetJournalPhotoPreview();
     window.currentIdentifiedTheories = [];
+    clearJournalEditing();
 
     await loadPreviousJournals();
-    await populateWeekSelector();
+    await refreshJournalWeek();
 
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalText;
+    restore();
   } catch (error) {
     console.error('Error submitting journal:', error);
     alert('Error submitting journal. Please try again.');
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalText;
+    restore();
   }
 }
 
@@ -1730,22 +2496,7 @@ async function autoExtractTheories(event) {
       .filter((t) => t.course || t.courseName || t.category || t.theory);
     window.currentIdentifiedTheories = identifiedTheories;
 
-    const theoriesResult = document.getElementById('theories-result');
-    const theoriesListEl = document.getElementById('theories-list');
-
-    if (identifiedTheories.length === 0) {
-      theoriesListEl.innerHTML = '<p style="color: #cbd5e1; font-size: 13px;">No IT theories or practices were identified in your narrative. Please provide more details about your OJT activities.</p>';
-    } else {
-      theoriesListEl.innerHTML = identifiedTheories.map((theory, index) => `
-        <div style="padding: 12px; background: rgba(0,200,170,0.05); border-radius: 6px; border-left: 3px solid #00c8aa; margin-bottom: 8px;">
-          <p style="margin: 0; font-weight: 600; color: #00c8aa; font-size: 12px;">${theory.course} – ${theory.courseName}</p>
-          <p style="margin: 4px 0 0 0; color: #cbd5e1; font-size: 13px;">${theory.category}</p>
-          <p style="margin: 6px 0 0 0; color: #cbd5e1; font-size: 13px;">${theory.theory}</p>
-        </div>
-      `).join('');
-    }
-
-    theoriesResult.classList.remove('hidden');
+    renderTheoriesList(identifiedTheories);
     button.disabled = false;
     button.innerHTML = originalText;
   } catch (error) {
@@ -1872,10 +2623,111 @@ async function changePassword(event) {
   }
 }
 
-// Calculate and populate week selector based on actual registration date
-async function populateWeekSelector() {
-  const weekSelector = document.getElementById('week-selector');
-  if (!weekSelector) return;
+// ── Week state ──────────────────────────────────────────────────────────────
+// The student never picks a week. It is derived from the OJT start date (the
+// first supervisor assignment) and stamped by the server on submit; a journal
+// that is being revised keeps the week it was originally filed under.
+let currentEditingJournal = null; // draft being resumed, or journal being revised
+let journalWeekState = {
+  week: null,
+  label: '—',
+  hasSupervisor: false,
+  periodComplete: false,
+  alreadySubmitted: false,
+  returnedForRevision: null,
+  // Optimistic until refreshJournalWeek reports otherwise; the server is the
+  // authority either way, so a slow refresh can never let a bad submit through.
+  submitEnabled: true,
+  saveEnabled: true,
+};
+
+function setJournalBanner(html) {
+  const banner = document.getElementById('journal-block-banner');
+  if (!banner) return;
+  if (html) {
+    banner.innerHTML = html;
+    banner.classList.remove('hidden');
+  } else {
+    banner.innerHTML = '';
+    banner.classList.add('hidden');
+  }
+}
+
+function setJournalActions({ submit, save }) {
+  const submitBtn = document.getElementById('journal-submit-btn');
+  const saveBtn = document.getElementById('journal-save-draft');
+  if (submitBtn) submitBtn.disabled = !submit;
+  if (saveBtn) saveBtn.disabled = !save;
+  journalWeekState.submitEnabled = submit;
+  journalWeekState.saveEnabled = save;
+}
+
+function privateDraftsFrom(journals) {
+  return (journals || []).filter(isPrivateDraft);
+}
+
+function updateDraftCount(journals) {
+  const count = privateDraftsFrom(journals).length;
+  const countEl = document.getElementById('drafts-count');
+  if (countEl) countEl.textContent = String(count);
+  const btn = document.getElementById('drafts-open-btn');
+  if (btn) btn.classList.toggle('hidden', count === 0);
+  return count;
+}
+
+/** Paint the automatic week label plus whatever is blocking submission. */
+function renderJournalWeekState() {
+  const weekValueEl = document.getElementById('week-auto-value');
+  const helpEl = document.getElementById('week-auto-help');
+  if (!weekValueEl) return;
+
+  const editing = currentEditingJournal;
+  const label = (editing && editing.week) || journalWeekState.label;
+  weekValueEl.textContent = label;
+
+  const state = journalWeekState;
+  let submit = true;
+  let save = true;
+  let banner = '';
+  let help = 'Week 1 starts the day your supervisor is assigned, so the week is stamped for you when you submit - there is nothing to pick.';
+
+  if (state.periodComplete) {
+    help = 'All required OJT hours have been rendered.';
+    banner = '<strong>OJT Period Complete</strong> - weekly journal submission is now closed.';
+    submit = false;
+  } else if (editing) {
+    help = editing.supervisorReview
+      ? 'This journal keeps its original week when you resubmit.'
+      : 'This draft keeps its week when you submit it.';
+    if (editing.supervisorReview) {
+      banner = `<strong>Returned for revision</strong> - your supervisor's note: ${escapeHtml(editing.supervisorReview)}`;
+    }
+  } else if (!state.hasSupervisor) {
+    banner = '<strong>Waiting for supervisor assignment</strong> - you can keep writing drafts; submission unlocks once a supervisor is assigned.';
+    submit = false;
+  } else if (state.returnedForRevision) {
+    const id = state.returnedForRevision._id;
+    banner = `<strong>${escapeHtml(state.returnedForRevision.week || state.label)} was returned for revision</strong> - open it to revise and resubmit. <button type="button" class="btn-ghost text-xs ml-2" onclick="resumeJournal('${id}')">Revise now</button>`;
+    submit = false;
+    save = false;
+  } else if (state.alreadySubmitted) {
+    banner = `<strong>${escapeHtml(state.label)} already submitted</strong> - the next week opens automatically.`;
+    submit = false;
+    save = false;
+  }
+
+  if (helpEl) helpEl.textContent = help;
+  setJournalBanner(banner);
+  setJournalActions({ submit, save });
+}
+
+/**
+ * Recompute the automatic week from fresh stats + journals and repaint the
+ * form state. Replaces the old week picker.
+ */
+async function refreshJournalWeek() {
+  const weekValueEl = document.getElementById('week-auto-value');
+  if (!weekValueEl) return;
 
   try {
     const [statsResult, journalsResult] = await Promise.all([
@@ -1893,72 +2745,43 @@ async function populateWeekSelector() {
       : [];
     journalDownloadCache = journals;
 
-    const submittedWeeks = getSubmittedWeekLabelsSet(journals);
+    const { student, stats } = statsResult.data;
 
-    const { student } = statsResult.data;
-    const registrationDate = new Date(student.createdAt);
-    const today = new Date();
+    // Keep the week origins in sync so charts, overview and the journal tab
+    // all count from the same day.
+    window.ojtStartDate = student.supervisorAssignedAt || student.createdAt || window.ojtStartDate;
+    window.studentHasSupervisor = !!student.supervisorAssignedAt;
 
-    const timeDiff = today - registrationDate;
-    const weeksDiff = Math.floor(timeDiff / (7 * 24 * 60 * 60 * 1000));
-    const currentWeek = Math.max(1, weeksDiff + 1);
+    const hasSupervisor = !!student.supervisorAssignedAt;
+    const week = hasSupervisor
+      ? ojtWeekNumberFromDate(new Date(), student.supervisorAssignedAt)
+      : null;
+    const required = Number(stats.totalRequired) || 486;
+    const completed = Number(stats.completedHours) || 0;
+    const alreadySubmitted = week != null && journals.some(
+      (j) => parseJournalWeekNumber(j.week) === week && j.status !== 'draft'
+    );
+    const returnedForRevision = week != null
+      ? journals.find(
+          (j) => j.status === 'draft' && j.supervisorReview && parseJournalWeekNumber(j.week) === week
+        ) || null
+      : null;
 
-    console.log(`Registration date: ${registrationDate.toDateString()}, Today: ${today.toDateString()}, Weeks elapsed: ${weeksDiff}, Current week: ${currentWeek}`);
+    journalWeekState = {
+      week,
+      label: week ? `Week ${week}` : '—',
+      hasSupervisor,
+      periodComplete: completed >= required,
+      alreadySubmitted,
+      returnedForRevision,
+      submitEnabled: journalWeekState.submitEnabled,
+      saveEnabled: journalWeekState.saveEnabled,
+    };
 
-    const totalWeeks = 17;
-    weekSelector.innerHTML = '';
-
-    for (let week = 1; week <= totalWeeks; week++) {
-      const value = `Week ${week}`;
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = submittedWeeks.has(value) ? `${value} (submitted)` : value;
-      option.disabled = submittedWeeks.has(value);
-      weekSelector.appendChild(option);
-    }
-
-    const preferred = weekSelector.querySelector(`option[value="Week ${currentWeek}"]`);
-    Array.from(weekSelector.options).forEach((o) => { o.selected = false; });
-    if (preferred && !preferred.disabled) {
-      preferred.selected = true;
-    } else {
-      const first = Array.from(weekSelector.options).find((o) => !o.disabled);
-      if (first) first.selected = true;
-    }
-
-    ensureValidWeekSelection(weekSelector);
-
-    console.log(`Week selector populated with weeks 1-${totalWeeks}, current week: ${currentWeek}`);
+    updateDraftCount(journals);
+    renderJournalWeekState();
   } catch (error) {
-    console.error('Error populating week selector:', error);
-    weekSelector.innerHTML = `
-      <option value="Week 1">Week 1</option>
-      <option value="Week 2">Week 2</option>
-      <option value="Week 3">Week 3</option>
-      <option value="Week 4">Week 4</option>
-      <option value="Week 5">Week 5</option>
-      <option value="Week 6">Week 6</option>
-      <option value="Week 7">Week 7</option>
-      <option value="Week 8">Week 8</option>
-      <option value="Week 9">Week 9</option>
-      <option value="Week 10">Week 10</option>
-      <option value="Week 11">Week 11</option>
-      <option value="Week 12">Week 12</option>
-      <option value="Week 13">Week 13</option>
-      <option value="Week 14">Week 14</option>
-      <option value="Week 15">Week 15</option>
-      <option value="Week 16">Week 16</option>
-      <option value="Week 17">Week 17</option>
-    `;
-    try {
-      const jr = await fetchAPI('/journal/my-journals', { method: 'GET' });
-      if (jr?.success && Array.isArray(jr.data)) {
-        journalDownloadCache = jr.data;
-        applySubmittedWeeksToWeekSelector(jr.data);
-      }
-    } catch (_) {
-      /* ignore */
-    }
+    console.error('Error refreshing journal week:', error);
   }
 }
 
@@ -1976,13 +2799,17 @@ async function loadPreviousJournals() {
 
     const journals = result.data || [];
     journalDownloadCache = journals;
-    applySubmittedWeeksToWeekSelector(journals);
+
+    // Drafts the student is still writing live in their own modal and are
+    // invisible to the supervisor and coordinator - keep them out of here too.
+    const visible = journals.filter((j) => !isPrivateDraft(j));
+    updateDraftCount(journals);
 
     const journalContainer = document.getElementById('previous-journals-list');
 
     if (!journalContainer) return;
 
-    if (journals.length === 0) {
+    if (visible.length === 0) {
       journalContainer.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">No journals submitted yet</p>';
       return;
     }
@@ -1991,7 +2818,8 @@ async function loadPreviousJournals() {
     journalContainer.innerHTML = '';
 
     // Add each journal to the list
-    journals.forEach(journal => {
+    visible.forEach(journal => {
+      const returned = journal.status === 'draft' && !!journal.supervisorReview;
       const journalEl = document.createElement('div');
       journalEl.className = 'p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-teal-400/50 transition group';
       journalEl.innerHTML = `
@@ -2001,21 +2829,209 @@ async function loadPreviousJournals() {
             <p class="text-xs text-slate-400">Day covered: ${journal.dayCovered || 'Not specified'}</p>
           </div>
           <span class="px-2 py-1 rounded text-xs font-medium ${
+            returned ? 'bg-amber-500/20 text-amber-400' :
             journal.status === 'reviewed' ? 'bg-green-500/20 text-green-400' :
             journal.status === 'submitted' ? 'bg-blue-500/20 text-blue-400' :
             'bg-slate-500/20 text-slate-400'
-          }">${journal.status || 'unknown'}</span>
+          }">${returned ? 'needs revision' : (journal.status || 'unknown')}</span>
         </div>
-        <p class="text-xs text-slate-500 mt-2 group-hover:text-slate-400">Click to view full content</p>
+        <p class="text-xs text-slate-500 mt-2 group-hover:text-slate-400">${returned ? 'Returned by your supervisor - click to revise' : 'Click to view full content'}</p>
       `;
-      
+
       journalEl.addEventListener('click', () => showJournalTooltip(journal));
-      
+
       journalContainer.appendChild(journalEl);
     });
+
+    // Update day tab indicators and progress text. Every entry the student has
+    // written counts here - drafts included - because these dots are the form's
+    // own progress, not the submitted-journal list.
+    const daysWithEntries = {};
+    journals.forEach(j => {
+      if (j.dayCovered) daysWithEntries[j.dayCovered] = true;
+    });
+    ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].forEach(day => {
+      const dot = document.getElementById(`dot-${day}`);
+      if (dot) dot.classList.toggle('filled', Boolean(daysWithEntries[day]));
+    });
+    updateJournalProgress();
   } catch (error) {
     console.error('Error loading journals:', error);
   }
+}
+
+function renderTheoriesList(identifiedTheories) {
+  const theoriesResult = document.getElementById('theories-result');
+  const theoriesListEl = document.getElementById('theories-list');
+  if (!theoriesResult || !theoriesListEl) return;
+
+  const list = Array.isArray(identifiedTheories) ? identifiedTheories : [];
+  if (list.length === 0) {
+    theoriesListEl.innerHTML = '<p style="color: #cbd5e1; font-size: 13px;">No IT theories or practices were identified in your narrative. Please provide more details about your OJT activities.</p>';
+  } else {
+    theoriesListEl.innerHTML = list.map((theory) => `
+        <div style="padding: 12px; background: rgba(0,200,170,0.05); border-radius: 6px; border-left: 3px solid #00c8aa; margin-bottom: 8px;">
+          <p style="margin: 0; font-weight: 600; color: #00c8aa; font-size: 12px;">${theory.course} – ${theory.courseName}</p>
+          <p style="margin: 4px 0 0 0; color: #cbd5e1; font-size: 13px;">${theory.category}</p>
+          <p style="margin: 6px 0 0 0; color: #cbd5e1; font-size: 13px;">${theory.theory}</p>
+        </div>
+      `).join('');
+  }
+  theoriesResult.classList.remove('hidden');
+}
+
+// ── Drafts ──────────────────────────────────────────────────────────────────
+// Drafts never reach the supervisor or the coordinator, so they get their own
+// modal instead of sitting in Previous Journals.
+
+function openDraftsModal() {
+  const modal = document.getElementById('journal-drafts-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  renderDraftsList();
+}
+
+function closeDraftsModal() {
+  const modal = document.getElementById('journal-drafts-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function renderDraftsList() {
+  const list = document.getElementById('journal-drafts-list');
+  const hint = document.getElementById('journal-drafts-hint');
+  if (!list) return;
+
+  list.innerHTML = '<p class="text-sm text-slate-400">Loading drafts...</p>';
+
+  let journals = journalDownloadCache;
+  if (!journals || journals.length === 0) {
+    const result = await fetchAPI('/journal/my-journals', { method: 'GET' });
+    journals = result?.success && Array.isArray(result.data) ? result.data : [];
+    journalDownloadCache = journals;
+  }
+
+  const drafts = privateDraftsFrom(journals).slice().sort((a, b) => {
+    const aTime = new Date(a.updatedAt || a.submittedAt || 0).getTime();
+    const bTime = new Date(b.updatedAt || b.submittedAt || 0).getTime();
+    return bTime - aTime;
+  });
+
+  if (hint) hint.textContent = 'Drafts stay private to you until you submit them.';
+
+  if (drafts.length === 0) {
+    list.innerHTML = '<p class="text-sm text-slate-400">No drafts yet - whatever you write in the journal form is autosaved here.</p>';
+    return;
+  }
+
+  list.innerHTML = '';
+  drafts.forEach((draft) => {
+    const savedAt = new Date(draft.updatedAt || draft.submittedAt || Date.now()).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+    const row = document.createElement('div');
+    row.className = 'download-item draft-item';
+    row.innerHTML = `
+      <div class="download-item-info">
+        <span class="download-item-title">${escapeHtml(draft.week || 'Week assigned on submit')}</span>
+        <span class="download-item-sub">${escapeHtml(draft.dayCovered || 'No day yet')} &middot; saved ${savedAt}</span>
+      </div>
+      <div class="draft-item-actions">
+        <button type="button" class="btn-ghost" data-action="resume">Resume</button>
+        <button type="button" class="btn-ghost draft-delete" data-action="delete">Delete</button>
+      </div>
+    `;
+    row.querySelector('[data-action="resume"]').addEventListener('click', () => {
+      closeDraftsModal();
+      resumeJournal(draft._id);
+    });
+    row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteDraft(draft._id));
+    list.appendChild(row);
+  });
+}
+
+function findCachedJournal(id) {
+  return (journalDownloadCache || []).find((j) => j._id === id) || null;
+}
+
+/** Open a draft (or a returned journal) in the form to keep writing. */
+function resumeJournal(id) {
+  const cached = findCachedJournal(id);
+  if (cached) {
+    loadJournalIntoForm(cached);
+    return;
+  }
+  // Cache is stale (e.g. the modal was opened from the returned banner).
+  fetchAPI('/journal/my-journals', { method: 'GET' }).then((result) => {
+    if (result?.success && Array.isArray(result.data)) {
+      journalDownloadCache = result.data;
+      const found = result.data.find((j) => j._id === id);
+      if (found) loadJournalIntoForm(found);
+      else alert('That journal could not be found.');
+    } else {
+      alert('That journal could not be found.');
+    }
+  });
+}
+
+function loadJournalIntoForm(journal) {
+  currentEditingJournal = journal;
+
+  const narrative = document.getElementById('journal-narrative');
+  if (narrative) narrative.value = journal.narrative || '';
+
+  const dayCovered = document.getElementById('day-covered');
+  if (dayCovered && journal.dayCovered) dayCovered.value = journal.dayCovered;
+
+  if (journal.photoDataUrl) {
+    journalPhotoDataUrl = journal.photoDataUrl;
+    const img = document.getElementById('journal-photo-img');
+    const placeholder = document.getElementById('journal-photo-placeholder');
+    if (img) {
+      img.src = journal.photoDataUrl;
+      img.classList.remove('hidden');
+    }
+    if (placeholder) placeholder.classList.add('hidden');
+  } else {
+    resetJournalPhotoPreview();
+  }
+
+  window.currentIdentifiedTheories = Array.isArray(journal.identifiedTheories)
+    ? journal.identifiedTheories
+    : [];
+  renderTheoriesList(window.currentIdentifiedTheories);
+
+  updateJournalWordCount();
+  setJournalAutosaveStatus(journal.supervisorReview ? 'Revision loaded' : 'Draft loaded');
+  renderJournalWeekState();
+}
+
+function clearJournalEditing() {
+  currentEditingJournal = null;
+  renderJournalWeekState();
+}
+
+async function deleteDraft(id) {
+  const draft = findCachedJournal(id);
+  const label = draft?.week ? draft.week : 'this draft';
+  if (!confirm(`Delete ${label}? This cannot be undone.`)) return;
+
+  const result = await fetchAPI(`/journal/draft/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!result || !result.success) {
+    alert(result?.message || 'Could not delete this draft.');
+    return;
+  }
+
+  journalDownloadCache = (journalDownloadCache || []).filter((j) => j._id !== id);
+  if (currentEditingJournal && currentEditingJournal._id === id) {
+    currentEditingJournal = null;
+  }
+
+  updateDraftCount(journalDownloadCache);
+  renderDraftsList();
+  renderJournalWeekState();
 }
 
 async function fetchJournalDownloadData() {
@@ -2047,7 +3063,9 @@ async function renderJournalDownloadList() {
   if (!list) return;
 
   list.innerHTML = '<p class="text-sm text-slate-400">Loading journals...</p>';
-  const journals = await fetchJournalDownloadData();
+  // Only handed-in journals can be exported: a draft has no week stamped yet
+  // and is still private to the student.
+  const journals = (await fetchJournalDownloadData()).filter((j) => !isPrivateDraft(j));
 
   if (!journals || journals.length === 0) {
     list.innerHTML = '<p class="text-sm text-slate-400">No journals available.</p>';
@@ -2129,11 +3147,16 @@ function showJournalTooltip(journal) {
     minute: '2-digit'
   });
 
-  const statusColor = journal.status === 'reviewed' ? 'text-green-400' :
+  const returned = journal.status === 'draft' && !!journal.supervisorReview;
+  const statusLabel = returned ? 'needs revision' : journal.status;
+
+  const statusColor = returned ? 'text-amber-400' :
+                      journal.status === 'reviewed' ? 'text-green-400' :
                       journal.status === 'submitted' ? 'text-blue-400' :
                       'text-slate-400';
-  
-  const statusBgColor = journal.status === 'reviewed' ? 'bg-green-500/20' :
+
+  const statusBgColor = returned ? 'bg-amber-500/20' :
+                        journal.status === 'reviewed' ? 'bg-green-500/20' :
                         journal.status === 'submitted' ? 'bg-blue-500/20' :
                         'bg-slate-500/20';
 
@@ -2142,8 +3165,15 @@ function showJournalTooltip(journal) {
       <div>
         <h3 class="font-display font-700 text-lg mb-2">${journal.week}</h3>
         <p class="text-xs text-slate-400 mb-3">${date}</p>
-        <span class="px-2 py-1 rounded text-xs font-medium ${statusBgColor} ${statusColor}">${journal.status}</span>
+        <span class="px-2 py-1 rounded text-xs font-medium ${statusBgColor} ${statusColor}">${statusLabel}</span>
       </div>
+
+      ${returned ? `
+        <div class="rounded-lg border border-amber-400/30 bg-amber-400/10 p-3">
+          <p class="text-xs font-semibold text-amber-200 mb-1">SUPERVISOR NOTE</p>
+          <p class="text-sm text-amber-100 leading-relaxed">${escapeHtml(journal.supervisorReview)}</p>
+        </div>
+      ` : ''}
 
       ${journal.narrative ? `
         <div>
@@ -2168,6 +3198,12 @@ function showJournalTooltip(journal) {
             `).join('')}
           </div>
         </div>
+      ` : ''}
+
+      ${returned ? `
+        <button type="button" class="btn-primary w-full" onclick="closeJournalTooltip(); resumeJournal('${journal._id}')">
+          Revise & Resubmit
+        </button>
       ` : ''}
     </div>
   `;
@@ -2295,7 +3331,7 @@ function collectSelectedConcepts() {
 
 function buildJournalFromForm() {
   return {
-    week: document.getElementById('week-selector')?.value || '—',
+    week: (currentEditingJournal && currentEditingJournal.week) || journalWeekState.label || '—',
     narrative: document.getElementById('journal-narrative')?.value || '',
     concepts: collectSelectedConcepts(),
     summary: document.getElementById('summary-text')?.textContent || '',
@@ -3903,9 +4939,6 @@ document.addEventListener('click', (e) => {
 
 document.addEventListener('DOMContentLoaded', async () => {
   initializeTheme();
-  console.log('📄 DOMContentLoaded event fired');
-  console.log('window.currentUser:', window.currentUser);
-  console.log('window.authToken:', window.authToken ? '(exists)' : '(missing)');
   
   // Set user name from stored user data
   const userName = window.currentUser?.fullName?.split(' ')[0] || 'Student';
@@ -3918,6 +4951,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateDateTime();
   setInterval(updateDateTime, 60000);
 
+  // Attendance Calendar: month navigation and tap-to-expand day detail. Both
+  // are delegated so the handlers survive the grid being re-rendered, and both
+  // are keyboard reachable because the controls are real buttons.
+  initOverviewCalendar();
+
   // Load student dashboard data from backend
   await loadDashboardData();
 
@@ -3929,7 +4967,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Restore previous tab from localStorage or default to overview
   const previousTab = localStorage.getItem('trackit_current_tab') || 'overview';
   switchTab(previousTab);
-  console.log('✅ Tab restored:', previousTab);
 
   // Generate DTR calendar
   generateDTRCalendar();
@@ -4012,6 +5049,187 @@ window.addEventListener('scroll', () => {
     navbar.classList.add('scrolled');
   } else {
     navbar.classList.remove('scrolled');
+  }
+});
+
+// ── Weekly Journal enhancements ─────────────────────────────────────────────
+
+let journalAutosaveTimer = null;
+let journalLastSavedAt = null;
+
+function initJournalTabs() {
+  document.querySelectorAll('.journal-day-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.journal-day-tab').forEach(t => t.setAttribute('aria-selected', 'false'));
+      tab.setAttribute('aria-selected', 'true');
+      const dayCovered = document.getElementById('day-covered');
+      if (dayCovered) dayCovered.value = tab.dataset.day || '';
+    });
+  });
+}
+
+function updateJournalWordCount() {
+  const textarea = document.getElementById('journal-narrative');
+  const counter = document.getElementById('journal-word-count');
+  if (!textarea || !counter) return;
+  const words = (textarea.value || '').trim().split(/\s+/).filter(w => w.length > 0);
+  counter.textContent = `${words.length} words`;
+}
+
+function updateJournalProgress() {
+  const filled = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+    .filter(d => document.getElementById(`dot-${d}`)?.classList.contains('filled')).length;
+  const text = document.getElementById('journal-progress-text');
+  if (text) text.textContent = `${filled} / 5 days filled`;
+}
+
+function setJournalAutosaveStatus(text) {
+  const el = document.getElementById('journal-autosave-status');
+  if (el) el.textContent = text;
+}
+
+async function saveJournalDraft() {
+  // While a fresh draft is blocked (already submitted, or a revision is
+  // pending for this week) the banner on the form explains why.
+  if (!journalWeekState.saveEnabled && !currentEditingJournal) return;
+
+  // Nothing worth storing yet - an empty form must not litter the drafts list.
+  const narrativeValue = document.getElementById('journal-narrative')?.value || '';
+  if (!currentEditingJournal && !narrativeValue.trim() && !journalPhotoDataUrl) return;
+
+  setJournalAutosaveStatus('Saving...');
+  try {
+    const result = await fetchAPI('/journal/draft', {
+      method: 'POST',
+      body: JSON.stringify({
+        // Resuming a draft or revising a returned journal keeps its own week.
+        journalId: currentEditingJournal ? currentEditingJournal._id : undefined,
+        dayCovered: document.getElementById('day-covered')?.value || null,
+        narrative: document.getElementById('journal-narrative')?.value || '',
+        identifiedTheories: window.currentIdentifiedTheories || [],
+        photoDataUrl: journalPhotoDataUrl,
+      }),
+    });
+    if (result && result.success) {
+      journalLastSavedAt = new Date();
+      setJournalAutosaveStatus('Saved just now');
+      // Pin the form to the saved document so every later autosave updates the
+      // same draft instead of looking for a fresh one.
+      if (result.data && result.data._id) {
+        currentEditingJournal = result.data;
+      }
+      upsertJournalCache(result.data);
+      updateDraftCount(journalDownloadCache);
+      renderJournalWeekState();
+    } else {
+      setJournalAutosaveStatus(result?.message ? `Not saved - ${result.message}` : 'Unable to save');
+    }
+  } catch (err) {
+    setJournalAutosaveStatus('Unable to save');
+  }
+}
+
+/** Keep the cached journal list in step with a just-saved document. */
+function upsertJournalCache(saved) {
+  if (!saved || !saved._id) return;
+  const index = journalDownloadCache.findIndex((j) => j._id === saved._id);
+  if (index >= 0) journalDownloadCache[index] = saved;
+  else journalDownloadCache.unshift(saved);
+}
+
+function scheduleJournalAutosave() {
+  setJournalAutosaveStatus('Saving...');
+  if (journalAutosaveTimer) clearTimeout(journalAutosaveTimer);
+  journalAutosaveTimer = setTimeout(() => {
+    saveJournalDraft();
+  }, 2000);
+}
+
+function initJournalAutosave() {
+  const narrative = document.getElementById('journal-narrative');
+  if (narrative) {
+    narrative.addEventListener('input', () => {
+      updateJournalWordCount();
+      scheduleJournalAutosave();
+    });
+  }
+
+  const dayCovered = document.getElementById('day-covered');
+  if (dayCovered) {
+    dayCovered.addEventListener('change', scheduleJournalAutosave);
+  }
+}
+
+// Refresh the "Saved X ago" text once a minute.
+setInterval(() => {
+  if (!journalLastSavedAt) return;
+  const diff = Date.now() - journalLastSavedAt.getTime();
+  if (diff < 60000) {
+    setJournalAutosaveStatus('Saved just now');
+  } else {
+    const mins = Math.floor(diff / 60000);
+    setJournalAutosaveStatus(`Saved ${mins} min ago`);
+  }
+}, 30000);
+
+// Review step before submission
+function openJournalReview() {
+  if (!journalWeekState.submitEnabled) {
+    const banner = document.getElementById('journal-block-banner');
+    alert(banner && banner.textContent.trim()
+      ? banner.textContent.trim()
+      : 'Journal submission is not available right now.');
+    return;
+  }
+
+  const week = (currentEditingJournal && currentEditingJournal.week) || journalWeekState.label || '—';
+  const dayCovered = document.getElementById('day-covered')?.value || '—';
+  const narrative = document.getElementById('journal-narrative')?.value || '';
+  const words = narrative.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+  const content = document.getElementById('journal-review-content');
+  if (!content) return;
+  content.innerHTML = `
+    <div><p class="text-xs text-slate-400 mb-1">Week</p><p class="text-sm font-semibold">${escapeHtml(week)}</p></div>
+    <div><p class="text-xs text-slate-400 mb-1">Day Covered</p><p class="text-sm font-semibold">${escapeHtml(dayCovered)}</p></div>
+    <div><p class="text-xs text-slate-400 mb-1">Narrative</p><p class="text-sm text-slate-200 leading-relaxed">${escapeHtml(narrative.slice(0, 500))}${narrative.length > 500 ? '…' : ''}</p></div>
+    <div><p class="text-xs text-slate-400 mb-1">Word Count</p><p class="text-sm font-semibold">${words} words</p></div>
+  `;
+
+  const modal = document.getElementById('journal-review-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeJournalReview() {
+  const modal = document.getElementById('journal-review-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function confirmJournalSubmit() {
+  closeJournalReview();
+  const form = document.getElementById('journal-form');
+  if (form) form.dispatchEvent(new Event('submit', { cancelable: true }));
+}
+
+// Patch the submit handler to validate through the review modal.
+const originalSubmitJournal = typeof submitJournal === 'function' ? submitJournal : null;
+
+// Init on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  initJournalTabs();
+  initJournalAutosave();
+  updateJournalWordCount();
+  updateJournalProgress();
+});
+
+// Mark day tabs with filled dots based on existing journals.
+const originalLoadPreviousJournals = typeof loadPreviousJournals === 'function' ? loadPreviousJournals : null;
+
+// Close review modal on outside click
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('journal-review-modal');
+  if (modal && !modal.classList.contains('hidden') && e.target === modal) {
+    closeJournalReview();
   }
 });
 

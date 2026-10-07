@@ -119,6 +119,20 @@ router.post('/assign-supervisor', async (req, res) => {
       });
     }
 
+    // Week 1 of the OJT journal starts at the first placement, and only the
+    // first: swapping supervisors later must not rewind a trainee's week
+    // count. Legacy students (placed before this field existed) keep a
+    // historically derived date from the lazy backfill rather than "today".
+    const hadSupervisor = !!trainee.supervisorId;
+    if (!trainee.supervisorAssignedAt) {
+      if (hadSupervisor) {
+        const { resolveOjtStartDate } = require('../services/ojtStartDate');
+        await resolveOjtStartDate(trainee);
+      } else {
+        trainee.supervisorAssignedAt = new Date();
+      }
+    }
+
     // Assign supervisor to trainee
     trainee.supervisorId = supervisor._id;
     const supervisorCompanyName = supervisor.companyName || supervisor.companyId?.name;
@@ -129,6 +143,13 @@ router.post('/assign-supervisor', async (req, res) => {
       trainee.companyId = supervisor.companyId._id;
     }
     await trainee.save();
+
+    try {
+      const { notifySupervisorAssigned } = require('../services/notificationService');
+      await notifySupervisorAssigned({ trainee, supervisor });
+    } catch (notifyError) {
+      console.error('[Assign Supervisor] Notification error:', notifyError.message);
+    }
 
     // Return updated trainee with populated supervisor
     const updatedTrainee = await User.findById(traineeId)
@@ -155,9 +176,11 @@ router.post('/assign-supervisor', async (req, res) => {
 router.get('/journals', async (req, res) => {
   try {
     // Include new submissions so coordinators can see them, but exclude journals
-    // already returned to a supervisor for revision.
+    // already returned to a supervisor for revision, and drafts the student is
+    // still writing (those are private until handed in).
     const journals = await Journal.find({
       coordinatorApproved: false,
+      status: { $ne: 'draft' },
       $or: [
         { supervisorSigned: true },
         {

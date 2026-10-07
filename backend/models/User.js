@@ -77,6 +77,17 @@ const userSchema = new mongoose.Schema(
       ref: 'User',
       sparse: true, // Allow null for non-student roles or unassigned students
     },
+    /**
+     * When the trainee first received a supervisor. OJT week 1 counts from this
+     * date rather than account creation, so a student who signs up months before
+     * being placed does not start on week 12. Set on the first assignment and
+     * deliberately left alone when a different supervisor is assigned later.
+     */
+    supervisorAssignedAt: {
+      type: Date,
+      sparse: true,
+      index: true,
+    },
     department: {
       type: String,
       // 'CS' and 'CICT' are the department choices offered to students

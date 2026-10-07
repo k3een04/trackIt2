@@ -15,7 +15,14 @@ const journalSchema = new mongoose.Schema(
     },
     week: {
       type: String,
-      required: [true, 'Week is required'],
+      // Not required while a journal is still a draft: a trainee may start
+      // writing before a supervisor is assigned, and week 1 only begins at
+      // that assignment. Submit always stamps the week, so a handed-in
+      // journal can never be missing one.
+      required: function () {
+        return this.status !== 'draft';
+      },
+      description: 'OJT week label (e.g. "Week 3"), stamped by the server',
     },
     dayCovered: {
       type: String,

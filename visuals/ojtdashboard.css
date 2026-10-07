@@ -259,10 +259,14 @@ nav {
   border-color: rgba(0, 200, 170, 0.2);
 }
 
+/* Active item: a slightly lighter surface plus a slim teal indicator on
+   the leading edge. Reads as "selected" without a glowing filled rectangle. */
 .nav-link.active {
   color: var(--teal);
-  background: rgba(0, 200, 170, 0.15);
-  border-color: rgba(0, 200, 170, 0.3);
+  background: rgba(255, 255, 255, 0.045);
+  border-color: transparent;
+  box-shadow: inset 2px 0 0 var(--teal);
+  font-weight: 600;
 }
 
 .main-content {
@@ -589,6 +593,188 @@ nav {
   cursor: pointer;
   transition: all 0.2s;
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* Sticky journal header */
+.journal-sticky-header {
+  position: sticky;
+  top: 76px;
+  z-index: 20;
+  background: rgba(10, 15, 30, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+}
+
+body.light-mode .journal-sticky-header {
+  background: rgba(248, 250, 252, 0.95);
+}
+
+.journal-sticky-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.journal-sticky-header__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #e2e8f0;
+}
+
+body.light-mode .journal-sticky-header__title {
+  color: #0f172a;
+}
+
+.journal-sticky-header__progress {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+.journal-sticky-header__autosave {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.journal-sticky-header__actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Day tabs */
+.journal-day-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.journal-day-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 48px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.journal-day-tab:hover {
+  background: rgba(0, 200, 170, 0.08);
+  color: var(--teal);
+}
+
+.journal-day-tab[aria-selected="true"] {
+  background: rgba(0, 200, 170, 0.12);
+  color: var(--teal);
+  border-color: rgba(0, 200, 170, 0.3);
+}
+
+.journal-day-tab__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.journal-day-tab__dot.filled {
+  background: var(--teal);
+}
+
+/* Collapsible sections */
+.journal-section {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.journal-section__summary {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.journal-section__summary::before {
+  content: '▸';
+  transition: transform 0.2s;
+  color: var(--muted);
+}
+
+.journal-section[open] .journal-section__summary::before {
+  transform: rotate(90deg);
+}
+
+.journal-section__body {
+  padding: 0 16px 16px;
+}
+
+/* Review modal */
+.journal-review-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 15, 28, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  padding: 20px;
+}
+
+.journal-review-modal.hidden {
+  display: none;
+}
+
+.journal-review-card {
+  width: min(640px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+@media (max-width: 640px) {
+  .journal-sticky-header {
+    top: 60px;
+    padding: 12px 14px;
+  }
+
+  .journal-sticky-header__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .journal-sticky-header__actions {
+    justify-content: stretch;
+  }
+
+  .journal-sticky-header__actions button {
+    flex: 1;
+  }
 }
 
 .journal-photo-upload:hover {
@@ -1189,6 +1375,33 @@ body.light-mode .attendance-schedule__value {
 .download-modal-actions {
   display: flex;
   gap: 10px;
+}
+
+/* Draft journal rows: Resume / Delete */
+.draft-item {
+  gap: 14px;
+}
+
+.draft-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.draft-item-actions .btn-ghost {
+  padding: 7px 14px;
+  font-size: 0.8rem;
+}
+
+.draft-item-actions .draft-delete {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+.draft-item-actions .draft-delete:hover {
+  border-color: #f87171;
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.1);
 }
 
 /* Responsive */
@@ -1983,11 +2196,17 @@ body.light-mode .nav-link {
   color: #64748b;
 }
 
-body.light-mode .nav-link:hover,
+body.light-mode .nav-link:hover {
+  color: #00a88f;
+  background: rgba(0, 200, 170, 0.07);
+  border-color: transparent;
+}
+
 body.light-mode .nav-link.active {
-  color: #00c8aa;
-  background: rgba(0, 200, 170, 0.1);
-  border-color: rgba(0, 200, 170, 0.2);
+  color: #008573;
+  background: rgba(13, 148, 136, 0.08);
+  border-color: transparent;
+  box-shadow: inset 2px 0 0 #008573;
 }
 
 body.light-mode .page-header p,
@@ -2625,3 +2844,1167 @@ body.light-mode .notif-item:hover { background: rgba(0,0,0,0.03); }
 body.light-mode .notif-item.unread { background: rgba(0,200,170,0.1); }
 body.light-mode .notif-text { color: #475569; }
 body.light-mode .notif-time { color: #94a3b8; }
+
+/* ============================================================================
+   OVERVIEW DASHBOARD
+   ----------------------------------------------------------------------------
+   A self-contained design layer for the trainee Overview tab. Everything is
+   scoped under #overview so nothing here can reach the DTR, Journal, Duty Log,
+   Progress, Documents or Settings tabs.
+
+   Colour is declared explicitly per theme rather than through the inherited
+   --glass / --border variables: the Overview needs a firmer surface and a
+   crisper hairline than the glass cards behind it, and light mode is designed
+   as its own palette instead of a mechanical inversion of dark mode.
+   ========================================================================== */
+
+#overview {
+  /* Surfaces */
+  --ov-surface: #101a2e;
+  --ov-surface-2: #16223a;
+  --ov-hairline: rgba(255, 255, 255, 0.09);
+  --ov-hairline-strong: rgba(255, 255, 255, 0.16);
+
+  /* Text */
+  --ov-text: #e8eefb;
+  --ov-text-muted: #93a4c2;
+
+  /* Accents */
+  --ov-teal: #2dd4bf;
+  --ov-teal-soft: rgba(45, 212, 191, 0.12);
+  --ov-teal-line: rgba(45, 212, 191, 0.34);
+  --ov-blue: #60a5fa;
+  --ov-blue-soft: rgba(96, 165, 250, 0.12);
+  --ov-amber: #fbbf24;
+  --ov-amber-soft: rgba(251, 191, 36, 0.12);
+  --ov-green: #34d399;
+  --ov-green-soft: rgba(52, 211, 153, 0.12);
+  --ov-red: #f87171;
+  --ov-red-soft: rgba(248, 113, 113, 0.12);
+
+  /* Elevation */
+  --ov-shadow: 0 1px 2px rgba(2, 6, 23, 0.4), 0 8px 24px -12px rgba(2, 6, 23, 0.6);
+
+  --ov-radius: 14px;
+  --ov-gap: 16px;
+}
+
+body.light-mode #overview {
+  --ov-surface: #ffffff;
+  --ov-surface-2: #f6f9fc;
+  --ov-hairline: rgba(15, 23, 42, 0.10);
+  --ov-hairline-strong: rgba(15, 23, 42, 0.18);
+
+  --ov-text: #0f172a;
+  --ov-text-muted: #5a6b85;
+
+  --ov-teal: #0d9488;
+  --ov-teal-soft: rgba(13, 148, 136, 0.10);
+  --ov-teal-line: rgba(13, 148, 136, 0.30);
+  --ov-blue: #2563eb;
+  --ov-blue-soft: rgba(37, 99, 235, 0.10);
+  --ov-amber: #b45309;
+  --ov-amber-soft: rgba(180, 83, 9, 0.10);
+  --ov-green: #047857;
+  --ov-green-soft: rgba(4, 120, 87, 0.10);
+  --ov-red: #dc2626;
+  --ov-red-soft: rgba(220, 38, 38, 0.10);
+
+  --ov-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 20px -14px rgba(15, 23, 42, 0.25);
+}
+
+/* --- Card shell ---------------------------------------------------------- */
+
+/* ── Page introduction ───────────────────────────────────────────────────
+   Title and date share a baseline; the greeting sits underneath at a smaller
+   size than the title so the hierarchy reads title > greeting > content. */
+
+.ov-pagehead {
+  margin-bottom: 22px;
+}
+
+.ov-pagehead__bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ov-pagehead h1 {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ov-text);
+}
+
+.ov-pagehead__date {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ov-text-muted);
+  white-space: nowrap;
+}
+
+.ov-pagehead__greeting {
+  margin: 5px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--ov-text-muted);
+}
+
+.ov-card__caption {
+  margin: 3px 0 0;
+  font-size: 0.74rem;
+  color: var(--ov-text-muted);
+}
+
+/* Card head that stacks a title block above a control row. */
+.ov-card__head--stack {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ov-card {
+  background: var(--ov-surface);
+  border: 1px solid var(--ov-hairline);
+  border-radius: var(--ov-radius);
+  box-shadow: var(--ov-shadow);
+  padding: 20px;
+  margin: 0;
+  min-width: 0;
+  /* The inherited glass blur is dropped here: a crisp surface reads better
+     behind dense data, and it keeps text legible over the noise texture. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.ov-card--flush {
+  padding-bottom: 16px;
+}
+
+.ov-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.ov-card__head--tabs {
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ov-card__title {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ov-text);
+}
+
+.ov-card__meta {
+  font-size: 0.75rem;
+  color: var(--ov-text-muted);
+  white-space: nowrap;
+}
+
+/* --- ROW 1 · KPI cards --------------------------------------------------- */
+
+.ov-kpi-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ov-gap);
+  margin-bottom: var(--ov-gap);
+}
+
+.ov-kpi {
+  display: flex;
+  flex-direction: column;
+}
+
+.ov-kpi__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ov-kpi__label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ov-text-muted);
+}
+
+.ov-kpi__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  /* Muted on purpose: the accent is reserved for progress and interaction, so
+     three identical teal chips stop competing with the numbers. */
+  background: var(--ov-surface-2);
+  border: 1px solid var(--ov-hairline);
+  color: var(--ov-text-muted);
+}
+
+.ov-kpi__value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ov-text);
+  /* Long hour totals must never push the card wider than its column. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ov-kpi__unit {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ov-text-muted);
+  letter-spacing: 0;
+}
+
+.ov-kpi__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.ov-kpi__note {
+  font-size: 0.72rem;
+  color: var(--ov-text-muted);
+}
+
+.ov-kpi__pct {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ov-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The one place the accent earns its keep: the overall progress figure. */
+.ov-kpi__pct--accent {
+  color: var(--ov-teal);
+}
+
+.ov-meter {
+  display: block;
+  margin-top: 10px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ov-surface-2);
+  overflow: hidden;
+}
+
+.ov-meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ov-teal);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Circular progress ring on the Completed Hours card */
+.ov-kpi__ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin-top: 8px;
+}
+
+.ov-kpi__ring-svg {
+  transform: rotate(-90deg);
+}
+
+.ov-kpi__ring-bg {
+  fill: none;
+  stroke: var(--ov-surface-2);
+  stroke-width: 4;
+}
+
+.ov-kpi__ring-fill {
+  fill: none;
+  stroke: var(--ov-teal);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 150.8;
+  stroke-dashoffset: 150.8;
+  transition: stroke-dashoffset 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ov-kpi__ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ov-teal);
+}
+
+.ov-kpi__estimate {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--ov-text-muted);
+}
+
+/* --- ROW 2 · layout ------------------------------------------------------ */
+
+.ov-row-2,
+.ov-row-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ov-gap);
+  margin-bottom: var(--ov-gap);
+}
+
+/* Equal-width desktop row for Journal Progress + Updates + Attendance */
+@media (min-width: 1024px) {
+  .ov-row-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .ov-row-3 > .ov-card {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+}
+
+/* Updates feed */
+.ov-updates {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ov-updates__loading,
+.ov-updates__empty {
+  font-size: 0.85rem;
+  color: var(--ov-text-muted);
+  text-align: center;
+  padding: 16px 0;
+}
+
+.ov-updates__item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.ov-updates__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--ov-surface-2);
+  border: 1px solid var(--ov-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ov-teal);
+}
+
+.ov-updates__content {
+  min-width: 0;
+}
+
+.ov-updates__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ov-text);
+  margin: 0;
+}
+
+.ov-updates__message {
+  font-size: 0.78rem;
+  color: var(--ov-text-muted);
+  margin: 2px 0 0;
+}
+
+.ov-updates__time {
+  font-size: 0.72rem;
+  color: var(--ov-text-muted);
+  margin-top: 2px;
+}
+
+.ov-today__late {
+  font-size: 0.82rem;
+  color: var(--ov-amber);
+  margin: 4px 0 0;
+}
+
+.ov-today__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* Week strip inside Journal Progress */
+.ov-journal__weekstrip {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ov-journal__day {
+  text-align: center;
+  min-width: 0;
+}
+
+.ov-journal__day-label {
+  font-size: 0.65rem;
+  color: var(--ov-text-muted);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ov-journal__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--ov-surface-2);
+  border: 1px solid var(--ov-hairline);
+  display: block;
+  margin: 0 auto 4px;
+}
+
+.ov-journal__dot--filled {
+  background: var(--ov-teal);
+  border-color: var(--ov-teal);
+}
+
+.ov-journal__dot--today {
+  box-shadow: 0 0 0 2px var(--ov-teal-line);
+}
+
+.ov-journal__due {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--ov-text-muted);
+}
+
+.ov-journal__due--warn {
+  color: var(--ov-amber);
+}
+
+.ov-journal__due--overdue {
+  color: var(--ov-red);
+}
+
+/* --- ROW 2 · Today's OJT ------------------------------------------------- */
+
+.ov-today__state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 230px;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+}
+
+.ov-today__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--ov-teal-soft);
+  color: var(--ov-teal);
+  border: 1px solid var(--ov-teal-line);
+}
+
+.ov-today__message {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--ov-text-muted);
+}
+
+/* State colours are driven from one attribute so the JS only sets a value. */
+.ov-today__state[data-state='not-started'] .ov-today__badge {
+  background: var(--ov-amber-soft);
+  color: var(--ov-amber);
+  border-color: color-mix(in srgb, var(--ov-amber) 34%, transparent);
+}
+.ov-today__state[data-state='ongoing'] .ov-today__badge {
+  background: var(--ov-green-soft);
+  color: var(--ov-green);
+  border-color: color-mix(in srgb, var(--ov-green) 34%, transparent);
+}
+.ov-today__state[data-state='late'] .ov-today__badge {
+  background: var(--ov-amber-soft);
+  color: var(--ov-amber);
+  border-color: color-mix(in srgb, var(--ov-amber) 34%, transparent);
+}
+.ov-today__state[data-state='completed'] .ov-today__badge {
+  background: var(--ov-blue-soft);
+  color: var(--ov-blue);
+  border-color: color-mix(in srgb, var(--ov-blue) 34%, transparent);
+}
+
+.ov-today__grid {
+  flex: 2 1 340px;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--ov-hairline);
+  border: 1px solid var(--ov-hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ov-today__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  background: var(--ov-surface);
+}
+
+.ov-today__key {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ov-text-muted);
+}
+
+.ov-today__val {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  /* A long schedule range must wrap rather than widen the card. */
+  overflow-wrap: anywhere;
+}
+
+.ov-today__cta {
+  margin-top: 16px;
+  width: 100%;
+  min-height: 44px;
+}
+
+/* --- ROW 4 · Journal progress -------------------------------------------- */
+
+.ov-journal__loading {
+  margin: 0;
+  padding: 18px 0;
+  font-size: 0.85rem;
+  color: var(--ov-text-muted);
+  text-align: center;
+}
+
+.ov-journal__status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--ov-hairline);
+}
+
+.ov-journal__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ov-surface-2);
+  border: 1px solid var(--ov-hairline-strong);
+  color: var(--ov-text-muted);
+}
+
+.ov-journal__mark svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ov-journal__status[data-state='submitted'] .ov-journal__mark,
+.ov-journal__status[data-state='reviewed'] .ov-journal__mark,
+.ov-journal__status[data-state='approved'] .ov-journal__mark {
+  background: var(--ov-green-soft);
+  border-color: color-mix(in srgb, var(--ov-green) 40%, transparent);
+  color: var(--ov-green);
+}
+
+.ov-journal__status[data-state='returned'] .ov-journal__mark,
+.ov-journal__status[data-state='draft'] .ov-journal__mark {
+  background: var(--ov-amber-soft);
+  border-color: color-mix(in srgb, var(--ov-amber) 40%, transparent);
+  color: var(--ov-amber);
+}
+
+.ov-journal__status[data-state='pending'] .ov-journal__mark {
+  background: var(--ov-blue-soft);
+  border-color: color-mix(in srgb, var(--ov-blue) 40%, transparent);
+  color: var(--ov-blue);
+}
+
+.ov-journal__statusText {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ov-text);
+}
+
+.ov-journal__facts {
+  margin: 0 0 14px;
+  display: grid;
+  gap: 7px;
+}
+
+.ov-journal__fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.79rem;
+}
+
+.ov-journal__fact dt { color: var(--ov-text-muted); margin: 0; }
+.ov-journal__fact dd { margin: 0; color: var(--ov-text); font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+
+.ov-journal__cta {
+  width: 100%;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+/* Compact Journal Progress card */
+.ov-journal__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ov-journal__headline {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ov-text);
+}
+
+.ov-journal__facts--compact {
+  margin: 10px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
+.ov-journal__facts--compact .ov-journal__fact {
+  font-size: 0.78rem;
+}
+
+.ov-journal__cta--compact {
+  width: fit-content;
+  align-self: flex-start;
+  padding: 10px 20px;
+  min-height: 38px;
+  font-size: 0.88rem;
+}
+
+/* --- Responsive ---------------------------------------------------------- */
+
+/* Tablet / small laptop: two KPI columns, side-by-side row 2 and row 4. */
+@media (min-width: 640px) {
+  .ov-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .ov-today__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .ov-card { padding: 22px 24px; }
+  .ov-kpi-row { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Narrow phones: single-column detail rows, tighter calendar. */
+@media (max-width: 559px) {
+  .ov-card { padding: 16px; }
+}
+
+/* ── Today's OJT (compact) ────────────────────────────────────────────────
+   One horizontal band instead of a stack: the status reads as a single line,
+   and the four facts sit in a tight 4-up strip. Collapses to a 2-up grid on
+   narrow screens so nothing is squeezed. */
+
+.ov-today__body {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+}
+
+.ov-today__state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+}
+
+.ov-today__message {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ov-text-muted);
+}
+
+.ov-today__grid {
+  flex: 2 1 340px;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--ov-hairline);
+  border: 1px solid var(--ov-hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ov-today__row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 11px;
+  background: var(--ov-surface);
+}
+
+.ov-today__key {
+  margin: 0;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ov-text-muted);
+  white-space: nowrap;
+}
+
+.ov-today__val {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+  /* A long schedule range wraps instead of widening the card. */
+  overflow-wrap: anywhere;
+}
+
+.ov-today__cta {
+  margin: 0;
+  width: auto;
+  min-height: 40px;
+  padding: 0 18px;
+  flex: 0 0 auto;
+}
+
+/* ── ROW 3 · Attendance calendar ───────────────────────────────────────────
+   The grid is the shared TrackIT date-picker UI: visuals/trackit-calendar.css
+   already styles .tk-cal-weekdays / .tk-cal-grid / .tk-cal-day as a compact
+   32px-circle month view with Sunday-first columns. Those classes are applied
+   directly to this markup rather than reimplemented, so the Overview calendar
+   is visually identical to the pickers used on the DTR and Journal forms.
+
+   Everything below is the attendance-only layer, kept as small as possible:
+   a status dot pinned inside the existing cell, the month title/controls, the
+   legend and the inline day detail.
+
+   Overrides are scoped under #ov-calendar-card because trackit-calendar.css is
+   loaded AFTER this file. Without the id, its equal-specificity rules would win
+   and re-introduce the 9px head margin and 28px tap targets we are shrinking. */
+
+#ov-calendar-card .ov-cal__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0;
+}
+
+#ov-calendar-card .ov-cal__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ov-text);
+  white-space: nowrap;
+}
+
+#ov-calendar-card .ov-cal__today {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  margin-left: 2px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid var(--ov-hairline);
+  background: var(--ov-surface-2);
+  color: var(--ov-text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.73rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+#ov-calendar-card .ov-cal__today:hover {
+  color: var(--ov-teal);
+  border-color: var(--ov-teal-line);
+}
+
+#ov-calendar-card .ov-cal__today:focus-visible,
+#ov-calendar-card .tk-cal-nav:focus-visible {
+  outline: 2px solid var(--ov-teal);
+  outline-offset: 2px;
+}
+
+/* trackit-calendar.css draws the nav chevron with a ::after mask fed by
+   --tk-cal-chevron, but that variable is only declared on .tk-cal-pop. The
+   Overview nav buttons sit outside the popover, so the mask resolves to nothing
+   and the 15px square behind it shows as a solid block. The chevron ships as an
+   inline <svg> in this card instead, so the mask copy is dropped. */
+#ov-calendar-card .tk-cal-nav::after {
+  content: none;
+}
+
+/* The day cell keeps place-items:center, so the status dot is absolutely
+   positioned inside it. Cell sizing lives in the compaction block below. */
+#ov-calendar-card .ov-cal__day--selectable {
+  cursor: pointer;
+}
+
+.ov-cal__dot {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* A recorded day nudges the number up very slightly so the dot never crowds
+   it inside the circle. */
+#ov-calendar-card .ov-cal__day--marked {
+  align-content: center;
+  padding-bottom: 5px;
+}
+
+#ov-calendar-card .ov-cal__day--present .ov-cal__dot { background: var(--ov-green); }
+#ov-calendar-card .ov-cal__day--late .ov-cal__dot { background: var(--ov-amber); }
+#ov-calendar-card .ov-cal__day--absent .ov-cal__dot { background: var(--ov-red); }
+#ov-calendar-card .ov-cal__day--excused .ov-cal__dot { background: var(--ov-blue); }
+
+/* Recorded but not yet supervisor-verified: hollow ring, so it is never read
+   as confirmed attendance. */
+#ov-calendar-card .ov-cal__day--unverified .ov-cal__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--ov-text-muted);
+}
+
+.ov-cal__empty {
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ov-text-muted);
+  text-align: center;
+}
+
+.ov-cal__empty.hidden { display: none; }
+
+.ov-cal__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 12px 0 0;
+  padding: 10px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--ov-hairline);
+  font-size: 0.75rem;
+  color: var(--ov-text-muted);
+}
+
+.ov-cal__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ov-cal__key {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.ov-cal__key--present { background: var(--ov-green); }
+.ov-cal__key--late { background: var(--ov-amber); }
+.ov-cal__key--absent { background: var(--ov-red); }
+.ov-cal__key--excused { background: var(--ov-blue); }
+.ov-cal__key--unverified {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--ov-text-muted);
+}
+
+/* Day detail expands in place: no popover to clip against a card edge, and no
+   hover-only interaction to lose on touch. */
+.ov-cal__detail {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ov-hairline);
+  background: var(--ov-surface-2);
+}
+
+.ov-cal__detail.hidden { display: none; }
+
+.ov-cal__detailHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 9px;
+}
+
+.ov-cal__detailDate {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ov-text);
+}
+
+.ov-cal__facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 14px;
+}
+
+.ov-cal__fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ov-cal__fact dt {
+  margin: 0;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ov-text-muted);
+}
+
+.ov-cal__fact dd {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* --- Calendar compaction -------------------------------------------------
+   The picker UI is designed for a 300px popover. In this card it inherits a
+   full grid column, so the weekday row, day grid and legend are scaled to
+   fill that column at a readable size instead of sitting as a small island
+   inside a much wider card. */
+
+#ov-calendar-card {
+  align-self: start;
+}
+
+#ov-calendar-card .ov-card__head--stack {
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+#ov-calendar-card .ov-cal__titles {
+  flex: 1 1 auto;
+}
+
+#ov-calendar-card .tk-cal-weekdays,
+#ov-calendar-card .tk-cal-grid {
+  width: 100%;
+  max-width: none;
+  margin-inline: auto;
+}
+
+#ov-calendar-card .tk-cal-weekdays {
+  margin-bottom: 6px;
+}
+
+#ov-calendar-card .tk-cal-weekdays span {
+  font-size: 12px;
+}
+
+#ov-calendar-card .tk-cal-grid {
+  row-gap: 4px;
+}
+
+/* The cell now fills its grid column (minus a 4px gutter that matches the
+   row-gap) instead of sitting as a small 28px island inside a much wider
+   card, so the calendar reads as the card's content rather than a small
+   widget floating in empty space. */
+#ov-calendar-card .tk-cal-day {
+  cursor: default;
+  width: min(calc(100% - 4px), 48px);
+  height: auto;
+  aspect-ratio: 1;
+  font-size: 14px;
+}
+
+#ov-calendar-card .ov-cal__legend {
+  margin-top: 8px;
+  padding-top: 8px;
+  gap: 4px 10px;
+  font-size: 0.75rem;
+}
+
+#ov-calendar-card .ov-cal__key {
+  width: 5px;
+  height: 5px;
+}
+
+#ov-calendar-card .ov-cal__detail {
+  margin-top: 10px;
+  padding: 10px;
+}
+
+@media (min-width: 640px) {
+  .ov-today__body { flex-wrap: nowrap; }
+}
+
+@media (max-width: 639px) {
+  /* 4-up is too tight for a phone: drop to 2-up so values stay readable. */
+  .ov-today__grid { flex: 1 1 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ov-today__state { flex: 1 1 100%; }
+  .ov-today__cta { width: 100%; }
+}
+
+@media (max-width: 420px) {
+  /* Keep the month title readable when the controls crowd it. */
+  #ov-calendar-card .ov-cal__head { width: 100%; justify-content: space-between; }
+  #ov-calendar-card .ov-cal__label { font-size: 0.76rem; }
+}
+
+/* Coarse pointers: full 44px targets. Scoped by id so these beat the 28px
+   buttons in trackit-calendar.css, which loads later. */
+@media (pointer: coarse) {
+  #ov-calendar-card .tk-cal-nav,
+  #ov-calendar-card .ov-cal__today {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* The cell circle is under the 44px guidance, so the tappable area around
+     each day is grown with an invisible overlay without changing how the grid
+     looks. */
+  #ov-calendar-card .ov-cal__day--selectable {
+    position: relative;
+  }
+
+  #ov-calendar-card .ov-cal__day--selectable::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    border-radius: 50%;
+  }
+}
+
+@media (min-width: 860px) {
+  /* Hairline between the status band and the metrics strip. */
+  #ov-today-card .ov-today__body::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: calc(50% - 0.5px);
+    width: 1px;
+    background: var(--ov-hairline);
+  }
+}
+
+.ov-cal__titles {
+  min-width: 0;
+}
+
+#ov-calendar-card .ov-cal__head {
+  flex: 0 0 auto;
+}
+
+/* The header's Logout is a utility, not a primary action: it should never
+   compete with the dashboard content for attention. */
+#navbar .btn-ghost {
+  color: var(--ov-text-muted);
+  border-color: var(--ov-hairline);
+  background: transparent;
+}
+
+#navbar .btn-ghost:hover {
+  color: var(--ov-text);
+  border-color: var(--ov-hairline-strong);
+  background: var(--ov-surface-2);
+}
+
+@media (min-width: 1024px) {
+  .ov-pagehead { margin-bottom: 24px; }
+  .ov-pagehead h1 { font-size: 1.9rem; }
+}

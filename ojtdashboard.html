@@ -23,14 +23,14 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=4">
+  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=8">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
   <link rel="stylesheet" href="visuals/trackit-glass.css?v=1">
   <!-- Reusable date/month picker. Loaded last so its field and popover rules
        win against the per-page input styles above. -->
-  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=1">
+  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=2">
 </head>
 <body>
   <script>
@@ -153,105 +153,171 @@
 
     <!-- OVERVIEW TAB -->
     <div id="overview" class="tab-content active">
-      <div class="page-header">
-        <h1>Overview</h1>
-        <p class="text-slate-400">Welcome back! Here's your OJT progress summary.</p>
+      <div class="ov-pagehead">
+        <div class="ov-pagehead__bar">
+          <h1>Overview</h1>
+          <span class="ov-pagehead__date" id="ov-header-date"></span>
+        </div>
+        <p class="ov-pagehead__greeting" id="ov-welcome">Loading your OJT summary…</p>
       </div>
 
-      <!-- Stats Row -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div class="glass-card p-6">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-slate-400 text-sm">Completed Hours</span>
-            <div class="icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5z"/></svg>
+      <!-- ROW 1 — three KPI cards. Completed Hours carries the only overall
+           progress indicator, so the accent is spent there and nowhere else. -->
+      <section class="ov-kpi-row" aria-label="Key OJT metrics">
+        <article class="glass-card ov-card ov-kpi">
+          <div class="ov-kpi__head">
+            <h3 class="ov-kpi__label">Completed Hours</h3>
+            <span class="ov-kpi__icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 13.5"></polyline></svg>
+            </span>
+          </div>
+          <p class="ov-kpi__value"><span id="ov-kpi-hours">0</span><span class="ov-kpi__unit" id="ov-kpi-hours-required">/ 486 hrs</span></p>
+          <div class="ov-kpi__foot">
+            <span class="ov-kpi__note" id="ov-kpi-hours-note">verified by supervisor</span>
+            <span class="ov-kpi__pct ov-kpi__pct--accent" id="ov-kpi-hours-pct">0%</span>
+          </div>
+          <div class="ov-kpi__ring" aria-hidden="true">
+            <svg class="ov-kpi__ring-svg" width="56" height="56" viewBox="0 0 56 56">
+              <circle class="ov-kpi__ring-bg" cx="28" cy="28" r="24" />
+              <circle class="ov-kpi__ring-fill" id="ov-kpi-ring-fill" cx="28" cy="28" r="24" />
+            </svg>
+            <span class="ov-kpi__ring-pct" id="ov-kpi-ring-pct">0%</span>
+          </div>
+          <p class="ov-kpi__estimate" id="ov-kpi-estimate">Clock in to start tracking</p>
+        </article>
+
+        <article class="glass-card ov-card ov-kpi">
+          <div class="ov-kpi__head">
+            <h3 class="ov-kpi__label">Days Present</h3>
+            <span class="ov-kpi__icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><line x1="16" y1="2.5" x2="16" y2="6.5"></line><line x1="8" y1="2.5" x2="8" y2="6.5"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </span>
+          </div>
+          <p class="ov-kpi__value"><span id="ov-kpi-days">0</span><span class="ov-kpi__unit">days</span></p>
+          <div class="ov-kpi__foot">
+            <span class="ov-kpi__note" id="ov-kpi-days-note">This month</span>
+            <span class="ov-kpi__pct" id="ov-kpi-attendance">—</span>
+          </div>
+        </article>
+
+        <article class="glass-card ov-card ov-kpi">
+          <div class="ov-kpi__head">
+            <h3 class="ov-kpi__label">Remaining Hours</h3>
+            <span class="ov-kpi__icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </span>
+          </div>
+          <p class="ov-kpi__value"><span id="ov-kpi-remaining">486</span><span class="ov-kpi__unit">hrs</span></p>
+          <div class="ov-kpi__foot">
+            <span class="ov-kpi__note" id="ov-kpi-remaining-note">of 486 required</span>
+          </div>
+        </article>
+      </section>
+
+      <!-- ROW 2 — Today's OJT, composed as ONE panel: status band on the left,
+           hairline, metrics strip, action. -->
+      <section class="ov-row-2" aria-label="Today's attendance">
+        <article class="glass-card ov-card" id="ov-today-card">
+          <div class="ov-card__head">
+            <h3 class="ov-card__title">Today's OJT</h3>
+            <span class="ov-card__meta" id="ov-today-date">—</span>
+          </div>
+
+          <div class="ov-today__body">
+            <div class="ov-today__state" id="ov-today-state" data-state="loading">
+              <span class="ov-today__badge" id="ov-today-badge">Loading…</span>
+              <p class="ov-today__message" id="ov-today-message">Checking today's record…</p>
+              <p class="ov-today__late" id="ov-today-late" hidden></p>
+            </div>
+
+            <dl class="ov-today__grid">
+              <div class="ov-today__row">
+                <dt class="ov-today__key">Time In</dt>
+                <dd class="ov-today__val" id="ov-today-in">—</dd>
+              </div>
+              <div class="ov-today__row">
+                <dt class="ov-today__key">Time Out</dt>
+                <dd class="ov-today__val" id="ov-today-out">—</dd>
+              </div>
+              <div class="ov-today__row">
+                <dt class="ov-today__key">Schedule</dt>
+                <dd class="ov-today__val" id="ov-today-schedule">Not set</dd>
+              </div>
+              <div class="ov-today__row">
+                <dt class="ov-today__key">Duration</dt>
+                <dd class="ov-today__val" id="ov-today-hours" aria-live="polite">0h 00m 00s</dd>
+              </div>
+            </dl>
+
+            <div class="ov-today__actions">
+              <button type="button" class="btn-primary ov-today__cta hidden" id="ov-today-cta" onclick="switchTab('dtr')">Open DTR</button>
+              <button type="button" class="btn-ghost ov-today__cta hidden" id="ov-today-clockout" onclick="handleOverviewClockOut()">Clock Out</button>
             </div>
           </div>
-          <div class="stat-num">0</div>
-          <p class="text-xs text-slate-500 mt-2">/ 486 hours required</p>
-        </div>
+        </article>
+      </section>
 
-        <div class="glass-card p-6">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-slate-400 text-sm">Days Present</span>
-            <div class="icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <!-- ROW 3 — equal-width Journal Progress, Updates, and Attendance. -->
+      <section class="ov-row-3" aria-label="Journal progress, updates and attendance calendar">
+        <article class="glass-card ov-card" id="ov-journal-card">
+          <div class="ov-card__head">
+            <h3 class="ov-card__title">Journal Progress</h3>
+            <span class="ov-card__meta" id="ov-journal-week">—</span>
+          </div>
+          <div class="ov-journal" id="ov-journal" data-state="loading">
+            <p class="ov-journal__loading">Checking this week's journal…</p>
+          </div>
+        </article>
+
+        <article class="glass-card ov-card" id="ov-updates-card">
+          <div class="ov-card__head">
+            <h3 class="ov-card__title">Updates</h3>
+          </div>
+          <div class="ov-updates" id="ov-updates">
+            <p class="ov-updates__loading">Loading updates…</p>
+          </div>
+        </article>
+
+        <!-- Attendance: reuses the shared TrackIT calendar picker UI
+             (tk-cal-* from visuals/trackit-calendar.css), so this grid is
+             visually identical to the date pickers on the DTR and Journal
+             forms. Attendance status rides on a small dot inside the existing
+             day cell, leaving the cell geometry untouched. -->
+        <article class="glass-card ov-card" id="ov-calendar-card">
+          <div class="ov-card__head ov-card__head--stack">
+            <div class="ov-cal__titles">
+              <h3 class="ov-card__title">Attendance</h3>
+              <p class="ov-card__caption" id="ov-cal-caption">Your attendance this month</p>
+            </div>
+            <div class="tk-cal-head ov-cal__head">
+              <span class="ov-cal__label" id="ov-cal-label" aria-live="polite">—</span>
+              <button type="button" class="tk-cal-nav tk-cal-nav--prev" id="ov-cal-prev" data-ov-cal-nav="prev" aria-label="Previous month">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <button type="button" class="tk-cal-nav tk-cal-nav--next" id="ov-cal-next" data-ov-cal-nav="next" aria-label="Next month">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+              <button type="button" class="ov-cal__today" id="ov-cal-today" data-ov-cal-nav="today">Today</button>
             </div>
           </div>
-          <div class="stat-num">0</div>
-          <p class="text-xs text-slate-500 mt-2">This month</p>
-        </div>
 
-        <div class="glass-card p-6">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-slate-400 text-sm">Pending Journals</span>
-            <div class="icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
+          <div class="tk-cal-weekdays" aria-hidden="true">
+            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
           </div>
-          <div class="stat-num">0</div>
-          <p class="text-xs text-slate-500 mt-2">Awaiting review</p>
-        </div>
+          <div class="tk-cal-grid ov-cal__grid" id="ov-cal-grid" role="group" aria-label="Attendance by day"></div>
+          <p class="ov-cal__empty hidden" id="ov-cal-empty">No attendance records yet — your attendance appears here once you record your first DTR.</p>
 
-        <div class="glass-card p-6">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-slate-400 text-sm">Remaining Hours</span>
-            <div class="icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-          </div>
-          <div class="stat-num">0</div>
-          <p class="text-xs text-slate-500 mt-2">to complete OJT</p>
-        </div>
-      </div>
+          <ul class="ov-cal__legend">
+            <li><span class="ov-cal__key ov-cal__key--present"></span>Present</li>
+            <li><span class="ov-cal__key ov-cal__key--late"></span>Late</li>
+            <li><span class="ov-cal__key ov-cal__key--absent"></span>Absent</li>
+            <li><span class="ov-cal__key ov-cal__key--excused"></span>Excused</li>
+            <li><span class="ov-cal__key ov-cal__key--unverified"></span>Not yet verified</li>
+          </ul>
 
-      <!-- Progress Bar and Activity -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- OJT Progress -->
-        <div class="glass-card p-6 lg:col-span-1">
-          <h3 class="font-display font-700 mb-6">OJT Progress</h3>
-          <div class="progress-circle" style="--progress: 0%">
-            <div class="progress-value">0%</div>
-          </div>
-          <p class="text-center text-slate-400 text-sm mt-4">0 of 486 hours completed</p>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="glass-card p-6 lg:col-span-2">
-          <h3 class="font-display font-700 mb-6">Recent Activity</h3>
-          <div class="space-y-4" id="recent-activity-container">
-            <p class="text-slate-500 text-sm text-center py-6">Loading activity...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pending Journals -->
-      <div class="glass-card p-6 mb-8">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-display font-700">Pending Journals</h3>
-          <button onclick="switchTab('journal')" class="text-xs px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-slate-300 transition">
-            View all
-          </button>
-        </div>
-        <div id="pending-journals-list" class="space-y-3">
-          <p class="text-slate-500 text-sm text-center py-6">Loading pending journals...</p>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="glass-card p-6">
-        <h3 class="font-display font-700 mb-6">Quick Actions</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button onclick="switchTab('journal')" class="btn-primary w-full">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Submit Journal
-          </button>
-          <button onclick="switchTab('dtr')" class="btn-primary w-full">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
-            View DTR
-          </button>
-        </div>
-      </div>
+          <div class="ov-cal__detail hidden" id="ov-cal-detail" role="region" aria-live="polite"></div>
+        </article>
+      </section>
     </div>
 
     <!-- DTR TAB -->
@@ -484,80 +550,117 @@
         <p class="text-slate-400">Document your learning and experiences</p>
       </div>
 
+      <!-- Sticky journal header with progress, autosave, and actions -->
+      <div class="journal-sticky-header" id="journal-sticky-header">
+        <div class="journal-sticky-header__row">
+          <div>
+            <h2 class="journal-sticky-header__title">Weekly Journal</h2>
+            <p class="journal-sticky-header__progress" id="journal-progress-text">0 / 5 days filled</p>
+          </div>
+          <p class="journal-sticky-header__autosave" id="journal-autosave-status" aria-live="polite"></p>
+          <div class="journal-sticky-header__actions">
+            <button type="button" id="journal-save-draft" class="btn-ghost" onclick="saveJournalDraft()">Save Draft</button>
+            <button type="button" id="journal-submit-btn" class="btn-primary" onclick="openJournalReview()">Submit</button>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Journal Form -->
         <div class="lg:col-span-2">
           <div class="glass-card p-8">
+            <!-- Day tabs -->
+            <div class="journal-day-tabs" id="journal-day-tabs" role="tablist" aria-label="Select day">
+              <button type="button" class="journal-day-tab" data-day="Monday" role="tab" aria-selected="true">Mon<span class="journal-day-tab__dot" id="dot-Monday"></span></button>
+              <button type="button" class="journal-day-tab" data-day="Tuesday" role="tab" aria-selected="false">Tue<span class="journal-day-tab__dot" id="dot-Tuesday"></span></button>
+              <button type="button" class="journal-day-tab" data-day="Wednesday" role="tab" aria-selected="false">Wed<span class="journal-day-tab__dot" id="dot-Wednesday"></span></button>
+              <button type="button" class="journal-day-tab" data-day="Thursday" role="tab" aria-selected="false">Thu<span class="journal-day-tab__dot" id="dot-Thursday"></span></button>
+              <button type="button" class="journal-day-tab" data-day="Friday" role="tab" aria-selected="false">Fri<span class="journal-day-tab__dot" id="dot-Friday"></span></button>
+              <button type="button" class="journal-day-tab" data-day="Saturday" role="tab" aria-selected="false">Sat<span class="journal-day-tab__dot" id="dot-Saturday"></span></button>
+              <button type="button" class="journal-day-tab" data-day="Sunday" role="tab" aria-selected="false">Sun<span class="journal-day-tab__dot" id="dot-Sunday"></span></button>
+            </div>
+
             <form id="journal-form" onsubmit="submitJournal(event)">
-              <!-- Week Selector -->
+              <input type="hidden" id="day-covered" value="Monday">
+
+              <!-- Week (set automatically) -->
               <div class="mb-8">
                 <label class="block text-sm font-semibold mb-3">Week Number</label>
-                <select id="week-selector" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
-                  <option value="">Loading weeks...</option>
-                </select>
-                <p class="text-xs text-slate-500 mt-2">Weeks you have already submitted are disabled. If your supervisor returns a journal for revision, that week becomes available again.</p>
-              </div>
-
-              <!-- Day Covered -->
-              <div class="mb-8">
-                <label class="block text-sm font-semibold mb-3">Day Covered</label>
-                <select id="day-covered" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
-                  <option value="">Select a day (optional)</option>
-                  <option value="Monday">Monday</option>
-                  <option value="Tuesday">Tuesday</option>
-                  <option value="Wednesday">Wednesday</option>
-                  <option value="Thursday">Thursday</option>
-                  <option value="Friday">Friday</option>
-                  <option value="Saturday">Saturday</option>
-                  <option value="Sunday">Sunday</option>
-                </select>
-                <p class="text-xs text-slate-500 mt-2">Specify which day this entry covers within the week.</p>
+                <div id="week-auto" class="w-full glass-card px-4 py-3 rounded-lg border border-white/10 flex items-center justify-between gap-3">
+                  <span id="week-auto-value" class="text-sm font-semibold text-teal-400">—</span>
+                  <span class="text-xs text-slate-500">Set automatically</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-2" id="week-auto-help">Week 1 starts the day your supervisor is assigned, so the week is stamped for you when you submit - there is nothing to pick.</p>
+                <div id="journal-block-banner" class="hidden mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-xs text-amber-200" role="status"></div>
               </div>
 
               <!-- Narrative -->
               <div class="mb-8">
-                <label class="block text-sm font-semibold mb-3">Narrative Journal Entry</label>
-                <textarea id="journal-narrative" rows="8" placeholder="Describe your experiences, challenges, and learnings this week. Include specific tasks, technologies used, and skills applied..." class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none resize-none"></textarea>
+                <div class="flex items-center justify-between mb-3">
+                  <label class="block text-sm font-semibold">Narrative Journal Entry</label>
+                  <span class="text-xs text-slate-500" id="journal-word-count">0 words</span>
+                </div>
+                <textarea id="journal-narrative" rows="10" placeholder="Describe your experiences, challenges, and learnings this week. Include specific tasks, technologies used, and skills applied..." class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none resize-none"></textarea>
               </div>
 
-              <!-- Photo Upload -->
-              <div class="mb-8">
-                <label class="block text-sm font-semibold mb-3">Upload Photo (Optional)</label>
-                <div id="journal-photo-upload" class="journal-photo-upload">
-                  <div class="journal-photo-preview">
-                    <span id="journal-photo-placeholder" class="journal-photo-placeholder">No photo selected</span>
-                    <img id="journal-photo-img" alt="Journal photo preview" class="hidden" />
+              <!-- Collapsible sections -->
+              <details class="journal-section mb-6">
+                <summary class="journal-section__summary">Photo Upload</summary>
+                <div class="journal-section__body">
+                  <div id="journal-photo-upload" class="journal-photo-upload">
+                    <div class="journal-photo-preview">
+                      <span id="journal-photo-placeholder" class="journal-photo-placeholder">No photo selected</span>
+                      <img id="journal-photo-img" alt="Journal photo preview" class="hidden" />
+                    </div>
+                    <p class="text-xs text-slate-400 mt-3">Photo appears in the PDF export.</p>
                   </div>
-                  <p class="text-xs text-slate-400 mt-3">Photo appears in the PDF export.</p>
+                  <input type="file" id="journal-photo" accept="image/*" class="hidden">
                 </div>
-                <input type="file" id="journal-photo" accept="image/*" class="hidden">
+              </details>
+
+              <details class="journal-section mb-6">
+                <summary class="journal-section__summary">AI Theory Extraction</summary>
+                <div class="journal-section__body">
+                  <button type="button" onclick="autoExtractTheories(event)" class="btn-ghost">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    Analyze & Extract Theories
+                  </button>
+                  <div id="theories-result" class="mt-4 hidden glass-card p-4 bg-white/5 rounded-lg">
+                    <p class="text-xs text-slate-400 mb-3">🎓 Identified IT Theories & Practices:</p>
+                    <div id="theories-list" class="space-y-2"></div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Review step modal -->
+              <div id="journal-review-modal" class="journal-review-modal hidden" role="dialog" aria-modal="true" aria-labelledby="journal-review-title">
+                <div class="journal-review-card">
+                  <h3 id="journal-review-title" class="font-display font-700 text-lg mb-4">Review Your Journal</h3>
+                  <div id="journal-review-content" class="space-y-4 mb-6"></div>
+                  <div class="flex gap-3 justify-end">
+                    <button type="button" class="btn-ghost" onclick="closeJournalReview()">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="confirmJournalSubmit()">Submit Journal</button>
+                  </div>
+                </div>
               </div>
 
-              <!-- AI Theory Extraction -->
-              <div class="mb-8">
-                <button type="button" onclick="autoExtractTheories(event)" class="btn-ghost">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                  Analyze & Extract Theories
-                </button>
-                <div id="theories-result" class="mt-4 hidden glass-card p-4 bg-white/5 rounded-lg">
-                  <p class="text-xs text-slate-400 mb-3">🎓 Identified IT Theories & Practices:</p>
-                  <div id="theories-list" class="space-y-2"></div>
-                </div>
-              </div>
-
-              <!-- Submit -->
-              <button type="submit" class="btn-primary w-full">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
-                Submit Journal
-              </button>
+              <button type="submit" class="btn-primary" style="display:none;">Submit Journal</button>
             </form>
           </div>
         </div>
 
         <!-- Previous Journals -->
         <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-1">Previous Journals</h3>
-          <p class="text-xs text-slate-500 mb-6">Click a journal to view its full content</p>
+          <div class="flex items-start justify-between gap-3 mb-1">
+            <div>
+              <h3 class="font-display font-700">Previous Journals</h3>
+              <p class="text-xs text-slate-500">Click a journal to view its full content</p>
+            </div>
+            <button type="button" id="drafts-open-btn" class="btn-ghost text-xs" onclick="openDraftsModal()">
+              Drafts (<span id="drafts-count">0</span>)
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 mb-6">Drafts stay private to you until you submit them.</p>
           <div id="previous-journals-list" class="space-y-3">
             <p class="text-slate-500 text-sm text-center py-4">No journals submitted yet</p>
           </div>
@@ -953,6 +1056,26 @@
     </div>
   </div>
 
+  <!-- Draft journals: private to the student until handed in -->
+  <div id="journal-drafts-modal" class="download-modal hidden" role="dialog" aria-modal="true" aria-labelledby="journal-drafts-title">
+    <div class="download-modal-card">
+      <div class="download-modal-header">
+        <div>
+          <h3 id="journal-drafts-title" class="font-display font-700">Draft Journals</h3>
+          <p class="text-xs text-slate-400">Drafts are yours alone until you submit them - they never show up in Previous Journals, or on your supervisor's and coordinator's screens.</p>
+        </div>
+        <button onclick="closeDraftsModal()" class="download-modal-close" aria-label="Close drafts">×</button>
+      </div>
+      <div id="journal-drafts-list" class="download-modal-list"></div>
+      <div class="download-modal-footer">
+        <span id="journal-drafts-hint" class="text-xs text-slate-400"></span>
+        <div class="download-modal-actions">
+          <button onclick="closeDraftsModal()" class="btn-ghost">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="vendor/html2canvas.min.js"></script>
   <script src="vendor/jspdf.umd.min.js"></script>
@@ -967,6 +1090,6 @@
   <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
        which writes .value and listens for the change events it re-dispatches. -->
   <script src="trackit-calendar.js?v=1"></script>
-  <script src="ojtdashboard.js?v=4"></script>
+  <script src="ojtdashboard.js?v=7"></script>
 </body>
 </html>

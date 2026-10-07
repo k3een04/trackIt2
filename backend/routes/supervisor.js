@@ -211,10 +211,13 @@ router.get('/journals', async (req, res) => {
 
     const traineeIds = trainees.map(t => t._id);
 
-    // Get all journals from these trainees
+    // Get all journals from these trainees. Drafts are excluded: a journal
+    // the student has not handed in is theirs alone, and returned-for-revision
+    // entries already have their own queue below.
     const journals = await Journal.find({
       studentId: { $in: traineeIds },
       supervisorSigned: false, // Only show unsigned journals
+      status: { $ne: 'draft' },
     })
       .populate('studentId', 'fullName studentId email')
       .sort({ submittedAt: -1 })

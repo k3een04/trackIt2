@@ -38,6 +38,19 @@ const RECENT_DTR_LIMIT = 10;
 const TOP_TRAINEE_LIMIT = 8;
 const TOP_PERFORMER_LIMIT = 5;
 
+/**
+ * Journals the coordinator is allowed to see. A draft the student is still
+ * writing is private to them; only handed-in journals and entries returned for
+ * revision (also stored as status 'draft', but carrying the supervisor's note)
+ * count towards coordinator totals. Spread this into a Journal match.
+ */
+const VISIBLE_JOURNAL_MATCH = {
+  $or: [
+    { status: { $ne: 'draft' } },
+    { supervisorReview: { $exists: true, $ne: null } },
+  ],
+};
+
 // Rating bands used to summarize the monthly performance appraisals.
 const PERFORMANCE_BANDS = [
   { key: 'excellent', label: 'Excellent (4.5 - 5.0)', minRating: 4.5 },
@@ -490,6 +503,8 @@ async function buildCoordinatorAnalytics() {
       Journal.countDocuments({
         ...recentMatch,
         supervisorSigned: false,
+        // Drafts have not been handed in, so they are nobody's to sign yet.
+        status: { $ne: 'draft' },
         $or: [{ coordinatorRemarks: { $exists: false } }, { coordinatorRemarks: null }],
       }),
       Journal.countDocuments({
@@ -505,16 +520,16 @@ async function buildCoordinatorAnalytics() {
 
   const journalTotalsPromise = (async () => {
     const [total, submitted, reviewed, draft] = await Promise.all([
-      Journal.countDocuments({ studentId: { $in: traineeIds } }),
+      Journal.countDocuments({ studentId: { $in: traineeIds }, ...VISIBLE_JOURNAL_MATCH }),
       Journal.countDocuments({ studentId: { $in: traineeIds }, status: 'submitted' }),
       Journal.countDocuments({ studentId: { $in: traineeIds }, status: 'reviewed' }),
-      Journal.countDocuments({ studentId: { $in: traineeIds }, status: 'draft' }),
+      Journal.countDocuments({ studentId: { $in: traineeIds }, status: 'draft', ...VISIBLE_JOURNAL_MATCH }),
     ]);
     return { total, submitted, reviewed, draft };
   })();
 
   const journalCountsByTraineePromise = Journal.aggregate([
-    { $match: { studentId: { $in: traineeIds } } },
+    { $match: { studentId: { $in: traineeIds }, ...VISIBLE_JOURNAL_MATCH } },
     {
       $group: {
         _id: '$studentId',
@@ -533,7 +548,7 @@ async function buildCoordinatorAnalytics() {
   ]);
 
   const weeklyJournalsAggPromise = Journal.aggregate([
-    { $match: { studentId: { $in: traineeIds }, submittedAt: { $gte: journalTrendStart } } },
+    { $match: { studentId: { $in: traineeIds }, submittedAt: { $gte: journalTrendStart }, ...VISIBLE_JOURNAL_MATCH } },
     {
       $group: {
         _id: { year: { $year: '$submittedAt' }, week: { $week: '$submittedAt' } },

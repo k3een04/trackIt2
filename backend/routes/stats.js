@@ -37,12 +37,13 @@ const ATTENTION_WINDOW_DAYS = 30;
 const TOTAL_OJT_WEEKS = 17;
 
 /**
- * The OJT week a trainee is on today. Same rule the student dashboard uses to
- * pick the week selector: Week 1 covers the first 7 days after registering.
+ * The OJT week a trainee is on today. Same rule the student dashboard uses:
+ * Week 1 covers the first 7 days after the OJT start date, which is the first
+ * supervisor placement (see services/ojtStartDate.js).
  */
-function currentOjtWeek(createdAt, now) {
-  if (!createdAt) return null;
-  const elapsed = now.getTime() - new Date(createdAt).getTime();
+function currentOjtWeek(startDate, now) {
+  if (!startDate) return null;
+  const elapsed = now.getTime() - new Date(startDate).getTime();
   const week = Math.floor(elapsed / (7 * 24 * 60 * 60 * 1000)) + 1;
   return week >= 1 ? week : null;
 }
@@ -61,8 +62,13 @@ function weekNumberOf(label) {
 async function summarizeMissingJournals(activeTrainees, now) {
   const requiredWeekByTrainee = new Map();
 
+  // Week 1 starts at the first supervisor placement, same origin the student
+  // dashboard counts from. Backfills legacy rows in a single batched write.
+  const { backfillOjtStartDates, ojtStartDateForDisplay } = require('../services/ojtStartDate');
+  await backfillOjtStartDates(activeTrainees);
+
   activeTrainees.forEach(trainee => {
-    const week = currentOjtWeek(trainee.createdAt, now);
+    const week = currentOjtWeek(ojtStartDateForDisplay(trainee), now);
     // Outside the programme's 17 weeks there is no required journal.
     if (week === null || week > TOTAL_OJT_WEEKS) return;
     requiredWeekByTrainee.set(String(trainee._id), week);
@@ -184,7 +190,9 @@ router.get('/coordinator/overview', authenticateToken, authorizeRole('coordinato
         DTR.distinct('traineeId', { status: 'late', date: { $gte: attentionWindowStart } }),
         // 3 consecutive applicable OJT days without a time in (shared logic).
         listInactiveTraineeIds(now),
-        User.find({ role: 'student', isActive: true }).select('_id createdAt').lean(),
+        User.find({ role: 'student', isActive: true })
+          .select('_id createdAt supervisorId supervisorAssignedAt')
+          .lean(),
         Notification.find({
           recipientId: req.user.id,
           type: { $in: ACTIVITY_NOTIFICATION_TYPES },
@@ -314,10 +322,13 @@ router.get('/supervisor', authenticateToken, authorizeRole('supervisor'), async 
       timeOut: { $exists: true, $ne: null },
     });
 
-    // Count unsigned journals for assigned trainees
+    // Count unsigned journals for assigned trainees. Drafts are excluded:
+    // a journal the student has not handed in yet is not the supervisor's to
+    // sign (returned-for-revision entries live in the Returned queue instead).
     const pendingJournalsCount = await Journal.countDocuments({
       studentId: { $in: traineeIds },
       supervisorSigned: false,
+      status: { $ne: 'draft' },
     });
 
     res.status(200).json({
@@ -384,10 +395,12 @@ router.get('/pending-actions', authenticateToken, authorizeRole('supervisor'), a
       });
     });
 
-    // Get pending journals (unsigned journals for assigned trainees)
+    // Get pending journals (unsigned journals for assigned trainees).
+    // Drafts are the student's own work in progress, never a pending action.
     const pendingJournals = await Journal.find({
       studentId: { $in: traineeIds },
       supervisorSigned: false,
+      status: { $ne: 'draft' },
     })
       .populate('studentId', 'fullName')
       .sort({ submittedAt: -1 })
@@ -439,6 +452,11 @@ router.get('/student', authenticateToken, authorizeRole('student'), async (req, 
         message: 'Student not found',
       });
     }
+
+    // Journal weeks count from the first supervisor placement, not account
+    // creation. Legacy students get the date derived and persisted here.
+    const { resolveOjtStartDate } = require('../services/ojtStartDate');
+    const ojtStartDate = await resolveOjtStartDate(student);
 
     // Older student records may have companyName without the company reference
     // required by the geofence and DTR endpoints. Resolve and persist it here.
@@ -548,6 +566,8 @@ router.get('/student', authenticateToken, authorizeRole('student'), async (req, 
           isActive: student.isActive,
           createdAt: student.createdAt,
           supervisor: supervisorData,
+          hasSupervisor: !!student.supervisorId,
+          supervisorAssignedAt: ojtStartDate ? ojtStartDate.toISOString() : null,
           company: student.companyId || null,
           supervisorRating: student.supervisorRating || null,
         },

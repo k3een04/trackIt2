@@ -2,11 +2,90 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Journal = require('../models/Journal');
+const User = require('../models/User');
+const DTR = require('../models/DTR');
+const { resolveOjtStartDate, ojtWeekLabel } = require('../services/ojtStartDate');
 const {
   extractTheoriesFromNarrative,
   extractTheoriesLocally,
   summarizeText,
 } = require('../services/summaryService');
+
+/**
+ * A draft the student is still writing. Returned-for-revision journals also
+ * carry status 'draft' but are distinguished by the supervisor's review note,
+ * so they keep flowing through the supervisor's Returned queue.
+ */
+function isPureDraft(journal) {
+  return !!journal && journal.status === 'draft' && !journal.supervisorReview;
+}
+
+/** Verified DTR hours a trainee has rendered, all time. */
+async function completedVerifiedHours(studentId) {
+  const records = await DTR.find({ traineeId: studentId, verifiedBySupervisor: true })
+    .select('hoursRendered')
+    .lean();
+  return records.reduce((sum, record) => sum + (record.hoursRendered || 0), 0);
+}
+
+/**
+ * Week label for a journal, decided by the server so the student never picks
+ * one: a revision keeps the week it was originally filed under, everything
+ * else takes the trainee's current OJT week (week 1 = first supervisor
+ * placement).
+ *
+ * @returns {{week: string}|{error: {status: number, code: string, message: string}}}
+ */
+async function resolveSubmissionWeek({ student, journalId }) {
+  let target = null;
+
+  if (journalId) {
+    const existing = await Journal.findOne({ _id: journalId, studentId: student._id });
+    if (!existing) {
+      return { error: { status: 404, code: 'NOT_FOUND', message: 'Journal not found' } };
+    }
+    if (existing.status !== 'draft') {
+      return {
+        error: { status: 409, code: 'ALREADY_SUBMITTED', message: 'This journal has already been submitted.' },
+      };
+    }
+    target = existing;
+    if (existing.week) return { week: existing.week, journal: existing };
+    // Filed before a supervisor was assigned: fall through and stamp a week now,
+    // but keep the same document so the weekless draft is not orphaned.
+  }
+
+  const startDate = await resolveOjtStartDate(student);
+  const week = ojtWeekLabel(startDate);
+  if (!week) {
+    return {
+      error: {
+        status: 409,
+        code: 'NO_SUPERVISOR',
+        message: 'A supervisor must be assigned before journals can be submitted.',
+      },
+    };
+  }
+  return target ? { week, journal: target } : { week };
+}
+
+/**
+ * Guard shared by submit and draft save: once every required hour is rendered
+ * the OJT is over and no further journal can be handed in.
+ * @returns {{error: Object}|null}
+ */
+async function ojtPeriodCompleteError(student) {
+  const completed = await completedVerifiedHours(student._id);
+  const required = student.requiredHours || 486;
+  if (completed < required) return null;
+  return {
+    error: {
+      status: 409,
+      code: 'OJT_PERIOD_COMPLETE',
+      message: `OJT Period Complete - you have rendered ${Math.round(completed * 10) / 10} of ${required} required hours.`,
+    },
+  };
+}
 
 // Extract IT theories from narrative (replaces /summarize)
 router.post('/extract-theories', authenticateToken, async (req, res) => {
@@ -78,16 +157,158 @@ router.post('/summarize', authenticateToken, async (req, res) => {
   }
 });
 
-// Submit or save journal entry
-router.post('/submit', authenticateToken, async (req, res) => {
+// Save or update a journal draft (autosave)
+router.post('/draft', authenticateToken, async (req, res) => {
   try {
-    const { week, dayCovered, narrative, identifiedTheories = [], photoDataUrl } = req.body;
+    const { journalId, dayCovered, narrative, identifiedTheories = [], photoDataUrl } = req.body;
     const studentId = req.user.id;
 
-    if (!week || !narrative || !String(narrative).trim()) {
+    const student = await User.findById(studentId).select('supervisorId supervisorAssignedAt createdAt');
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    const VALID_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const cleanDayCovered = VALID_DAYS.includes(dayCovered) ? dayCovered : undefined;
+
+    const cleanTheories = Array.isArray(identifiedTheories)
+      ? identifiedTheories
+          .filter((t) => t && (t.course || t.courseName || t.category || t.theory))
+          .map((t) => ({
+            course: t.course || '',
+            courseName: t.courseName || '',
+            category: t.category || '',
+            theory: t.theory || '',
+          }))
+      : [];
+
+    // The week is never chosen by the student: a resumed journal keeps its own
+    // week, everything else takes the current OJT week. Before a supervisor is
+    // assigned the week stays empty - it is stamped when the journal is handed in.
+    let journal = null;
+    if (journalId) {
+      journal = await Journal.findOne({ _id: journalId, studentId });
+      if (!journal) {
+        return res.status(404).json({ success: false, message: 'Journal not found' });
+      }
+      if (journal.status !== 'draft') {
+        return res.status(409).json({
+          success: false,
+          code: 'NOT_A_DRAFT',
+          message: 'Only drafts can be autosaved. This journal has already been submitted.',
+        });
+      }
+    }
+
+    let week = journal && journal.week ? journal.week : null;
+    if (!week) {
+      week = ojtWeekLabel(await resolveOjtStartDate(student));
+    }
+
+    // Upsert: resume the target draft, else reuse the draft already filed for
+    // this week. A journal returned for revision is only ever touched through
+    // an explicit resume (journalId), so a fresh draft can never clobber it.
+    if (!journal) {
+      // The week already has an entry waiting on the student: open that one
+      // (Resume) rather than starting a second document for the same week.
+      if (week) {
+        const returnedForRevision = await Journal.findOne({
+          studentId,
+          week,
+          status: 'draft',
+          supervisorReview: { $ne: null },
+        });
+        if (returnedForRevision) {
+          return res.status(409).json({
+            success: false,
+            code: 'REVISION_PENDING',
+            message: `${week} was returned for revision - resume that journal instead of starting a new one.`,
+            data: returnedForRevision,
+          });
+        }
+      }
+
+      const weekFilter = week
+        ? { week }
+        : { $or: [{ week: null }, { week: '' }, { week: { $exists: false } }] };
+      journal = await Journal.findOne({
+        studentId,
+        status: 'draft',
+        supervisorReview: null,
+        ...weekFilter,
+      });
+    }
+
+    if (journal) {
+      journal.narrative = narrative || '';
+      journal.identifiedTheories = cleanTheories;
+      journal.theoriesExtractedAt = new Date();
+      if (cleanDayCovered) journal.dayCovered = cleanDayCovered;
+      if (photoDataUrl) journal.photoDataUrl = photoDataUrl;
+      if (week && !journal.week) journal.week = week;
+      if (student.supervisorId) journal.supervisorId = student.supervisorId;
+      await journal.save();
+    } else {
+      journal = new Journal({
+        studentId,
+        narrative: narrative || '',
+        identifiedTheories: cleanTheories,
+        theoriesExtractedAt: new Date(),
+        status: 'draft',
+        ...(week ? { week } : {}),
+        ...(cleanDayCovered ? { dayCovered: cleanDayCovered } : {}),
+        ...(student.supervisorId ? { supervisorId: student.supervisorId } : {}),
+        ...(photoDataUrl ? { photoDataUrl } : {}),
+      });
+      await journal.save();
+    }
+
+    res.status(200).json({ success: true, message: 'Draft saved', data: journal });
+  } catch (error) {
+    console.error('[Journal Draft] Error:', error);
+    res.status(500).json({ success: false, message: 'Error saving draft', error: error.message });
+  }
+});
+
+// Delete a draft the student never submitted (returned-for-revision journals
+// stay: the supervisor already has them in the Returned queue).
+router.delete('/draft/:journalId', authenticateToken, async (req, res) => {
+  try {
+    const journal = await Journal.findById(req.params.journalId);
+    if (!journal) {
+      return res.status(404).json({ success: false, message: 'Draft not found' });
+    }
+    if (journal.studentId.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this draft' });
+    }
+    if (journal.status !== 'draft' || journal.supervisorReview) {
+      return res.status(409).json({
+        success: false,
+        code: 'NOT_DELETABLE',
+        message: 'Only drafts that were never submitted can be deleted.',
+      });
+    }
+
+    await journal.deleteOne();
+    res.status(200).json({ success: true, message: 'Draft deleted' });
+  } catch (error) {
+    console.error('[Journal Draft Delete] Error:', error);
+    res.status(500).json({ success: false, message: 'Error deleting draft', error: error.message });
+  }
+});
+
+// Submit a journal entry. The week is never picked by the student: it is the
+// trainee's current OJT week (week 1 = first supervisor placement), or the
+// journal's own week when a returned entry is being revised.
+router.post('/submit', authenticateToken, async (req, res) => {
+  try {
+    const { journalId, dayCovered, narrative, identifiedTheories = [], photoDataUrl } = req.body;
+    const studentId = req.user.id;
+
+    if (!narrative || !String(narrative).trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Week and narrative are required',
+        message: 'Narrative is required',
       });
     }
 
@@ -126,24 +347,79 @@ router.post('/submit', authenticateToken, async (req, res) => {
       : [];
 
     // Get student info to find supervisor
-    const User = require('../models/User');
-    const student = await User.findById(studentId).select('fullName supervisorId companyName');
+    const student = await User.findById(studentId).select(
+      'fullName supervisorId companyName requiredHours supervisorAssignedAt createdAt'
+    );
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
 
-    const journalData = {
-      studentId,
-      week,
-      narrative,
-      identifiedTheories: cleanTheories,
-      theoriesExtractedAt: new Date(),
-      status: 'submitted',
-    };
-    if (cleanDayCovered) journalData.dayCovered = cleanDayCovered;
-    if (student?.supervisorId) journalData.supervisorId = student.supervisorId;
-    if (photoDataUrl) journalData.photoDataUrl = photoDataUrl;
+    // The programme is over once every required hour has been rendered.
+    const periodDone = await ojtPeriodCompleteError(student);
+    if (periodDone) {
+      return res
+        .status(periodDone.error.status)
+        .json({ success: false, code: periodDone.error.code, message: periodDone.error.message });
+    }
 
-    const journal = new Journal(journalData);
+    const resolved = await resolveSubmissionWeek({ student, journalId });
+    if (resolved.error) {
+      return res
+        .status(resolved.error.status)
+        .json({ success: false, code: resolved.error.code, message: resolved.error.message });
+    }
+    const week = resolved.week;
 
-    await journal.save();
+    // One journal per week. The clash only counts against handed-in journals:
+    // drafts (including the one being revised) stay out of the way.
+    const clash = await Journal.findOne({ studentId, week, status: { $ne: 'draft' } });
+    if (clash) {
+      return res.status(409).json({
+        success: false,
+        code: 'WEEK_ALREADY_SUBMITTED',
+        message: `A journal for ${week} has already been submitted.`,
+      });
+    }
+
+    // Revising a returned journal updates it in place; otherwise hand in the
+    // draft already written for this week, or start a fresh journal.
+    let journal = resolved.journal || null;
+    if (!journal) {
+      journal = await Journal.findOne({
+        studentId,
+        week,
+        status: 'draft',
+        supervisorReview: null,
+      });
+    }
+
+    if (journal) {
+      journal.narrative = narrative;
+      journal.identifiedTheories = cleanTheories;
+      journal.theoriesExtractedAt = new Date();
+      if (cleanDayCovered) journal.dayCovered = cleanDayCovered;
+      if (photoDataUrl) journal.photoDataUrl = photoDataUrl;
+      journal.week = week;
+      journal.status = 'submitted';
+      journal.submittedAt = new Date();
+      if (student.supervisorId) journal.supervisorId = student.supervisorId;
+      await journal.save();
+    } else {
+      const journalData = {
+        studentId,
+        week,
+        narrative,
+        identifiedTheories: cleanTheories,
+        theoriesExtractedAt: new Date(),
+        status: 'submitted',
+      };
+      if (cleanDayCovered) journalData.dayCovered = cleanDayCovered;
+      if (student.supervisorId) journalData.supervisorId = student.supervisorId;
+      if (photoDataUrl) journalData.photoDataUrl = photoDataUrl;
+
+      journal = new Journal(journalData);
+      await journal.save();
+    }
 
     try {
       const { notifyJournalSubmitted } = require('../services/notificationService');
@@ -262,7 +538,7 @@ router.put('/:journalId', authenticateToken, async (req, res) => {
       });
     }
 
-    const { narrative, dayCovered, identifiedTheories, status, photoDataUrl } = req.body;
+    const { narrative, dayCovered, identifiedTheories, photoDataUrl } = req.body;
 
     if (narrative) journal.narrative = narrative;
     if (dayCovered) journal.dayCovered = dayCovered;
@@ -285,8 +561,9 @@ router.put('/:journalId', authenticateToken, async (req, res) => {
       }
       journal.photoDataUrl = photoDataUrl;
     }
-    if (status) journal.status = status;
-
+    // status and week are deliberately not accepted here: handing a journal in
+    // goes through POST /submit so the server can stamp the week, check the
+    // supervisor and enforce the OJT period.
     await journal.save();
 
     res.status(200).json({
