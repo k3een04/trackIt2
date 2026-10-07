@@ -1,0 +1,563 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   TrackIT VerificationModal
+   Shared confirmation / loading / success / error workflow.
+   Dark navy surface, teal accent, amber warning, red error — used for both
+   journal signing and DTR verification so the two flows stay identical.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.vm {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(3, 7, 18, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: vm-fade 180ms ease-out;
+}
+
+.vm__panel {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  max-height: min(86vh, 760px);
+  display: flex;
+  flex-direction: column;
+  background: #0e1524;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  animation: vm-pop 200ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.vm__panel:focus {
+  outline: none;
+}
+
+/* ── scroll area ─────────────────────────────────────────────────────────── */
+
+.vm__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 26px 26px 12px;
+}
+
+.vm__scroll--center {
+  text-align: center;
+}
+
+/* ── header ──────────────────────────────────────────────────────────────── */
+
+.vm__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.vm__badge {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(0, 200, 170, 0.12);
+  border: 1px solid rgba(0, 200, 170, 0.3);
+  color: #00c8aa;
+}
+
+.vm__badge svg {
+  width: 24px;
+  height: 24px;
+}
+
+.vm__title {
+  margin: 0;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  color: #f1f5f9;
+}
+
+.vm__subtitle {
+  margin: -4px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #94a3b8;
+}
+
+.vm__desc {
+  margin: 0 0 16px;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  text-align: center;
+}
+
+/* ── verification summary ────────────────────────────────────────────────── */
+
+.vm__info {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  margin-bottom: 14px;
+}
+
+.vm__info-label {
+  margin: 0 0 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.vm__summary {
+  margin: 0;
+}
+
+.vm__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.vm__row:last-child {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+
+.vm__row dt {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.vm__row dd {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  text-align: right;
+}
+
+.vm__list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vm__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+
+.vm__item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vm__item-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.vm__item-meta {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.vm__pill {
+  flex: 0 0 auto;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.vm__pill--ok {
+  background: rgba(0, 200, 170, 0.14);
+  color: #2fd9bd;
+  border-color: rgba(0, 200, 170, 0.3);
+}
+
+.vm__pill--warn {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.vm__pill--neutral {
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.vm__more {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* ── warning ─────────────────────────────────────────────────────────────── */
+
+.vm__warn {
+  display: flex;
+  gap: 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.26);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+.vm__warn--partial {
+  margin: 0 0 14px;
+}
+
+.vm__warn-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: #f59e0b;
+}
+
+.vm__warn-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.vm__warn-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vm__warn-title {
+  margin: 0 0 3px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.vm__warn-text {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+
+/* ── state blocks (loading / success / error) ────────────────────────────── */
+
+.vm__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0 4px;
+}
+
+.vm__state-icon {
+  display: grid;
+  place-items: center;
+  animation: vm-scale-in 240ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.vm__state-icon--ok {
+  color: #00c8aa;
+}
+
+.vm__state-icon--err {
+  color: #ef4444;
+}
+
+.vm__spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 200, 170, 0.18);
+  border-top-color: #00c8aa;
+  animation: vm-spin 0.8s linear infinite;
+}
+
+.vm-check {
+  width: 64px;
+  height: 64px;
+}
+
+.vm-check__circle {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  animation: vm-draw 480ms ease-out forwards;
+}
+
+.vm-check__mark {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: vm-draw 300ms ease-out 320ms forwards;
+}
+
+.vm-error {
+  width: 64px;
+  height: 64px;
+}
+
+.vm__ok {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 200, 170, 0.1);
+  border: 1px solid rgba(0, 200, 170, 0.28);
+  font-family: 'Syne', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2fd9bd;
+}
+
+.vm__ok-mark {
+  color: #00c8aa;
+}
+
+.vm__detail {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #ef4444;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #fca5a5;
+  text-align: left;
+  word-break: break-word;
+}
+
+/* ── footer + buttons ────────────────────────────────────────────────────── */
+
+.vm__foot {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 26px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.vm__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 11px 20px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+    transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.vm__btn:focus-visible {
+  outline: 2px solid #00c8aa;
+  outline-offset: 2px;
+}
+
+.vm__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.vm__btn--primary {
+  background: linear-gradient(135deg, #00c8aa, #00a88c);
+  color: #04140f;
+  box-shadow: 0 6px 18px rgba(0, 200, 170, 0.22);
+}
+
+.vm__btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 200, 170, 0.32);
+}
+
+.vm__btn--ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+
+.vm__btn--ghost:hover:not(:disabled) {
+  border-color: #00c8aa;
+  background: rgba(0, 200, 170, 0.07);
+  color: #00c8aa;
+}
+
+/* ── screen reader live region ───────────────────────────────────────────── */
+
+.vm__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── animations ──────────────────────────────────────────────────────────── */
+
+@keyframes vm-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vm-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes vm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vm-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes vm-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes vm-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 520px) {
+  .vm {
+    padding: 14px;
+  }
+
+  .vm__panel {
+    max-width: none;
+    max-height: calc(100vh - 28px);
+    max-height: calc(100dvh - 28px);
+  }
+
+  .vm__scroll {
+    padding: 22px 18px 10px;
+  }
+
+  .vm__foot {
+    flex-direction: column;
+    padding: 14px 18px 18px;
+  }
+
+  .vm__btn {
+    width: 100%;
+  }
+}
+
+/* ── reduced motion ──────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .vm,
+  .vm__panel {
+    animation: vm-fade 120ms ease-out;
+  }
+
+  .vm__spinner {
+    animation: vm-pulse 1.8s ease-in-out infinite;
+    border-top-color: #00c8aa;
+  }
+
+  .vm-check__circle,
+  .vm-check__mark {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .vm__state-icon {
+    animation: vm-fade 120ms ease-out;
+  }
+
+  .vm__btn--primary:hover:not(:disabled) {
+    transform: none;
+  }
+}

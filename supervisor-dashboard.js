@@ -1002,51 +1002,200 @@ async function loadDTRData() {
 }
 
 
-async function verifySelectedDTR() {
-  const checkboxes = document.querySelectorAll('#dtr-table-body input[type="checkbox"]:checked');
-  
+// Helpers shared by the DTR verification modal (single source of the data it
+// summarises: `window.currentDTRRecords`, populated by loadDTRData()).
+function dtrRecordById(dtrId) {
+  const records = window.currentDTRRecords || [];
+  return records.find((record) => record._id === dtrId) || null;
+}
+
+function dtrDateLabel(dateValue) {
+  return new Date(dateValue).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function dtrTimeLabel(timeValue) {
+  return timeValue
+    ? new Date(timeValue).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : '—';
+}
+
+function dtrAttendancePill(record) {
+  if (record.verifiedBySupervisor) return { text: 'Verified', tone: 'ok' };
+  if (record.status === 'absent') return { text: 'Absent', tone: 'neutral' };
+  if (record.status === 'late') return { text: 'Late', tone: 'warn' };
+  if (record.status === 'excused') return { text: 'Excused', tone: 'neutral' };
+  return { text: 'Present', tone: 'neutral' };
+}
+
+function dtrModalRows(ids, limit) {
+  const rows = [];
+  ids.forEach((dtrId) => {
+    const record = dtrRecordById(dtrId);
+    if (!record) return;
+    const pill = dtrAttendancePill(record);
+    rows.push({
+      title: dtrDateLabel(record.date),
+      meta: `${dtrTimeLabel(record.timeIn)} – ${dtrTimeLabel(record.timeOut)}`,
+      status: pill.text,
+      tone: pill.tone,
+    });
+  });
+  const cap = limit || 6;
+  if (rows.length > cap) {
+    const extra = rows.length - cap;
+    return { rows: rows.slice(0, cap), more: extra };
+  }
+  return { rows, more: 0 };
+}
+
+function dtrDateRange(records) {
+  const dates = records
+    .map((record) => (record && record.date ? new Date(record.date).getTime() : NaN))
+    .filter((value) => !Number.isNaN(value));
+  if (!dates.length) return '—';
+  const from = new Date(Math.min.apply(null, dates));
+  const to = new Date(Math.max.apply(null, dates));
+  const short = { month: 'short', day: 'numeric', year: 'numeric' };
+  const sameDay = from.toDateString() === to.toDateString();
+  return sameDay
+    ? from.toLocaleDateString('en-US', short)
+    : `${from.toLocaleDateString('en-US', short)} – ${to.toLocaleDateString('en-US', short)}`;
+}
+
+/**
+ * Builds the async runner handed to the verification modal.
+ * Only the entries still pending are attempted, so "Try Again" after a partial
+ * failure retries just the ones that failed instead of re-signing everything.
+ */
+function createDtrVerificationRunner(ids, signature, remarks) {
+  let remaining = ids.slice();
+  let verifiedCount = 0;
+
+  return async () => {
+    const batch = remaining.slice();
+    const failed = [];
+
+    for (const dtrId of batch) {
+      try {
+        const result = await fetchAPI(`/qr/verify/${dtrId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            supervisorId: window.currentUser._id,
+            signature,
+            remarks,
+          }),
+        });
+
+        if (result && result.success) {
+          verifiedCount++;
+        } else {
+          failed.push(dtrId);
+        }
+      } catch (error) {
+        console.error('Error verifying DTR:', error);
+        failed.push(dtrId);
+      }
+    }
+
+    remaining = failed.slice();
+
+    if (failed.length === 0) {
+      return { verified: verifiedCount, failed: 0 };
+    }
+    if (failed.length === batch.length) {
+      throw new Error('No DTR entries could be verified. Please try again.');
+    }
+    return {
+      verified: verifiedCount,
+      failed: failed.length,
+      warning: `${failed.length} of ${batch.length} entries could not be verified. The remaining entries were signed successfully.`,
+    };
+  };
+}
+
+function openDtrVerificationModal(ids, records, options) {
+  const traineeSelect = document.getElementById('dtr-trainee-select');
+  const traineeLabel = traineeSelect?.selectedOptions?.[0]?.text?.trim() || 'Selected trainee';
+  const single = ids.length === 1;
+  const first = records[0] || null;
+
+  VerificationModal.open({
+    type: 'dtr',
+    title: single ? 'Verify DTR Entry' : 'Verify DTR Entries',
+    description: single
+      ? 'This DTR entry will be marked as verified and recorded as an official attendance record. Once verified, this action cannot be undone.'
+      : 'These DTR entries will be marked as verified and recorded as official attendance records. Once verified, this action cannot be undone.',
+    summary: [
+      {
+        label: single ? 'DTR Entry' : 'Entries',
+        value: single ? (first ? dtrDateLabel(first.date) : 'Selected entry') : `${ids.length} entries`,
+      },
+      { label: 'Trainee', value: traineeLabel },
+      ...(single
+        ? [
+            { label: 'Time In', value: first ? dtrTimeLabel(first.timeIn) : '—' },
+            { label: 'Time Out', value: first ? dtrTimeLabel(first.timeOut) : '—' },
+          ]
+        : [{ label: 'Period', value: dtrDateRange(records) }]),
+      { label: 'Status', value: 'Pending Verification' },
+    ],
+    list: single ? null : dtrModalRows(ids),
+    successSummary: (result) => {
+      const verifiedNow = result?.verified || 0;
+      return [
+        single
+          ? { label: 'DTR Entry', value: first ? dtrDateLabel(first.date) : 'Selected entry' }
+          : { label: 'Entries', value: `${ids.length} selected` },
+        { label: 'Verified', value: `${verifiedNow} of ${ids.length}` },
+        { label: 'Status', value: result?.failed ? 'Partially Verified' : 'Verified' },
+      ];
+    },
+    onConfirm: options.runner,
+    onSuccess: options.onSuccess,
+  });
+}
+
+function verifySelectedDTR() {
+  const checkboxes = Array.from(
+    document.querySelectorAll('#dtr-table-body input[type="checkbox"]:checked')
+  );
+
   if (checkboxes.length === 0) {
-    alert('Please select at least one DTR entry to verify');
+    showNotification('No entries selected', 'Please select at least one DTR entry to verify.', 'info');
     return;
   }
 
-  const confirmed = confirm(`Verify ${checkboxes.length} selected DTR entries?`);
-  if (!confirmed) return;
+  const ids = checkboxes.map((checkbox) => checkbox.getAttribute('data-dtr-id')).filter(Boolean);
+  const records = ids.map((id) => dtrRecordById(id)).filter(Boolean);
 
-  let successCount = 0;
-  let failureCount = 0;
+  if (ids.length === 0) {
+    showNotification('No entries selected', 'Please select at least one DTR entry to verify.', 'info');
+    return;
+  }
 
-  for (const checkbox of checkboxes) {
-    const dtrId = checkbox.getAttribute('data-dtr-id');
-    try {
-      const result = await fetchAPI(`/qr/verify/${dtrId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          supervisorId: window.currentUser._id,
-          signature: `Verified by ${window.currentUser.fullName} on ${new Date().toLocaleString()}`,
-          remarks: '',
-        }),
-      });
-
-      if (result && result.success) {
-        successCount++;
+  openDtrVerificationModal(ids, records, {
+    runner: createDtrVerificationRunner(
+      ids,
+      `Verified by ${window.currentUser.fullName} on ${new Date().toLocaleString()}`,
+      ''
+    ),
+    onSuccess: () => {
+      checkboxes.forEach((checkbox) => {
         checkbox.disabled = true;
-        checkbox.closest('tr').classList.add('opacity-60');
-      } else {
-        failureCount++;
-      }
-    } catch (error) {
-      console.error('Error verifying DTR:', error);
-      failureCount++;
-    }
-  }
-
-  alert(`Verification complete: ${successCount} succeeded, ${failureCount} failed`);
-  
-  // Reload DTR data to refresh table
-  if (successCount > 0) {
-    setTimeout(() => loadDTRData(), 1000);
-  }
+        checkbox.closest('tr')?.classList.add('opacity-60');
+      });
+      loadDTRData();
+    },
+  });
 }
 
 function flagDTREntry() {
@@ -1063,12 +1212,12 @@ function flagDTREntry() {
   }
 }
 
-async function verifyAllAndSign() {
+function verifyAllAndSign() {
   const tableBody = document.getElementById('dtr-table-body');
   const allRows = tableBody.querySelectorAll('tr[data-dtr-id]');
-  
+
   if (allRows.length === 0) {
-    alert('No DTR records to verify');
+    showNotification('Nothing to verify', 'There are no DTR records to verify for this period.', 'info');
     return;
   }
 
@@ -1078,56 +1227,28 @@ async function verifyAllAndSign() {
   });
 
   if (unverifiedRows.length === 0) {
-    alert('All DTR entries are already verified');
+    showNotification('Already verified', 'All DTR entries are already verified.', 'info');
     return;
   }
 
-  const confirmed = confirm(
-    `You are about to digitally sign ${unverifiedRows.length} DTR entries for this entire month. This action cannot be undone. Continue?`
-  );
-  
-  if (!confirmed) return;
+  const ids = unverifiedRows.map((row) => row.getAttribute('data-dtr-id')).filter(Boolean);
+  const records = ids.map((id) => dtrRecordById(id)).filter(Boolean);
 
-  let successCount = 0;
-  let failureCount = 0;
-
-  for (const row of unverifiedRows) {
-    const dtrId = row.getAttribute('data-dtr-id');
-    try {
-      const result = await fetchAPI(`/qr/verify/${dtrId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          supervisorId: window.currentUser._id,
-          signature: `Digitally signed by ${window.currentUser.fullName} on ${new Date().toLocaleString()}`,
-          remarks: 'Batch verification - entire month verified',
-        }),
-      });
-
-      if (result && result.success) {
-        successCount++;
-      } else {
-        failureCount++;
-      }
-    } catch (error) {
-      console.error('Error verifying DTR:', error);
-      failureCount++;
-    }
-  }
-
-  if (successCount > 0) {
-    document.getElementById('dtr-signature-area').classList.remove('hidden');
-    document.getElementById('sig-supervisor-name').textContent = window.currentUser.fullName || 'Supervisor';
-    document.getElementById('sig-supervisor-pos').textContent = window.currentUser.companyPosition || 'Company Supervisor';
-    document.getElementById('sig-supervisor-company').textContent = window.currentUser.companyName || 'Your Company';
-    document.getElementById('sig-timestamp').textContent = new Date().toLocaleString();
-  }
-
-  alert(`Verification complete: ${successCount} verified, ${failureCount} failed`);
-
-  // Reload DTR data to refresh table
-  if (successCount > 0) {
-    setTimeout(() => loadDTRData(), 1000);
-  }
+  openDtrVerificationModal(ids, records, {
+    runner: createDtrVerificationRunner(
+      ids,
+      `Digitally signed by ${window.currentUser.fullName} on ${new Date().toLocaleString()}`,
+      'Batch verification - entire month verified'
+    ),
+    onSuccess: () => {
+      document.getElementById('dtr-signature-area').classList.remove('hidden');
+      document.getElementById('sig-supervisor-name').textContent = window.currentUser.fullName || 'Supervisor';
+      document.getElementById('sig-supervisor-pos').textContent = window.currentUser.companyPosition || 'Company Supervisor';
+      document.getElementById('sig-supervisor-company').textContent = window.currentUser.companyName || 'Your Company';
+      document.getElementById('sig-timestamp').textContent = new Date().toLocaleString();
+      loadDTRData();
+    },
+  });
 }
 
 function downloadDTRPDF() {
@@ -1346,6 +1467,7 @@ function selectJournal(element, journalId) {
     const journal = journalResult.data;
     const traineeInfo = journal.studentId || {};
     const isSigned = journal.supervisorSigned;
+    window.currentJournalForReview = journal;
     
     // Determine status badge styling
     const statusStyle = isSigned 
@@ -1448,6 +1570,7 @@ function selectJournal(element, journalId) {
 }
 
 function closeJournalViewer() {
+  window.currentJournalForReview = null;
   const items = document.querySelectorAll('#supervisor-journal-list .journal-item');
   items.forEach(item => item.classList.remove('selected'));
   
@@ -1466,12 +1589,36 @@ function returnJournalForRevision(journalId) {
   }
 }
 
-async function verifyAndSignJournal(journalId) {
-  const confirmed = confirm('You are about to digitally sign this journal. This action cannot be undone. Continue?');
-  if (confirmed) {
-    const remarks = document.getElementById('journal-remarks')?.value || '';
-    
-    try {
+function verifyAndSignJournal(journalId) {
+  const journal = window.currentJournalForReview || {};
+  const traineeInfo = journal.studentId || {};
+  const remarksEl = document.getElementById('journal-remarks');
+  const remarks = remarksEl ? remarksEl.value : '';
+
+  const journalLabel = journal.week ? `${journal.week} Journal` : 'Journal';
+  const traineeLabel = traineeInfo.fullName || 'Unknown Trainee';
+  const submittedLabel = journal.submittedAt
+    ? new Date(journal.submittedAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : '—';
+
+  VerificationModal.open({
+    type: 'journal',
+    summary: [
+      { label: 'Journal', value: journalLabel },
+      { label: 'Trainee', value: traineeLabel },
+      { label: 'Submitted', value: submittedLabel },
+      { label: 'Status', value: 'Pending Signature' },
+    ],
+    successSummary: [
+      { label: 'Journal', value: journalLabel },
+      { label: 'Trainee', value: traineeLabel },
+      { label: 'Status', value: 'Signed' },
+    ],
+    onConfirm: async () => {
       const result = await fetchAPI(`/supervisor/journals/${journalId}/sign`, {
         method: 'POST',
         body: JSON.stringify({
@@ -1480,19 +1627,20 @@ async function verifyAndSignJournal(journalId) {
       });
 
       if (!result || !result.success) {
-        showNotification('Error', result?.message || 'Failed to sign journal', 'error');
-        return;
+        throw new Error(result?.message || 'Failed to sign journal');
       }
-
-      showNotification('Success', 'Journal signed successfully', 'success');
-      // Clear viewer and reload pending journals list
-      document.getElementById('supervisor-journal-viewer').innerHTML = '<div class="text-center py-12"><p class="text-slate-400">Select a journal to review and sign</p></div>';
+      return result;
+    },
+    onSuccess: () => {
+      const viewer = document.getElementById('supervisor-journal-viewer');
+      if (viewer) {
+        viewer.innerHTML =
+          '<div class="text-center py-12"><p class="text-slate-400">Select a journal to review and sign</p></div>';
+      }
+      window.currentJournalForReview = null;
       loadPendingJournals();
-    } catch (error) {
-      console.error('Error signing journal:', error);
-      showNotification('Error', 'Error signing journal', 'error');
-    }
-  }
+    },
+  });
 }
 
 async function rejectJournal(journalId, remarks) {
@@ -1552,7 +1700,7 @@ function startSupervisorRealtimeUpdates() {
 // PERFORMANCE APPRAISAL SECTION
 // ────────────────────────────────────────────────────────────────────────────
 
-const appraisalRatings = {};
+let appraisalRatings = {};
 
 function setRating(category, rating) {
   appraisalRatings[category] = rating;
@@ -1597,12 +1745,33 @@ function saveDraftAppraisal() {
 
 function submitAppraisal(event) {
   event.preventDefault();
-  const confirmed = confirm('You are about to submit and digitally sign this appraisal. This action cannot be undone. Continue?');
-  if (confirmed) {
-    alert('Appraisal submitted and digitally signed successfully');
-    document.getElementById('appraisal-form').reset();
-    appraisalRatings = {};
-  }
+
+  const supervisor = window.currentUser?.fullName || 'Supervisor';
+  const ratingValue = document.getElementById('overall-rating-num')?.textContent?.trim() || '0.0';
+  const ratingLabel = document.getElementById('overall-rating-label')?.textContent?.trim() || 'No Rating';
+
+  VerificationModal.open({
+    type: 'appraisal',
+    summary: [
+      { label: 'Form', value: 'Performance Appraisal' },
+      { label: 'Supervisor', value: supervisor },
+      { label: 'Overall Rating', value: `${ratingValue} (${ratingLabel})` },
+      { label: 'Status', value: 'Pending Signature' },
+    ],
+    successSummary: [
+      { label: 'Form', value: 'Performance Appraisal' },
+      { label: 'Supervisor', value: supervisor },
+      { label: 'Status', value: 'Signed' },
+    ],
+    onConfirm: () => {
+      // This form has no verification request: run the action immediately so
+      // the modal never shows a fake loading state.
+      const form = document.getElementById('appraisal-form');
+      if (form) form.reset();
+      appraisalRatings = {};
+      calculateOverallRating();
+    },
+  });
 }
 
 function downloadAppraisalPDF(month) {
