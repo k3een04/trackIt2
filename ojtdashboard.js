@@ -4025,12 +4025,19 @@ function closeSidebarOnMobile() {
 
 // Logout
 function logout() {
-  if (confirm('Are you sure you want to logout?')) {
-    localStorage.removeItem('trackit_token');
-    localStorage.removeItem('trackit_user');
-    localStorage.removeItem('trackit_current_tab');
-    window.location.href = 'loginpage.html';
-  }
+  VerificationModal.open({
+    type: 'confirm',
+    mode: 'immediate',
+    title: 'Log Out',
+    description: 'You will be signed out of TrackIT on this device.',
+    confirmLabel: 'Log Out',
+    onConfirm: () => {
+      localStorage.removeItem('trackit_token');
+      localStorage.removeItem('trackit_user');
+      localStorage.removeItem('trackit_current_tab');
+      window.location.href = 'loginpage.html';
+    },
+  });
 }
 
 // Set today's date in duty log

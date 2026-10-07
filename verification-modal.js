@@ -405,10 +405,15 @@
   function loadingMarkup(c) {
     return (
       '<div class="vm__scroll vm__scroll--center">' +
-      '<div class="vm__state">' +
-      '<span class="vm__spinner" aria-hidden="true"></span>' +
+      '<div class="vm__state vm__state--loading">' +
+      '<span class="vm__loader" aria-hidden="true">' +
+      '<span class="vm__ripple"></span>' +
+      '<span class="vm__ripple vm__ripple--2"></span>' +
+      '<span class="vm__spinner"></span>' +
+      '</span>' +
       '<h2 class="vm__title" id="vm-title">' + esc(c.loading.title) + '</h2>' +
       '<p class="vm__desc" id="vm-loading-text">' + esc(c.loading.text) + '</p>' +
+      '<span class="vm__progress" aria-hidden="true"><span class="vm__progress-bar"></span></span>' +
       '</div></div>' +
       footMarkup(c, [
         { action: 'cancel', label: 'Cancel', variant: 'ghost', disabled: true },

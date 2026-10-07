@@ -24,6 +24,9 @@
     }
   </script>
   <link rel="stylesheet" href="visuals/ojtdashboard.css?v=11">
+  <!-- Verification workflow (confirmation, loading and text-entry dialogs).
+       Self-contained .vm-* rules so it stays identical on every dashboard. -->
+  <link rel="stylesheet" href="visuals/verification-modal.css?v=3">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
@@ -1137,6 +1140,9 @@
   <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
        which writes .value and listens for the change events it re-dispatches. -->
   <script src="trackit-calendar.js?v=1"></script>
-  <script src="ojtdashboard.js?v=10"></script>
+  <!-- Defines window.VerificationModal; must precede the dashboard script that
+       opens it from the logout action. -->
+  <script src="verification-modal.js?v=3"></script>
+  <script src="ojtdashboard.js?v=11"></script>
 </body>
 </html>
