@@ -10,7 +10,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=5">
+    <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=11">
+  <!-- Shared TrackIT date/month picker (the same one used on the OJT and
+       supervisor dashboards). Enhances any [data-trackit-cal] input. -->
+  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=1">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
@@ -47,6 +50,15 @@
 
       <div class="flex items-center gap-3 md:gap-4 flex-wrap">
         <span class="hidden md:inline text-sm text-slate-400">Welcome,  <span id="user-name" class="text-teal-400">Coordinator</span></span>
+
+        <!-- Global Search -->
+        <div id="global-search-container" class="hidden md:flex items-center flex-shrink-0" style="width: 280px;">
+          <div class="relative w-full">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="global-search-input" placeholder="Search trainees..." class="w-full pl-10 pr-4 py-2 text-sm bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/20 focus:bg-white/10 transition-colors duration-200" aria-label="Search trainees" autocomplete="off" spellcheck="false" style="width: 280px !important;">
+          </div>
+        </div>
+
         <button id="theme-toggle" onclick="toggleTheme()" class="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" title="Toggle dark/light mode" aria-label="Toggle theme">
           <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -79,14 +91,44 @@
         <button onclick="logout()" class="btn-ghost p-2 sm:hidden flex-shrink-0" aria-label="Logout" title="Logout">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
+        <!-- Mobile Search Button -->
+        <button id="mobile-search-btn" onclick="toggleMobileSearch()" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" aria-label="Search trainees" title="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+
         <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" aria-label="Toggle menu" title="Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
       </div>
+    </div>
     </nav>
+
+  <!-- Global Search Results (body level so nav's backdrop-filter can't become the containing block) -->
+  <div id="global-search-results" class="hidden fixed glass-card overflow-hidden" style="background: rgba(15, 23, 42, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; max-height: 400px; overflow-y: auto; width: 280px;"></div>
+  <div id="global-search-loading" class="hidden fixed glass-card px-4 py-3 text-center text-xs text-slate-500" style="background: rgba(15, 23, 42, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; width: 280px;">
+    <div class="flex items-center justify-center gap-2">
+      <svg class="animate-spin text-teal-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path></svg>
+      <span>Searching...</span>
+    </div>
+  </div>
 
   <!-- Sidebar Overlay (mobile) -->
   <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebarOnMobile()" aria-hidden="true"></div>
+
+  <!-- Mobile Search Overlay -->
+  <div id="mobile-search-overlay" class="sidebar-overlay" onclick="closeMobileSearch()" aria-hidden="true"></div>
+  <div id="mobile-search-panel" class="hidden fixed inset-0 z-[90] flex flex-col md:hidden" style="background: rgba(10, 15, 30, 0.98); backdrop-filter: blur(12px);">
+    <div class="flex items-center gap-3 p-4 border-b border-white/10 sticky top-0" style="background: rgba(10, 15, 30, 0.98); backdrop-filter: blur(12px); z-index: 10;">
+      <button onclick="closeMobileSearch()" class="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" aria-label="Close search" title="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="mobile-search-input" placeholder="Search trainees..." class="w-full pl-10 pr-4 py-3 text-base bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/20 focus:bg-white/10" aria-label="Search trainees" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <div id="mobile-search-results" class="flex-1 overflow-y-auto p-4" style="-webkit-overflow-scrolling: touch;"></div>
+  </div>
 
   <!-- Sidebar -->
   <div class="sidebar">
@@ -127,76 +169,204 @@
 
     <!-- OVERVIEW TAB -->
     <div id="overview" class="tab-content active">
-      <div class="page-header">
-        <h1>Overview</h1>
-        <p class="text-slate-400">Monitor trainee progress and recent activities</p>
-      </div>
-
-      <!-- Analytics Charts Row -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Key Metrics Bar Chart -->
-        <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-6">Key Metrics Overview</h3>
-          <div class="chart-frame chart-frame--bars">
-            <canvas id="overviewMetricsChart"></canvas>
-          </div>
+      <div class="page-header ov-header">
+        <div class="ov-header__text">
+          <h1>Overview</h1>
+          <p class="ov-header__desc">Monitor trainee attendance, OJT progress, journals, and overall trainee status.</p>
         </div>
-
-        <!-- Top Trainees Bar Chart -->
-        <div class="glass-card p-6">
-          <h3 class="font-display font-700 mb-6">Top Trainees</h3>
-          <div class="chart-frame chart-frame--bars chart-frame--h">
-            <canvas id="topTraineesChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pending Actions & Recent Activity -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Pending Actions -->
-        <div class="glass-card p-6">
-          <div class="section-head mb-6">
-            <span class="section-head__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-1.71 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            </span>
-            <h3 class="font-display font-700">Pending Actions</h3>
-          </div>
-          <div id="pending-actions">
-            <p class="text-slate-500 text-sm text-center py-6">Loading pending actions...</p>
-          </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="glass-card p-6">
-          <div class="section-head mb-6">
-            <span class="section-head__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-            </span>
-            <h3 class="font-display font-700">Recent Activity</h3>
-          </div>
-          <div id="recent-activity" class="activity-feed max-h-96 overflow-y-auto pr-1">
-            <p class="text-slate-500 text-sm text-center py-6">Loading...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="glass-card p-6">
-        <h3 class="font-display font-700 mb-6">Quick Actions</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button onclick="switchTab('journal-review')" class="btn-primary w-full">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <div class="ov-header__actions">
+          <button type="button" class="btn-ghost btn-ghost--sm" onclick="switchTab('journal-review')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
             Review Journals
           </button>
-          <button onclick="switchTab('trainees')" class="btn-primary w-full">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+          <button type="button" class="btn-ghost btn-ghost--sm" onclick="switchTab('trainees')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
             Manage Trainees
           </button>
-          <button onclick="switchTab('analytics')" class="btn-primary w-full">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13 16 8 11 2 17"></polyline></svg>
+          <button type="button" class="btn-ghost btn-ghost--sm" onclick="switchTab('analytics')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 6 13 16 8 11 2 17"></polyline></svg>
             View Analytics
           </button>
         </div>
+      </div>
+
+      <!-- Row 1: summary metrics (values filled from /stats/coordinator + /stats/coordinator/overview) -->
+      <section class="ov-kpi-grid" id="overview-kpis" aria-label="Trainee summary">
+        <article class="ov-kpi ov-kpi--teal is-loading" id="kpi-total" aria-busy="true">
+          <span class="ov-kpi__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </span>
+          <div class="ov-kpi__body">
+            <p class="ov-kpi__label">Total Trainees</p>
+            <p class="ov-kpi__value"><span class="ov-kpi__num">—</span><span class="skel skel--value" aria-hidden="true"></span></p>
+            <p class="ov-kpi__note"><span class="ov-kpi__note-text"></span></p>
+          </div>
+        </article>
+
+        <article class="ov-kpi ov-kpi--green is-loading" id="kpi-active" aria-busy="true">
+          <span class="ov-kpi__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+          </span>
+          <div class="ov-kpi__body">
+            <p class="ov-kpi__label">Active Trainees</p>
+            <p class="ov-kpi__value"><span class="ov-kpi__num">—</span><span class="skel skel--value" aria-hidden="true"></span></p>
+            <p class="ov-kpi__note"><span class="ov-kpi__note-text">Currently active</span></p>
+          </div>
+        </article>
+
+        <article class="ov-kpi ov-kpi--red is-loading" id="kpi-inactive" aria-busy="true">
+          <span class="ov-kpi__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="17" y1="8" x2="22" y2="13"></line><line x1="22" y1="8" x2="17" y2="13"></line></svg>
+          </span>
+          <div class="ov-kpi__body">
+            <p class="ov-kpi__label">Inactive Trainees</p>
+            <p class="ov-kpi__value"><span class="ov-kpi__num">—</span><span class="skel skel--value" aria-hidden="true"></span></p>
+            <p class="ov-kpi__note"><span class="ov-kpi__note-text"></span></p>
+          </div>
+        </article>
+      </section>
+
+      <!-- Row 2: Trainee Progress Snapshot + Weekly Attendance -->
+      <div class="ov-grid ov-grid--snapshot">
+        <section class="glass-card ov-panel" aria-labelledby="ov-snapshot-title">
+          <header class="ov-panel__head">
+            <span class="ov-panel__icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="9" y1="4" x2="9" y2="21"></line></svg>
+            </span>
+            <div class="ov-panel__titles">
+              <h3 class="ov-panel__title" id="ov-snapshot-title">Trainee Progress Snapshot</h3>
+              <p class="ov-panel__sub">Verified hours, last time-in and current journal status</p>
+            </div>
+            <div class="ov-panel__actions">
+              <label class="field__label" for="snapshot-sort">Sort</label>
+              <select id="snapshot-sort" class="field__control" onchange="setSnapshotSort(this.value)">
+                <option value="lowest" selected>Lowest Progress</option>
+                <option value="highest">Highest Progress</option>
+                <option value="least-recent">Least Recent Activity</option>
+                <option value="most-recent">Most Recent Activity</option>
+                <option value="name">Name A–Z</option>
+              </select>
+            </div>
+          </header>
+          <div class="ov-table-scroll">
+            <table class="data-table snap-table">
+              <thead>
+                <tr>
+                  <th scope="col">Trainee</th>
+                  <th scope="col">Hours</th>
+                  <th scope="col">Progress</th>
+                  <th scope="col">Last Time-In</th>
+                  <th scope="col">Journal</th>
+                  <th scope="col"><span class="sr-only">Action</span></th>
+                </tr>
+              </thead>
+              <tbody id="snapshot-body">
+                <tr class="skel-row"><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td></tr>
+                <tr class="skel-row"><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td></tr>
+                <tr class="skel-row"><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td></tr>
+                <tr class="skel-row"><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td></tr>
+                <tr class="skel-row"><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td><td class="cell"><span class="skel skel--cell"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <footer class="ov-panel__foot">
+            <button type="button" class="link-btn" onclick="switchTab('trainees')">View All Trainees <span aria-hidden="true">→</span></button>
+          </footer>
+        </section>
+
+        <section class="glass-card ov-panel" aria-labelledby="ov-attendance-title">
+          <header class="ov-panel__head">
+            <span class="ov-panel__icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></svg>
+            </span>
+            <div class="ov-panel__titles">
+              <h3 class="ov-panel__title" id="ov-attendance-title">Weekly Attendance</h3>
+              <p class="ov-panel__sub">Daily attendance breakdown by trainee</p>
+            </div>
+            <div class="ov-panel__actions">
+              <div class="week-picker" id="attendance-week-picker">
+                <label class="week-picker__label" for="attendance-week-select">Week</label>
+                <div class="week-picker__trigger" id="attendance-week-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="Select week" onclick="toggleWeekPicker()">
+                  <span class="week-picker__value" id="attendance-week-value">This Week</span>
+                  <svg class="week-picker__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  <svg class="week-picker__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+                <select id="attendance-week-select" class="week-picker__native" onchange="loadAttendanceChart(this.value)" aria-hidden="true" tabindex="-1">
+                  <option value="">Current Week</option>
+                </select>
+                <div class="week-picker__dropdown is-hidden" id="attendance-week-dropdown" role="listbox" aria-label="Available weeks"></div>
+              </div>
+            </div>
+          </header>
+          <div class="ov-attendance-chart" id="attendance-chart-container">
+            <div class="chart-frame chart-frame--bars chart-frame--h" style="height: clamp(280px, 35vh, 360px);">
+              <canvas id="weeklyAttendanceChart"></canvas>
+            </div>
+            <div class="chart-overlay is-hidden" id="attendance-chart-overlay" hidden>
+              <p class="empty-state__title">No attendance data</p>
+              <p class="empty-state__text">Attendance records will appear here once trainees time in.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Row 3: Pending Actions & Journal Submission Tracker -->
+      <div class="ov-grid ov-grid--halves">
+        <section class="glass-card ov-panel">
+          <header class="ov-panel__head">
+            <span class="ov-panel__icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-1.71 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </span>
+            <div class="ov-panel__titles">
+              <h3 class="ov-panel__title">Pending Actions</h3>
+              <p class="ov-panel__sub">Journals, attendance and inactivity that need a decision</p>
+            </div>
+          </header>
+          <div id="pending-actions">
+            <span class="skel skel--row" aria-hidden="true"></span>
+            <span class="skel skel--row" aria-hidden="true"></span>
+            <span class="skel skel--row" aria-hidden="true"></span>
+            <span class="skel skel--row" aria-hidden="true"></span>
+          </div>
+        </section>
+
+        <section class="glass-card ov-panel" aria-labelledby="ov-tracker-title">
+          <header class="ov-panel__head">
+            <span class="ov-panel__icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+            </span>
+            <div class="ov-panel__titles">
+              <h3 class="ov-panel__title" id="ov-tracker-title">Journal Submission Tracker</h3>
+              <p class="ov-panel__sub">Weekly journal status per trainee</p>
+            </div>
+          </header>
+          <ul class="jt-legend" aria-label="Journal status legend">
+            <li><span class="jt-legend__dot jt-legend__dot--submitted" aria-hidden="true"></span>Submitted</li>
+            <li><span class="jt-legend__dot jt-legend__dot--reviewed" aria-hidden="true"></span>Reviewed</li>
+            <li><span class="jt-legend__dot jt-legend__dot--pending" aria-hidden="true"></span>Pending</li>
+            <li><span class="jt-legend__dot jt-legend__dot--missing" aria-hidden="true"></span>Missing</li>
+            <li><span class="jt-legend__dot jt-legend__dot--not-due" aria-hidden="true"></span>Not Yet Due</li>
+          </ul>
+          <div class="jt-scroll" id="journal-tracker-scroll">
+            <table class="jt-table" id="journal-tracker-table">
+              <thead id="journal-tracker-head"></thead>
+              <tbody id="journal-tracker-body">
+                <tr class="skel-row"><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td></tr>
+                <tr class="skel-row"><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td></tr>
+                <tr class="skel-row"><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td></tr>
+                <tr class="skel-row"><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td></tr>
+                <tr class="skel-row"><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -208,23 +378,23 @@
       </div>
 
       <!-- Filters & Search -->
-      <div class="glass-card p-6 mb-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-semibold mb-2">Search Trainee</label>
-            <input type="text" id="trainee-search" placeholder="Name or ID..." class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+      <div class="glass-card p-6 mb-8 trainee-filters">
+        <div class="filters-grid">
+          <div class="field">
+            <label class="field__label" for="trainee-search">Search Trainee</label>
+            <input type="text" id="trainee-search" placeholder="Name or ID..." class="field__control">
           </div>
-          <div>
-            <label class="block text-sm font-semibold mb-2">Department</label>
-            <select id="dept-filter" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+          <div class="field">
+            <label class="field__label" for="dept-filter">Department</label>
+            <select id="dept-filter" class="field__control">
               <option value="">All Departments</option>
               <option value="CS">CS</option>
               <option value="CICT">CICT</option>
             </select>
           </div>
-          <div>
-            <label class="block text-sm font-semibold mb-2">Section</label>
-            <select id="section-filter" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+          <div class="field">
+            <label class="field__label" for="section-filter">Section</label>
+            <select id="section-filter" class="field__control">
               <option value="">All Sections</option>
               <option value="4A">4A</option>
               <option value="4B">4B</option>
@@ -236,9 +406,9 @@
               <option value="4H">4H</option>
             </select>
           </div>
-          <div>
-            <label class="block text-sm font-semibold mb-2">Attention</label>
-            <select id="attention-filter" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+          <div class="field">
+            <label class="field__label" for="attention-filter">Attention</label>
+            <select id="attention-filter" class="field__control">
               <option value="">All Trainees</option>
               <option value="late">Late Attendance (30d)</option>
               <option value="inactive">Inactive Trainees</option>
@@ -249,66 +419,29 @@
       </div>
 
       <!-- Trainees Table -->
-      <div class="glass-card p-6 overflow-x-auto">
-        <table class="w-full text-sm">
+      <div class="glass-card p-6 overflow-x-auto trainee-table-card">
+        <table class="w-full text-sm data-table">
           <thead>
-            <tr class="border-b border-white/10">
-              <th onclick="sortTrainees('name')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Name<span class="ml-1 text-teal-400" data-sort-indicator="name"></span></th>
-              <th onclick="sortTrainees('studentId')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Student ID<span class="ml-1 text-teal-400" data-sort-indicator="studentId"></span></th>
-              <th onclick="sortTrainees('department')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Department<span class="ml-1 text-teal-400" data-sort-indicator="department"></span></th>
-              <th onclick="sortTrainees('section')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Section<span class="ml-1 text-teal-400" data-sort-indicator="section"></span></th>
-              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Company</th>
-              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Supervisor</th>
-              <th onclick="sortTrainees('hours')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Hours<span class="ml-1 text-teal-400" data-sort-indicator="hours"></span></th>
-              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Action</th>
+            <tr>
+              <th onclick="sortTrainees('name')" class="cursor-pointer select-none" scope="col">Name<span class="sort-indicator" data-sort-indicator="name"></span></th>
+              <th onclick="sortTrainees('studentId')" class="cursor-pointer select-none" scope="col">Student ID<span class="sort-indicator" data-sort-indicator="studentId"></span></th>
+              <th onclick="sortTrainees('department')" class="cursor-pointer select-none" scope="col">Department<span class="sort-indicator" data-sort-indicator="department"></span></th>
+              <th onclick="sortTrainees('section')" class="cursor-pointer select-none" scope="col">Section<span class="sort-indicator" data-sort-indicator="section"></span></th>
+              <th scope="col">Company</th>
+              <th scope="col">Supervisor</th>
+              <th onclick="sortTrainees('hours')" class="cursor-pointer select-none" scope="col">Hours<span class="sort-indicator" data-sort-indicator="hours"></span></th>
+              <th scope="col">Action</th>
             </tr>
           </thead>
           <tbody id="trainees-table-body">
             <!-- Dynamically populated by JS -->
-            <tr>
-              <td colspan="8" class="py-8 text-center text-slate-500">Loading trainees...</td>
-            </tr>
           </tbody>
         </table>
 
         <!-- Preview footer: shows only the first 5 trainees, with a link to view everyone -->
-        <div class="flex flex-wrap items-center justify-between gap-3 mt-6 pt-6 border-t border-white/10">
-          <p id="trainees-count-label" class="text-xs text-slate-400">Loading trainees...</p>
-          <button id="see-all-trainees-link" onclick="openAllTraineesModal()" class="hidden text-sm font-semibold text-teal-400 hover:text-teal-300 hover:underline transition">See all students</button>
-        </div>
-      </div>
-
-      <!-- Assign Supervisor Modal -->
-      <div id="assign-supervisor-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
-        <div class="glass-card p-8 w-full max-w-md relative" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1);">
-          <button onclick="closeAssignModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-          <h3 class="font-display font-700 text-xl mb-2">Assign Supervisor</h3>
-          <p class="text-slate-400 text-sm mb-6">Assigning supervisor to: <span id="assign-trainee-name" class="text-teal-400 font-semibold"></span></p>
-          <input type="hidden" id="assign-trainee-id">
-          
-          <div class="mb-6">
-            <label class="block text-sm font-semibold mb-3">Select Supervisor</label>
-            <select id="supervisor-select" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
-              <option value="">Loading supervisors...</option>
-            </select>
-          </div>
-
-          <div id="supervisor-info" class="hidden glass-card p-4 mb-6 bg-white/5 rounded-lg">
-            <p class="text-xs text-slate-400 mb-2">SUPERVISOR DETAILS</p>
-            <p id="sup-info-name" class="text-sm font-semibold text-white"></p>
-            <p id="sup-info-company" class="text-xs text-slate-400"></p>
-            <p id="sup-info-position" class="text-xs text-slate-500"></p>
-          </div>
-
-          <div class="flex gap-3">
-            <button onclick="closeAssignModal()" class="btn-ghost flex-1">Cancel</button>
-            <button onclick="confirmAssignSupervisor()" id="confirm-assign-btn" class="btn-primary flex-1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              Assign
-            </button>
-          </div>
+        <div class="table-foot">
+          <p id="trainees-count-label">Loading trainees...</p>
+          <button id="see-all-trainees-link" onclick="openAllTraineesModal()" class="hidden link-btn">View All Trainees</button>
         </div>
       </div>
 
@@ -318,7 +451,7 @@
           <div class="glass-card w-full max-w-5xl my-8" style="background: rgba(15, 23, 42, 0.97);">
             <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
               <div>
-                <h3 class="font-display font-700 text-lg">All Students</h3>
+                <h3 class="font-display font-700 text-lg">All Trainees</h3>
                 <p id="all-trainees-subtitle" class="text-xs text-slate-500"></p>
               </div>
               <button onclick="closeAllTraineesModal()" class="btn-ghost text-xs">Close</button>
@@ -326,30 +459,27 @@
 
             <div class="p-6">
               <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-sm data-table">
                   <thead>
-                    <tr class="border-b border-white/10">
-                      <th onclick="sortTrainees('name')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Name<span class="ml-1 text-teal-400" data-sort-indicator="name"></span></th>
-                      <th onclick="sortTrainees('studentId')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Student ID<span class="ml-1 text-teal-400" data-sort-indicator="studentId"></span></th>
-                      <th onclick="sortTrainees('department')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Department<span class="ml-1 text-teal-400" data-sort-indicator="department"></span></th>
-                      <th onclick="sortTrainees('section')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Section<span class="ml-1 text-teal-400" data-sort-indicator="section"></span></th>
-                      <th class="text-left py-3 px-4 text-slate-400 font-semibold">Company</th>
-                      <th class="text-left py-3 px-4 text-slate-400 font-semibold">Supervisor</th>
-                      <th onclick="sortTrainees('hours')" class="cursor-pointer select-none hover:text-teal-400 transition text-left py-3 px-4 text-slate-400 font-semibold">Hours<span class="ml-1 text-teal-400" data-sort-indicator="hours"></span></th>
-                      <th class="text-left py-3 px-4 text-slate-400 font-semibold">Action</th>
+                    <tr>
+                      <th onclick="sortTrainees('name')" class="cursor-pointer select-none" scope="col">Name<span class="sort-indicator" data-sort-indicator="name"></span></th>
+                      <th onclick="sortTrainees('studentId')" class="cursor-pointer select-none" scope="col">Student ID<span class="sort-indicator" data-sort-indicator="studentId"></span></th>
+                      <th onclick="sortTrainees('department')" class="cursor-pointer select-none" scope="col">Department<span class="sort-indicator" data-sort-indicator="department"></span></th>
+                      <th onclick="sortTrainees('section')" class="cursor-pointer select-none" scope="col">Section<span class="sort-indicator" data-sort-indicator="section"></span></th>
+                      <th scope="col">Company</th>
+                      <th scope="col">Supervisor</th>
+                      <th onclick="sortTrainees('hours')" class="cursor-pointer select-none" scope="col">Hours<span class="sort-indicator" data-sort-indicator="hours"></span></th>
+                      <th scope="col">Action</th>
                     </tr>
                   </thead>
                   <tbody id="all-trainees-table-body">
-                    <tr>
-                      <td colspan="8" class="py-8 text-center text-slate-500">Loading students...</td>
-                    </tr>
                   </tbody>
                 </table>
               </div>
 
-              <div class="flex flex-wrap items-center justify-between gap-3 mt-6 pt-6 border-t border-white/10">
-                <p id="all-trainees-count-label" class="text-xs text-slate-400"></p>
-                <div id="all-trainees-pagination" class="flex flex-wrap items-center gap-2"></div>
+              <div class="table-foot">
+                <p id="all-trainees-count-label"></p>
+                <div id="all-trainees-pagination" class="pager"></div>
               </div>
             </div>
           </div>
@@ -450,17 +580,17 @@
       <!-- Applied theory / partner company highlights -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="glass-card p-6">
-          <p class="text-slate-400 text-sm mb-3">Attendance Rate (Last 30 Days)</p>
+          <p class="kpi-label mb-3">Attendance Rate (Last 30 Days)</p>
           <div id="analytics-attendance-rate" class="text-3xl font-display font-700 text-teal-400 mb-2">—</div>
           <p id="analytics-attendance-rate-note" class="text-xs text-slate-500">Present and late vs all records</p>
         </div>
         <div class="glass-card p-6">
-          <p class="text-slate-400 text-sm mb-3">Most Applied Theory</p>
+          <p class="kpi-label mb-3">Most Applied Theory</p>
           <div id="analytics-top-concept" class="text-lg font-semibold text-teal-400 mb-2">—</div>
           <p id="analytics-top-concept-note" class="text-xs text-slate-500">—</p>
         </div>
         <div class="glass-card p-6">
-          <p class="text-slate-400 text-sm mb-3">Top Company</p>
+          <p class="kpi-label mb-3">Top Company</p>
           <div id="analytics-top-company" class="text-lg font-semibold text-teal-400 mb-2">—</div>
           <p id="analytics-top-company-note" class="text-xs text-slate-500">—</p>
         </div>
@@ -512,7 +642,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <h4 class="text-sm font-semibold mb-4">Attendance Status (Last 30 Days)</h4>
-            <div style="position: relative; height: 280px;">
+            <div class="chart-frame chart-frame--doughnut">
               <canvas id="attendanceStatusChart"></canvas>
             </div>
           </div>
@@ -543,7 +673,9 @@
               </tr>
             </thead>
             <tbody id="recent-dtr-body">
-              <tr><td colspan="7" class="py-6 text-center text-slate-500">Loading DTR records...</td></tr>
+              <tr class="skel-row"><td colspan="7" class="py-3 px-4"><div class="skel skel--row" aria-hidden="true"></div></td></tr>
+              <tr class="skel-row"><td colspan="7" class="py-3 px-4"><div class="skel skel--row" aria-hidden="true"></div></td></tr>
+              <tr class="skel-row"><td colspan="7" class="py-3 px-4"><div class="skel skel--row" aria-hidden="true"></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -590,7 +722,9 @@
               </tr>
             </thead>
             <tbody id="trainee-progress-body">
-              <tr><td colspan="12" class="py-6 text-center text-slate-500">Loading trainee progress...</td></tr>
+              <tr class="skel-row"><td colspan="12" class="py-3 px-4"><div class="skel skel--row" aria-hidden="true"></div></td></tr>
+              <tr class="skel-row"><td colspan="12" class="py-3 px-4"><div class="skel skel--row" aria-hidden="true"></div></td></tr>
+              <tr class="skel-row"><td colspan="12" class="py-3 px-4"><div class="skel skel--row" aria-hidden="true"></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -601,9 +735,9 @@
         <div class="glass-card p-6 xl:col-span-2">
           <h3 class="font-display font-700 mb-2">Performance Distribution</h3>
           <p class="text-xs text-slate-500 mb-6">Trainees per appraisal rating band.</p>
-          <div style="position: relative; height: 280px;">
-            <canvas id="performanceChart"></canvas>
-          </div>
+            <div class="chart-frame chart-frame--doughnut">
+              <canvas id="performanceChart"></canvas>
+            </div>
         </div>
         <div class="glass-card p-6 xl:col-span-3">
           <h3 class="font-display font-700 mb-2">Appraisal Summary</h3>
@@ -640,7 +774,10 @@
           </div>
         </div>
         <div class="top-performers-grid" id="top-performers-list">
-          <p class="text-slate-500 text-sm text-center py-4">Loading appraisals...</p>
+          <span class="skel skel--row" aria-hidden="true"></span>
+          <span class="skel skel--row" aria-hidden="true"></span>
+          <span class="skel skel--row" aria-hidden="true"></span>
+          <span class="skel skel--row" aria-hidden="true"></span>
         </div>
       </div>
 
@@ -685,7 +822,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <h4 class="text-sm font-semibold mb-4">Journal Status Breakdown</h4>
-            <div style="position: relative; height: 300px;">
+            <div class="chart-frame chart-frame--doughnut">
               <canvas id="journalStatusChart"></canvas>
             </div>
           </div>
@@ -703,7 +840,7 @@
         <div class="glass-card p-6">
           <h3 class="font-display font-700 mb-2">Department Breakdown</h3>
           <p class="text-xs text-slate-500 mb-6">Trainees per department.</p>
-          <div style="position: relative; height: 300px;">
+          <div class="chart-frame chart-frame--doughnut">
             <canvas id="deptChart"></canvas>
           </div>
         </div>
@@ -723,7 +860,8 @@
                 </tr>
               </thead>
               <tbody id="department-analytics-body">
-                <tr><td colspan="6" class="py-6 text-center text-slate-500">Loading departments...</td></tr>
+                <tr class="skel-row"><td colspan="6" class="py-3 px-4"><div class="skel skel--row" aria-hidden="true"></div></td></tr>
+                <tr class="skel-row"><td colspan="6" class="py-3 px-4"><div class="skel skel--row" aria-hidden="true"></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -741,14 +879,19 @@
             <button onclick="loadAnalyticsData()" class="btn-ghost text-xs">Regenerate</button>
           </div>
           <div id="analytics-narrative" class="analytics-narrative">
-            <p class="text-slate-500 text-sm">Loading summary...</p>
+            <span class="skel skel--line" aria-hidden="true"></span>
+            <span class="skel skel--line skel--mid" aria-hidden="true"></span>
+            <span class="skel skel--line" aria-hidden="true"></span>
+            <span class="skel skel--line skel--short" aria-hidden="true"></span>
           </div>
         </div>
         <div class="glass-card p-6">
           <h3 class="font-display font-700 mb-2">Needs Attention</h3>
           <p class="text-xs text-slate-500 mb-6">Centralized list of records that require action.</p>
           <div class="space-y-3" id="analytics-attention-list">
-            <p class="text-slate-500 text-sm text-center py-4">Loading attention list...</p>
+            <span class="skel skel--row" aria-hidden="true"></span>
+            <span class="skel skel--row" aria-hidden="true"></span>
+            <span class="skel skel--row" aria-hidden="true"></span>
           </div>
         </div>
       </div>
@@ -932,12 +1075,335 @@
 
   </div>
 
+  <!-- Trainee profile + assign-supervisor overlays. Body-level so they can
+       open from any tab (the tab panes are display:none when inactive). -->
+
+  <!-- Trainee Profile Modal (comprehensive OJT monitoring view) -->
+  <div id="trainee-profile-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+    <div class="glass-card tp-modal" role="dialog" aria-modal="true" aria-labelledby="trainee-profile-name" style="background: rgba(15, 23, 42, 0.97); border: 1px solid rgba(255,255,255,0.1);">
+      <button onclick="closeTraineeProfileModal()" class="tp-modal__close" aria-label="Close profile" title="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+
+      <div class="tp-modal__scroll" id="tp-scroll">
+        <!-- 1. Profile header -->
+        <header class="tp-header" id="trainee-profile-header">
+          <div id="trainee-profile-avatar" class="tp-avatar" aria-hidden="true">—</div>
+          <div class="tp-header__text">
+            <div class="tp-header__titlerow">
+              <h3 id="trainee-profile-name">Loading trainee…</h3>
+              <span id="tp-last-timein" class="tp-lasttimein"></span>
+            </div>
+            <p id="trainee-profile-meta" class="tp-header__meta"></p>
+            <div id="trainee-profile-status" class="tp-header__badges"></div>
+          </div>
+          <div class="tp-header__actions" id="tp-header-actions"></div>
+        </header>
+
+        <!-- 2. OJT Progress Overview -->
+        <section class="tp-kpis" id="tp-kpis" aria-label="OJT progress overview">
+          <article class="ov-kpi tp-kpi is-loading" id="tp-kpi-hours" aria-busy="true">
+            <span class="ov-kpi__icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </span>
+            <div class="ov-kpi__body">
+              <p class="ov-kpi__label">Completed OJT Hours</p>
+              <p class="ov-kpi__value tp-kpi__value"><span class="tp-kpi__num">—</span><span class="skel skel--value" aria-hidden="true"></span></p>
+              <div class="ov-kpi__bar"><div class="progress-track"><span id="tp-kpi-hours-bar" class="progress-fill" style="width: 0%"></span></div></div>
+              <p class="ov-kpi__note"><span class="tp-kpi__note-text">Verified hours against the required total</span></p>
+            </div>
+          </article>
+
+          <article class="ov-kpi tp-kpi is-loading" id="tp-kpi-attendance" aria-busy="true">
+            <span class="ov-kpi__icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </span>
+            <div class="ov-kpi__body">
+              <p class="ov-kpi__label">Attendance Summary</p>
+              <p class="ov-kpi__value tp-kpi__value"><span class="tp-kpi__num">—</span><span class="skel skel--value" aria-hidden="true"></span></p>
+              <p class="ov-kpi__note"><span class="tp-kpi__note-text">Days present with a time-in record</span></p>
+            </div>
+          </article>
+
+          <article class="ov-kpi tp-kpi is-loading" id="tp-kpi-journals" aria-busy="true">
+            <span class="ov-kpi__icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            </span>
+            <div class="ov-kpi__body">
+              <p class="ov-kpi__label">Weekly Journal Progress</p>
+              <p class="ov-kpi__value tp-kpi__value"><span class="tp-kpi__num">—</span><span class="skel skel--value" aria-hidden="true"></span></p>
+              <p class="ov-kpi__note"><span class="tp-kpi__note-text">Submitted against the weeks elapsed so far</span></p>
+            </div>
+          </article>
+
+          <article class="ov-kpi tp-kpi is-loading" id="tp-kpi-dtr" aria-busy="true">
+            <span class="ov-kpi__icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </span>
+            <div class="ov-kpi__body">
+              <p class="ov-kpi__label">DTR Verification</p>
+              <p class="ov-kpi__value tp-kpi__value"><span class="tp-kpi__num">—</span><span class="skel skel--value" aria-hidden="true"></span></p>
+              <p class="ov-kpi__note"><span class="tp-kpi__note-text">Records verified by the supervisor</span></p>
+            </div>
+          </article>
+        </section>
+        <p class="tp-kpi-footnote" id="tp-kpi-footnote" hidden></p>
+
+        <!-- 3. Progress navigation -->
+        <div class="tp-tabs" role="tablist" aria-label="Trainee profile sections">
+          <button type="button" class="tp-tab is-active" id="tp-tab-overview" role="tab" aria-selected="true" aria-controls="tp-panel-overview" onclick="switchProfileTab('overview')">Overview</button>
+          <button type="button" class="tp-tab" id="tp-tab-journals" role="tab" aria-selected="false" aria-controls="tp-panel-journals" onclick="switchProfileTab('journals')">Weekly Journals</button>
+          <button type="button" class="tp-tab" id="tp-tab-dtr" role="tab" aria-selected="false" aria-controls="tp-panel-dtr" onclick="switchProfileTab('dtr')">DTR Logs</button>
+          <button type="button" class="tp-tab" id="tp-tab-attendance" role="tab" aria-selected="false" aria-controls="tp-panel-attendance" onclick="switchProfileTab('attendance')">Attendance History</button>
+          <button type="button" class="tp-tab" id="tp-tab-timeline" role="tab" aria-selected="false" aria-controls="tp-panel-timeline" onclick="switchProfileTab('timeline')">Activity Timeline</button>
+        </div>
+
+        <!-- 4. Detailed sections -->
+        <!-- Overview -->
+        <section class="tp-panel is-active" id="tp-panel-overview" role="tabpanel" aria-labelledby="tp-tab-overview">
+          <div class="tp-grid2" id="trainee-profile-details"><!-- Populated by JS --></div>
+
+          <div class="tp-section glass-card">
+            <h4 class="tp-section__title">OJT Progress</h4>
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between text-sm mb-1">
+                  <span class="text-slate-300">Verified Hours</span>
+                  <span id="trainee-profile-hours" class="font-semibold text-teal-400">—</span>
+                </div>
+                <div class="progress-track" style="height: 8px;">
+                  <span id="trainee-profile-progress-fill" class="progress-fill" style="width: 0%"></span>
+                </div>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Required Hours</span>
+                <span id="trainee-profile-required" class="text-slate-300">—</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Remaining Hours</span>
+                <span id="trainee-profile-remaining" class="text-amber-400">—</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Recorded (incl. unverified)</span>
+                <span id="trainee-profile-recorded" class="text-slate-300">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tp-section glass-card">
+            <h4 class="tp-section__title">Assignment</h4>
+            <div class="space-y-2 text-sm" id="trainee-profile-assignment"><!-- Populated by JS --></div>
+          </div>
+        </section>
+
+        <!-- Weekly Journals -->
+        <section class="tp-panel" id="tp-panel-journals" role="tabpanel" aria-labelledby="tp-tab-journals" hidden>
+          <div class="tp-toolbar">
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-journal-from">From week</label>
+              <select id="tp-journal-from" class="field__control tp-field" onchange="onTpJournalRangeChange()"></select>
+            </div>
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-journal-to">To week</label>
+              <select id="tp-journal-to" class="field__control tp-field" onchange="onTpJournalRangeChange()"></select>
+            </div>
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-journal-status">Submission status</label>
+              <select id="tp-journal-status" class="field__control tp-field" onchange="onTpJournalRangeChange()">
+                <option value="">All statuses</option>
+                <option value="submitted">Submitted</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="pending">Pending Review</option>
+                <option value="missing">Missing</option>
+                <option value="not-due">Not Yet Due</option>
+              </select>
+            </div>
+            <p class="tp-toolbar__count" id="tp-journal-count"></p>
+          </div>
+          <div class="tp-table-wrap glass-card">
+            <table class="data-table tp-table">
+              <thead>
+                <tr>
+                  <th scope="col">Week</th>
+                  <th scope="col">Coverage Period</th>
+                  <th scope="col">Submission Deadline</th>
+                  <th scope="col">Submission Status</th>
+                  <th scope="col">Submitted At</th>
+                  <th scope="col">Review Status</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tp-journal-body"></tbody>
+            </table>
+          </div>
+          <div class="table-foot">
+            <p id="tp-journal-count-label"></p>
+            <div id="tp-journal-pagination" class="pager"></div>
+          </div>
+        </section>
+
+        <!-- DTR Logs -->
+        <section class="tp-panel" id="tp-panel-dtr" role="tabpanel" aria-labelledby="tp-tab-dtr" hidden>
+          <div class="tp-toolbar">
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-dtr-from">From</label>
+              <input type="date" id="tp-dtr-from" data-trackit-cal="date" class="field__control tp-field" onchange="onTpDtrFilterChange()">
+            </div>
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-dtr-to">To</label>
+              <input type="date" id="tp-dtr-to" data-trackit-cal="date" class="field__control tp-field" onchange="onTpDtrFilterChange()">
+            </div>
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-dtr-status">Attendance</label>
+              <select id="tp-dtr-status" class="field__control tp-field" onchange="onTpDtrFilterChange()">
+                <option value="">All statuses</option>
+                <option value="present">Present</option>
+                <option value="late">Late</option>
+                <option value="absent">Absent</option>
+              </select>
+            </div>
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-dtr-verification">Verification</label>
+              <select id="tp-dtr-verification" class="field__control tp-field" onchange="onTpDtrFilterChange()">
+                <option value="">All records</option>
+                <option value="verified">Verified</option>
+                <option value="pending">Pending</option>
+                <option value="incomplete">Incomplete</option>
+              </select>
+            </div>
+            <button type="button" class="link-btn tp-toolbar__reset" onclick="resetTpDtrFilters()">Reset filters</button>
+          </div>
+          <div class="tp-table-wrap glass-card">
+            <table class="data-table tp-table">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Scheduled Time</th>
+                  <th scope="col">Time-In</th>
+                  <th scope="col">Time-Out</th>
+                  <th scope="col">Recorded Duration</th>
+                  <th scope="col">Credited OJT Hours</th>
+                  <th scope="col">Attendance Status</th>
+                  <th scope="col">Verification</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tp-dtr-body"></tbody>
+            </table>
+          </div>
+          <div class="table-foot">
+            <p id="tp-dtr-count-label"></p>
+            <div id="tp-dtr-pagination" class="pager"></div>
+          </div>
+        </section>
+
+        <!-- Attendance History -->
+        <section class="tp-panel" id="tp-panel-attendance" role="tabpanel" aria-labelledby="tp-tab-attendance" hidden>
+          <div class="tp-toolbar">
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-att-from">From</label>
+              <input type="date" id="tp-att-from" data-trackit-cal="date" class="field__control tp-field" onchange="renderProfileAttendance()">
+            </div>
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-att-to">To</label>
+              <input type="date" id="tp-att-to" data-trackit-cal="date" class="field__control tp-field" onchange="renderProfileAttendance()">
+            </div>
+            <button type="button" class="link-btn tp-toolbar__reset" onclick="resetTpAttendanceRange()">Reset range</button>
+          </div>
+
+          <div class="tp-summary" id="tp-att-summary"><!-- Populated by JS --></div>
+
+          <div class="tp-section glass-card">
+            <h4 class="tp-section__title">Attendance Trend <span class="tp-section__hint" id="tp-att-chart-hint"></span></h4>
+            <div class="tp-chart-frame">
+              <canvas id="tp-attendance-chart"></canvas>
+              <div class="chart-overlay" id="tp-att-chart-overlay" hidden>
+                <p class="empty-state__title">No attendance data</p>
+                <p class="empty-state__text">A trend appears once this trainee has recorded attendance in the selected range.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="tp-grid2">
+            <div class="tp-section glass-card">
+              <h4 class="tp-section__title">Significant Issues</h4>
+              <div id="tp-att-issues" class="tp-list"></div>
+            </div>
+            <div class="tp-section glass-card">
+              <h4 class="tp-section__title">Latest Attendance Activity</h4>
+              <div id="tp-att-latest" class="tp-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Activity Timeline -->
+        <section class="tp-panel" id="tp-panel-timeline" role="tabpanel" aria-labelledby="tp-tab-timeline" hidden>
+          <div class="tp-toolbar">
+            <div class="tp-toolbar__group">
+              <label class="field__label" for="tp-timeline-filter">Event type</label>
+              <select id="tp-timeline-filter" class="field__control tp-field" onchange="onTpTimelineFilterChange()">
+                <option value="all">All events</option>
+                <option value="journal">Journals</option>
+                <option value="attendance">Time in / out</option>
+                <option value="supervisor">Supervisor assignment</option>
+              </select>
+            </div>
+            <p class="tp-toolbar__count" id="tp-timeline-count"></p>
+          </div>
+          <ol class="tp-timeline" id="tp-timeline-list" aria-label="OJT activity timeline"></ol>
+        </section>
+      </div>
+
+      <footer class="tp-modal__foot">
+        <button onclick="tpViewInTrainees()" class="btn-ghost btn-ghost--sm">View in Trainees List</button>
+        <button onclick="closeTraineeProfileModal(); switchTab('journal-review')" class="btn-primary tp-foot-primary">Review Journals</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Assign Supervisor Modal -->
+  <div id="assign-supervisor-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+    <div class="glass-card p-8 w-full max-w-md relative" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1);">
+      <button onclick="closeAssignModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <h3 class="font-display font-700 text-xl mb-2">Assign Supervisor</h3>
+      <p class="text-slate-400 text-sm mb-6">Assigning supervisor to: <span id="assign-trainee-name" class="text-teal-400 font-semibold"></span></p>
+      <input type="hidden" id="assign-trainee-id">
+      
+      <div class="mb-6">
+        <label class="block text-sm font-semibold mb-3">Select Supervisor</label>
+        <select id="supervisor-select" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+          <option value="">Loading supervisors...</option>
+        </select>
+      </div>
+
+      <div id="supervisor-info" class="hidden glass-card p-4 mb-6 bg-white/5 rounded-lg">
+        <p class="text-xs text-slate-400 mb-2">SUPERVISOR DETAILS</p>
+        <p id="sup-info-name" class="text-sm font-semibold text-white"></p>
+        <p id="sup-info-company" class="text-xs text-slate-400"></p>
+        <p id="sup-info-position" class="text-xs text-slate-500"></p>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="closeAssignModal()" class="btn-ghost flex-1">Cancel</button>
+        <button onclick="confirmAssignSupervisor()" id="confirm-assign-btn" class="btn-primary flex-1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Assign
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
   <script src="chart-theme.js?v=1"></script>
+  <!-- Enhances the profile modal's [data-trackit-cal] date fields with the
+       shared TrackIT calendar. Must precede the dashboard script. -->
+  <script src="trackit-calendar.js?v=1"></script>
   <!-- Defines window.VerificationModal; must precede the dashboard script that
        opens it from the notification, journal and session actions. -->
   <script src="verification-modal.js?v=5"></script>
-  <script src="coordinator-dashboard.js?v=6"></script>
+  <script src="coordinator-dashboard.js?v=12"></script>
 </body>
 </html>

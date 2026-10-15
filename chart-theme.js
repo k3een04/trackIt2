@@ -392,6 +392,7 @@
    *   categoryCount          -> drives the auto-flip rule
    *   legend                 -> force the legend on/off (default: on when 2+ datasets)
    *   stacked                -> stack both axes
+   *   grouped                -> grouped bars (horizontal only, for attendance chart)
    *   showValues / valueMax / valueFormatter -> value-label behaviour
    *   yTitle / xTitle / secondaryTitle       -> axis captions
    *   tooltipAfterLabel      -> existing callback, preserved verbatim
@@ -407,6 +408,7 @@
     );
     var horizontal = indexAxis === 'y';
     var stacked = cfg.stacked === true;
+    var grouped = cfg.grouped === true;
 
     // The value axis carries the gridlines; the category axis stays clean. That
     // single rule is what keeps every chart uncluttered.
@@ -492,18 +494,18 @@
       animation: { duration: 420, easing: 'easeOutQuart' },
       scales: scales,
       interaction: {
-        mode: 'nearest',
-        intersect: true,
+        mode: 'index',
+        intersect: false,
         axis: horizontal ? 'y' : 'x',
       },
       datasets: {
         bar: {
-          barPercentage: SPACING.barPercentage,
-          categoryPercentage: SPACING.categoryPercentage,
+          barPercentage: grouped ? 0.85 : SPACING.barPercentage,
+          categoryPercentage: grouped ? 0.75 : SPACING.categoryPercentage,
           borderSkipped: false,
           borderRadius: 6,
           borderWidth: 0,
-          maxBarThickness: horizontal ? 26 : 38,
+          maxBarThickness: horizontal ? 22 : 38,
         },
       },
       onHover: function () {
@@ -543,6 +545,30 @@
           titleFont: { family: FONT_FAMILY, size: 11, weight: '600' },
           bodyFont: { family: FONT_FAMILY, size: 12 },
           afterLabel: cfg.tooltipAfterLabel, // existing callback kept as-is
+          callbacks: grouped ? {
+            title: function(context) {
+              if (!context.length) return '';
+              var dayData = context[0].chart.data.dayDetails?.[context[0].dataIndex];
+              return dayData ? dayData.dayLabel + ' \u2014 ' + dayData.date : context[0].label;
+            },
+            label: function(context) {
+              var dayData = context.chart.data.dayDetails?.[context.dataIndex];
+              if (!dayData) {
+                var val = horizontal ? context.parsed.x : context.parsed.y;
+                return context.dataset.label + ': ' + val;
+              }
+              var seriesData = dayData[context.dataset.key];
+              if (!seriesData) return context.dataset.label + ': 0';
+              var lines = [context.dataset.label + ': ' + seriesData.count + ' trainee' + (seriesData.count !== 1 ? 's' : '')];
+              if (seriesData.trainees && seriesData.trainees.length) {
+                seriesData.trainees.forEach(function(t) {
+                  var timeStr = t.timeIn ? ' \u2014 ' + t.timeIn : '';
+                  lines.push('  \u2022 ' + t.name + timeStr);
+                });
+              }
+              return lines;
+            },
+          } : undefined,
         },
         trackitValueLabels: {
           enabled: cfg.showValues !== false,

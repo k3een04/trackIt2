@@ -3,6 +3,7 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const User = require('../models/User');
 const DTR = require('../models/DTR');
 const Journal = require('../models/Journal');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 
@@ -177,7 +178,7 @@ router.get('/journals', async (req, res) => {
   try {
     // Include new submissions so coordinators can see them, but exclude journals
     // already returned to a supervisor for revision, and drafts the student is
-    // still writing (those are private until handed in).
+    // still writing.
     const journals = await Journal.find({
       coordinatorApproved: false,
       status: { $ne: 'draft' },
@@ -362,6 +363,78 @@ router.post('/journals/:journalId/reject', async (req, res) => {
       success: false,
       message: 'Server error rejecting journal',
     });
+  }
+});
+
+// NEW ROUTE: Get full trainee profile by ID
+router.get('/trainee/:traineeId', async (req, res) => {
+  const { traineeId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(traineeId)) {
+    return res.status(400).json({ success: false, message: 'Invalid trainee ID' });
+  }
+
+  try {
+    const trainee = await User.findById(traineeId)
+      .populate('supervisorId', 'fullName email companyName companyPosition')
+      .select('-password')
+      .lean();
+
+    if (!trainee || trainee.role !== 'student') {
+      return res.status(404).json({ success: false, message: 'Trainee not found' });
+    }
+
+    const verifiedDTRs = await DTR.find({
+      traineeId: trainee._id,
+      verifiedBySupervisor: true,
+      timeIn: { $exists: true, $ne: null },
+      timeOut: { $exists: true, $ne: null },
+    }).select('hoursRendered').lean();
+
+    const completedHours = verifiedDTRs.reduce((sum, r) => sum + (r.hoursRendered || 0), 0);
+
+    const journals = await Journal.find({ studentId: trainee._id }).lean();
+
+    const dtrRecords = await DTR.find({ traineeId: trainee._id }).lean();
+
+    const attendanceSummary = dtrRecords.reduce((acc, r) => {
+      const status = r.status || 'absent';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    const activity = [
+      ...journals.map(j => ({
+        type: 'journal',
+        status: j.coordinatorApproved ? 'reviewed' : j.supervisorSigned ? 'pending' : 'submitted',
+        date: j.submittedAt || j.createdAt,
+        id: j._id,
+        title: j.title || 'Journal',
+      })),
+      ...dtrRecords.map(d => ({
+        type: 'dtr',
+        status: d.verifiedBySupervisor ? 'verified' : 'pending',
+        date: d.timeOut || d.timeIn,
+        id: d._id,
+        title: 'DTR',
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json({
+      success: true,
+      data: {
+        trainee,
+        verifiedHours: completedHours,
+        requiredHours: trainee.requiredHours || 486,
+        remainingHours: Math.max(0, (trainee.requiredHours || 486) - completedHours),
+        journals,
+        dtrRecords,
+        attendanceSummary,
+        activity,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error fetching trainee profile' });
   }
 });
 

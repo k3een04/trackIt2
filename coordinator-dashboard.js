@@ -571,11 +571,8 @@ async function loadDashboardData(options = {}) {
 
   // Store stats for chart rendering
   window.overviewStats = stats;
-
-  // Initialize overview charts with trainees data
-  setTimeout(() => {
-    initOverviewCharts(stats, trainees);
-  }, 100);
+  overviewStatsPayload = { stats, departmentBreakdown, trainees };
+  renderOverviewSummary();
 
   // Update account summary in settings
   const settingsTraineeCount = document.querySelector('#settings .space-y-3');
@@ -592,7 +589,7 @@ async function loadDashboardData(options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// OVERVIEW: PENDING ACTIONS & RECENT ACTIVITY
+// OVERVIEW: PENDING ACTIONS & DATA CARDS
 // ────────────────────────────────────────────────────────────────────────────
 
 // Defaults every payload is spread over, so a partial response can never leave
@@ -620,9 +617,79 @@ let attentionTraineeIds = { ...ATTENTION_TRAINEE_DEFAULTS };
 // renders instead of being mistaken for "nothing has changed".
 let widgetsPainted = false;
 
-// The activity feed currently on screen. The counters alone cannot detect a new
-// event when every count happens to stay put.
-let paintedActivity = [];
+// JSON of the three data-card blocks currently on screen (snapshot /
+// attendance / journal tracker). Compared before repainting so an unchanged
+// payload costs no DOM writes.
+let paintedWidgetBlocks = null;
+
+// Which sort the Trainee Progress Snapshot is showing. Kept across repaints so
+// a background refresh never throws the coordinator back to the default order.
+let snapshotSort = 'lowest';
+
+// How many rows the snapshot previews before the "View All Trainees" link.
+const SNAPSHOT_PREVIEW_LIMIT = 8;
+
+// Latest payloads behind the Overview summary row. The two endpoints load
+// independently, so each card renders from whatever has actually arrived and
+// keeps its skeleton until its own source lands.
+let overviewStatsPayload = null;
+let overviewWidgetsPayload = null;
+
+/** Fills one KPI card, or leaves it in its skeleton state when `value` is null. */
+function setKpiCard(id, value, note) {
+  const card = document.getElementById(id);
+  if (!card) return;
+
+  const loading = value === null || value === undefined;
+  card.classList.toggle('is-loading', loading);
+  card.setAttribute('aria-busy', loading ? 'true' : 'false');
+  if (loading) return;
+
+  const num = card.querySelector('.ov-kpi__num');
+  if (num) num.textContent = String(value);
+
+  const noteEl = card.querySelector('.ov-kpi__note-text');
+  if (noteEl) noteEl.textContent = note || '';
+}
+
+/** Whole numbers keep the aggregate hours line readable: "1,240 of 4,860 hrs". */
+function formatAggregateHours(value) {
+  return Math.round(Number(value) || 0).toLocaleString();
+}
+
+function renderOverviewKpis() {
+  const stats = overviewStatsPayload && overviewStatsPayload.stats;
+  const pending = overviewWidgetsPayload && overviewWidgetsPayload.pendingActions;
+
+  if (stats) {
+    const departments = (overviewStatsPayload.departmentBreakdown || [])
+      .filter(entry => entry && entry._id);
+    setKpiCard('kpi-total', stats.totalStudents,
+      departments.length
+        ? `${departments.length} department${departments.length === 1 ? '' : 's'}`
+        : 'Enrolled trainees');
+  }
+
+  // Active and Inactive are one arithmetic pair off the same 3-day rule:
+  // Active = Total - Inactive, so the three KPIs can never contradict each
+  // other the way the old account-flag based Active count did.
+  if (pending) {
+    const inactive = Number(pending.inactiveTrainees) || 0;
+    setKpiCard('kpi-inactive', inactive,
+      inactive > 0 ? 'No time-in for 3 consecutive days' : 'All trainees checked in');
+
+    if (stats) {
+      const total = Number(stats.totalStudents) || 0;
+      const active = Math.max(0, total - inactive);
+      setKpiCard('kpi-active', active, `Of ${total} enrolled`);
+    }
+  }
+}
+
+/** Paints whichever half of the Overview summary has data right now. */
+function renderOverviewSummary() {
+  renderOverviewKpis();
+}
 
 const PENDING_ACTION_ICONS = {
   journalReviews: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>',
@@ -659,9 +726,10 @@ const PENDING_ACTIONS = [
 ];
 
 /**
- * Fetches the data behind the Pending Actions and Recent Activity cards.
+ * Fetches the data behind the Overview's data cards (Pending Actions,
+ * Trainee Progress Snapshot, Attendance This Week, Journal Submission Tracker).
  * Called alongside the regular Overview load, so the Overview refresh keeps
- * both cards current without a dedicated timer of their own.
+ * them all current without a dedicated timer of their own.
  *
  * Pass `{ background: true }` from the refresh loop: a background pass reports
  * failures by leaving the cards alone rather than swapping them for an error.
@@ -681,15 +749,27 @@ function renderOverviewWidgets(result, options = {}) {
     // next successful pass paints them again either way.
     if (background) return;
     widgetsPainted = false;
+    paintedWidgetBlocks = null;
+    overviewWidgetsPayload = null;
     renderPendingActionsError();
-    renderRecentActivityError();
+    renderSnapshotError();
+    renderAttendanceError();
+    renderTrackerError();
     return;
   }
 
   const data = result.data || {};
   const nextCounts = { ...PENDING_ACTION_DEFAULTS, ...(data.pendingActions || {}) };
   const nextAttention = { ...ATTENTION_TRAINEE_DEFAULTS, ...(data.attentionTrainees || {}) };
-  const nextActivity = Array.isArray(data.recentActivity) ? data.recentActivity : [];
+  const nextBlocks = JSON.stringify({
+    snapshot: data.snapshot || null,
+    attendanceThisWeek: data.attendanceThisWeek || null,
+    journalTracker: data.journalTracker || null,
+  });
+
+  // Summary cards read from this too, so store it before any early return.
+  overviewWidgetsPayload = data;
+  renderOverviewSummary();
 
   // Compared against what is on screen rather than what was last fetched:
   // adjustPendingAction() moves a counter locally, and the server's next
@@ -698,17 +778,27 @@ function renderOverviewWidgets(result, options = {}) {
     widgetsPainted &&
     JSON.stringify(nextCounts) === JSON.stringify(pendingActionCounts) &&
     JSON.stringify(nextAttention) === JSON.stringify(attentionTraineeIds) &&
-    JSON.stringify(nextActivity) === JSON.stringify(paintedActivity);
+    nextBlocks === paintedWidgetBlocks;
 
   if (alreadyShown) return;
 
   widgetsPainted = true;
   pendingActionCounts = nextCounts;
   attentionTraineeIds = nextAttention;
-  paintedActivity = nextActivity;
+  paintedWidgetBlocks = nextBlocks;
 
   renderPendingActions();
-  renderRecentActivity(nextActivity);
+
+  // A section whose block came back null (its own query failed) shows its
+  // error state - but only on a foreground load, so a background blip never
+  // wipes a card the coordinator is reading.
+  if (data.snapshot || !background) renderSnapshot();
+  if (data.attendanceThisWeek || !background) renderWeeklyAttendanceChart();
+  if (data.journalTracker || !background) renderJournalTracker();
+
+  // The trainee rows carry status chips derived from these ids, so repaint the
+  // table whenever the attention sets move.
+  if (traineesCache.length) renderTraineeViews();
 
   // A Pending Action may already have put the coordinator on the filtered
   // Trainees list before these ids arrived - re-run that filter now so the
@@ -748,48 +838,678 @@ function renderPendingActionsError() {
   if (!container) return;
 
   container.innerHTML =
-    '<p class="text-slate-500 text-sm text-center py-6">' +
-    'Pending actions could not be loaded. ' +
-    '<button type="button" onclick="loadOverviewWidgets()" class="text-teal-400 hover:underline">Retry</button>' +
-    '</p>';
+    '<div class="empty-state">' +
+    '<p class="empty-state__title">Pending actions unavailable</p>' +
+    '<p class="empty-state__text">The latest counters could not be loaded.</p>' +
+    '<button type="button" class="link-btn" onclick="loadOverviewWidgets()">Retry</button>' +
+    '</div>';
 }
 
-function renderRecentActivity(activities) {
-  const container = el('recent-activity');
-  if (!container) return;
+/**
+ * Trainee Progress Snapshot: sorted preview of verified hours, last time-in
+ * and journal status. The select in the panel header drives this through the
+ * inline `setSnapshotSort` handler.
+ */
+function setSnapshotSort(value) {
+  snapshotSort = value || 'lowest';
+  renderSnapshot();
+}
 
-  if (!Array.isArray(activities) || activities.length === 0) {
-    container.innerHTML = '<p class="text-slate-500 text-sm text-center py-6">No recent activity</p>';
+function snapshotRowRate(row) {
+  const required = Number(row && row.requiredHours) || 486;
+  const completed = Number(row && row.completedHours) || 0;
+  return required > 0 ? completed / required : 0;
+}
+
+function snapshotComparator(a, b) {
+  switch (snapshotSort) {
+    case 'highest':
+      return snapshotRowRate(b) - snapshotRowRate(a);
+    case 'least-recent': {
+      const ta = a.lastTimeIn ? new Date(a.lastTimeIn).getTime() : null;
+      const tb = b.lastTimeIn ? new Date(b.lastTimeIn).getTime() : null;
+      if (ta === null && tb === null) return 0;
+      if (ta === null) return -1;
+      if (tb === null) return 1;
+      return ta - tb;
+    }
+    case 'most-recent': {
+      const ta = a.lastTimeIn ? new Date(a.lastTimeIn).getTime() : null;
+      const tb = b.lastTimeIn ? new Date(b.lastTimeIn).getTime() : null;
+      if (ta === null && tb === null) return 0;
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      return tb - ta;
+    }
+    case 'name':
+      return String(a.fullName || '').localeCompare(String(b.fullName || ''));
+    case 'lowest':
+    default:
+      return snapshotRowRate(a) - snapshotRowRate(b);
+  }
+}
+
+/** Initials avatar - "Maria Santos" -> "MS". */
+function traineeInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+/** Journal chip for the snapshot table - same colours as the tracker cells. */
+function snapshotJournalChip(status) {
+  switch (status) {
+    case 'submitted':
+      return '<span class="chip chip--submitted">Submitted</span>';
+    case 'reviewed':
+      return '<span class="chip chip--reviewed">Reviewed</span>';
+    case 'pending':
+      return '<span class="chip chip--pending">Pending</span>';
+    case 'missing':
+      return '<span class="chip chip--missing">Missing</span>';
+    default:
+      return '<span class="cell-muted" title="OJT journal not due yet">—</span>';
+  }
+}
+
+/** "Oct 8, 2026 · 4:02 PM", or null when there is no time-in yet. */
+function formatTimeIn(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const day = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${day} · ${time}`;
+}
+
+function snapshotRowHtml(row) {
+  const traineeId = jsStringArg(row.id);
+  const name = row.fullName || 'Unnamed trainee';
+  const completed = Number(row.completedHours) || 0;
+  const required = Number(row.requiredHours) || 486;
+  const percent = required > 0 ? Math.min(100, (completed / required) * 100) : 0;
+  const timeIn = formatTimeIn(row.lastTimeIn);
+  const hoursText = `${completed.toLocaleString('en-US', { maximumFractionDigits: 1 })} / ${required} hrs`;
+  const inactiveChip = row.inactive ? '<span class="chip chip--inactive">Inactive</span>' : '';
+
+  return `
+    <tr>
+      <td class="cell cell--trainee">
+        <span class="snap-trainee">
+          <span class="snap-avatar" aria-hidden="true">${escapeHtml(traineeInitials(name))}</span>
+          <span class="snap-trainee__meta">
+            <span class="cell__name">${escapeHtml(name)}</span>
+            ${inactiveChip}
+          </span>
+        </span>
+      </td>
+      <td class="cell"><span class="snap-hours">${hoursText}</span></td>
+      <td class="cell">
+        <div class="snap-progress">
+          <span class="progress-track snap-progress__track">
+            <span class="progress-fill" style="width: ${percent}%"></span>
+          </span>
+          <span class="snap-progress__pct">${percent.toFixed(1)}%</span>
+        </div>
+      </td>
+      <td class="cell snap-time ${timeIn ? '' : 'cell--muted'}">${timeIn ? escapeHtml(timeIn) : 'No time-in yet'}</td>
+      <td class="cell">${snapshotJournalChip(row.journalStatus)}</td>
+      <td class="cell">
+        <button type="button" class="btn-ghost btn-ghost--sm"
+          onclick="openSnapshotTrainee('${traineeId}')">View</button>
+      </td>
+    </tr>
+  `;
+}
+
+function renderSnapshot() {
+  const body = el('snapshot-body');
+  if (!body) return;
+
+  const snapshot = overviewWidgetsPayload && overviewWidgetsPayload.snapshot;
+  if (!snapshot) {
+    renderSnapshotError();
     return;
   }
 
-  container.innerHTML = activities.map(activity => {
-    const time = activity.createdAt ? getTimeAgo(new Date(activity.createdAt)) : '';
-    // Only the "went inactive" event gets the warning colour; everything else
-    // keeps the single accent so the feed stays quiet.
-    const isAlert = activity.type === 'inactivity';
+  const rows = snapshot.trainees || [];
+  if (rows.length === 0) {
+    body.innerHTML = tableStateHtml(
+      'No trainees found',
+      'Enrolled trainees will appear here with their hours and journal status.',
+      "switchTab('trainees')",
+      'Manage Trainees',
+      6
+    );
+    return;
+  }
 
+  const sorted = rows.slice().sort(snapshotComparator);
+  body.innerHTML = sorted.slice(0, SNAPSHOT_PREVIEW_LIMIT).map(snapshotRowHtml).join('');
+}
+
+function renderSnapshotError() {
+  const body = el('snapshot-body');
+  if (!body) return;
+  body.innerHTML = tableStateHtml(
+    'Unable to load trainee snapshot',
+    'The verified-hours summary could not be loaded.',
+    'loadOverviewWidgets()',
+    'Try again',
+    6
+  );
+}
+
+let weeklyAttendanceChart = null;
+let currentAttendanceWeekStart = null;
+
+/**
+ * Weekly Attendance: grouped horizontal bar chart with per-day breakdown.
+ * Shows Present, Late, Absent as separate bars for each weekday.
+ */
+function renderWeeklyAttendanceChart() {
+  const container = el('attendance-chart-container');
+  const overlay = el('attendance-chart-overlay');
+  const canvas = el('weeklyAttendanceChart');
+  const weekSelect = el('attendance-week-select');
+  if (!container || !canvas) return;
+
+  const data = overviewWidgetsPayload && overviewWidgetsPayload.attendanceThisWeek;
+  if (!data || !data.days || data.days.length === 0) {
+    container.style.display = 'none';
+    if (overlay) overlay.hidden = false;
+    if (weekSelect) weekSelect.innerHTML = '<option value="">Current Week</option>';
+    return;
+  }
+
+  container.style.display = 'flex';
+  if (overlay) overlay.hidden = true;
+
+  // Populate week selector with available weeks (current + past weeks with data)
+  populateWeekSelector(data.weekStart);
+
+  // Prepare chart data
+  const days = data.days;
+  const labels = days.map(d => d.dayLabel);
+  const presentData = days.map(d => d.present.count);
+  const lateData = days.map(d => d.late.count);
+  const absentData = days.map(d => d.absent.count);
+
+  // Store day details for tooltip callbacks
+  const dayDetails = days.map(d => ({
+    dayLabel: d.dayLabel,
+    date: d.date,
+    present: { count: d.present.count, trainees: d.present.trainees },
+    late: { count: d.late.count, trainees: d.late.trainees },
+    absent: { count: d.absent.count, trainees: d.absent.trainees },
+  }));
+
+  // Calculate max value for axis
+  const maxValue = Math.max(
+    ...presentData,
+    ...lateData,
+    ...absentData
+  );
+  const suggestedMax = Math.max(5, Math.ceil(maxValue * 1.2 / 5) * 5);
+
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        label: 'Present',
+        data: presentData,
+        key: 'present',
+        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        borderColor: 'rgba(34, 197, 94, 1)',
+      },
+      {
+        label: 'Late',
+        data: lateData,
+        key: 'late',
+        backgroundColor: 'rgba(251, 191, 36, 0.8)',
+        borderColor: 'rgba(251, 191, 36, 1)',
+      },
+      {
+        label: 'Absent',
+        data: absentData,
+        key: 'absent',
+        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+        borderColor: 'rgba(239, 68, 68, 1)',
+      },
+    ],
+    dayDetails,
+  };
+
+  const ctx = canvas.getContext('2d');
+
+  if (weeklyAttendanceChart) {
+    weeklyAttendanceChart.data = chartData;
+    weeklyAttendanceChart.options.scales.y.suggestedMax = suggestedMax;
+    weeklyAttendanceChart.update();
+    return;
+  }
+
+  const options = TrackITCharts.barOptions({
+    vertical: true,
+    grouped: true,
+    categoryCount: labels.length,
+    datasetCount: 3,
+    legend: true,
+    legendPosition: 'bottom',
+    xTitle: 'Day of Week',
+    yTitle: 'Number of Trainees',
+    valueFormatter: (value) => Math.round(value),
+    showValues: true,
+    valueMax: 15,
+  });
+
+  weeklyAttendanceChart = TrackITCharts.createBar(ctx, {
+    data: chartData,
+    options: options,
+  });
+
+  TrackITCharts.register(weeklyAttendanceChart);
+}
+
+function populateWeekSelector(selectedWeekStart) {
+  const nativeSelect = el('attendance-week-select');
+  const dropdown = el('attendance-week-dropdown');
+  const trigger = el('attendance-week-trigger');
+  const valueEl = el('attendance-week-value');
+  if (!nativeSelect || !dropdown) return;
+
+  const now = new Date();
+  // Always use actual current week as base for generating options
+  const actualCurrentWeekStart = startOfDay(addDays(now, now.getDay() === 0 ? -6 : 1 - now.getDay()));
+  const nativeOptions = [];
+  const customOptions = [];
+
+  // Generate past 8 weeks including current (always from actual current week)
+  for (let i = 0; i < 8; i += 1) {
+    const weekStart = addDays(actualCurrentWeekStart, -i * 7);
+    const weekEnd = addDays(weekStart, 4);
+    const isCurrent = i === 0;
+    const label = isCurrent
+      ? `This Week (${formatShortDate(weekStart)} – ${formatShortDate(weekEnd)})`
+      : `${formatShortDate(weekStart)} – ${formatShortDate(weekEnd)}`;
+    const value = dayKey(weekStart);
+    const isSelected = selectedWeekStart && dayKey(selectedWeekStart) === value;
+
+    // Native select option
+    nativeOptions.push(`<option value="${value}" ${isSelected ? 'selected' : ''}>${label}</option>`);
+
+    // Custom dropdown option
+    customOptions.push(`
+      <button type="button"
+        class="week-picker__option ${isSelected ? 'week-picker__option--selected' : ''}"
+        data-value="${value}"
+        role="option"
+        aria-selected="${isSelected}"
+        onclick="selectWeekPickerOption(this, '${value}')">
+        <span class="week-picker__option-dot" aria-hidden="true"></span>
+        <span class="week-picker__option-text">${escapeHtml(label)}</span>
+        ${isCurrent ? '<span class="week-picker__option-current">Current</span>' : ''}
+      </button>
+    `);
+  }
+
+  // If selected week is older than 8 weeks, add it as an option
+  if (selectedWeekStart) {
+    const selectedKey = dayKey(selectedWeekStart);
+    const exists = nativeOptions.some(opt => opt.includes(`value="${selectedKey}"`));
+    if (!exists) {
+      const weekStart = new Date(selectedWeekStart);
+      const weekEnd = addDays(weekStart, 4);
+      const label = `${formatShortDate(weekStart)} – ${formatShortDate(weekEnd)}`;
+      nativeOptions.unshift(`<option value="${selectedKey}" selected>${label}</option>`);
+      customOptions.unshift(`
+        <button type="button"
+          class="week-picker__option week-picker__option--selected"
+          data-value="${selectedKey}"
+          role="option"
+          aria-selected="true"
+          onclick="selectWeekPickerOption(this, '${selectedKey}')">
+          <span class="week-picker__option-dot" aria-hidden="true"></span>
+          <span class="week-picker__option-text">${escapeHtml(label)}</span>
+        </button>
+      `);
+    }
+  }
+
+  nativeSelect.innerHTML = nativeOptions.join('');
+  dropdown.innerHTML = customOptions.join('');
+
+  // Update trigger display
+  if (valueEl) {
+    const selectedOpt = nativeOptions.find(opt => opt.includes('selected'));
+    if (selectedOpt) {
+      const match = selectedOpt.match(/>([^<]+)</);
+      if (match) valueEl.textContent = match[1];
+    } else if (nativeOptions.length > 0) {
+      const match = nativeOptions[0].match(/>([^<]+)</);
+      if (match) valueEl.textContent = match[1];
+    }
+  }
+
+  // Set initial aria-expanded
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+}
+
+function selectWeekPickerOption(button, value) {
+  const nativeSelect = el('attendance-week-select');
+  const dropdown = el('attendance-week-dropdown');
+  const trigger = el('attendance-week-trigger');
+  const valueEl = el('attendance-week-value');
+
+  // Update native select
+  if (nativeSelect) nativeSelect.value = value;
+
+  // Update custom dropdown selection
+  if (dropdown) {
+    dropdown.querySelectorAll('.week-picker__option').forEach(opt => {
+      const isSelected = opt.dataset.value === value;
+      opt.classList.toggle('week-picker__option--selected', isSelected);
+      opt.setAttribute('aria-selected', isSelected);
+    });
+  }
+
+  // Update trigger display
+  if (valueEl) valueEl.textContent = button.querySelector('.week-picker__option-text').textContent;
+
+  // Close dropdown
+  closeWeekPicker();
+
+  // Load chart for selected week
+  loadAttendanceChart(value);
+}
+
+function toggleWeekPicker() {
+  const dropdown = el('attendance-week-dropdown');
+  const trigger = el('attendance-week-trigger');
+  if (!dropdown || !trigger) return;
+
+  const isOpen = !dropdown.classList.contains('is-hidden');
+  if (isOpen) {
+    closeWeekPicker();
+  } else {
+    openWeekPicker();
+  }
+}
+
+function openWeekPicker() {
+  const dropdown = el('attendance-week-dropdown');
+  const trigger = el('attendance-week-trigger');
+  if (!dropdown || !trigger) return;
+
+  dropdown.classList.remove('is-hidden');
+  trigger.setAttribute('aria-expanded', 'true');
+
+  // Focus the selected option
+  const selected = dropdown.querySelector('[aria-selected="true"]');
+  if (selected) selected.focus();
+}
+
+function closeWeekPicker() {
+  const dropdown = el('attendance-week-dropdown');
+  const trigger = el('attendance-week-trigger');
+  if (!dropdown || !trigger) return;
+
+  dropdown.classList.add('is-hidden');
+  trigger.setAttribute('aria-expanded', 'false');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const picker = document.getElementById('attendance-week-picker');
+  if (picker && !picker.contains(e.target)) {
+    closeWeekPicker();
+  }
+});
+
+// Keyboard navigation for dropdown
+document.addEventListener('keydown', (e) => {
+  const dropdown = el('attendance-week-dropdown');
+  const trigger = el('attendance-week-trigger');
+  if (!dropdown || !trigger) return;
+
+  if (dropdown.classList.contains('is-hidden')) {
+    if (trigger === document.activeElement && (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      openWeekPicker();
+    }
+    return;
+  }
+
+  const options = dropdown.querySelectorAll('.week-picker__option');
+  const currentIndex = Array.from(options).findIndex(opt => opt === document.activeElement);
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
+    options[nextIndex]?.focus();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
+    options[prevIndex]?.focus();
+  } else if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    if (document.activeElement.classList.contains('week-picker__option')) {
+      selectWeekPickerOption(document.activeElement, document.activeElement.dataset.value);
+    }
+  } else if (e.key === 'Escape') {
+    closeWeekPicker();
+    trigger?.focus();
+  } else if (e.key === 'Tab') {
+    closeWeekPicker();
+  }
+});
+
+/**
+ * Load attendance chart for a specific week
+ */
+async function loadAttendanceChart(weekStart) {
+  if (!weekStart) {
+    // Reload current week from overview widgets
+    await loadOverviewWidgets({ background: false });
+    renderWeeklyAttendanceChart();
+    return;
+  }
+
+  const container = el('attendance-chart-container');
+  const overlay = el('attendance-chart-overlay');
+  const canvas = el('weeklyAttendanceChart');
+  if (!container || !canvas) return;
+
+  // Show loading state
+  container.style.display = 'flex';
+  if (overlay) {
+    overlay.hidden = false;
+    overlay.innerHTML = '<div class="flex items-center justify-center gap-2"><div class="skel skel--chart" style="width: 200px; height: 100px;"></div></div>';
+  }
+
+  try {
+    const result = await fetchAPI(`/stats/coordinator/overview?weekStart=${weekStart}`);
+    if (result && result.success && result.data.attendanceThisWeek) {
+      overviewWidgetsPayload.attendanceThisWeek = result.data.attendanceThisWeek;
+      renderWeeklyAttendanceChart();
+    } else {
+      throw new Error('Failed to load attendance data');
+    }
+  } catch (error) {
+    console.error('Error loading attendance chart:', error);
+    if (overlay) {
+      overlay.hidden = false;
+      overlay.innerHTML = '<p class="empty-state__title">Unable to load attendance</p><p class="empty-state__text">Could not load data for the selected week.</p><button class="link-btn" onclick="loadAttendanceChart(\'' + weekStart + '\')">Retry</button>';
+    }
+  }
+}
+
+/**
+ * Format date as YYYY-MM-DD for weekStart parameter
+ */
+function dayKey(date) {
+  const d = new Date(date);
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+function startOfDay(date) {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function addDays(date, days) {
+  const value = new Date(date);
+  value.setDate(value.getDate() + days);
+  return value;
+}
+
+const JOURNAL_STATUS_LABELS = {
+  submitted: 'Submitted',
+  reviewed: 'Reviewed',
+  pending: 'Pending',
+  missing: 'Missing',
+  'not-due': 'Not Yet Due',
+};
+
+/**
+ * Journal Submission Tracker: trainees × weeks grid up to the current OJT
+ * week. Only cells backed by a real journal are clickable, and they deep-link
+ * into the Journal Review tab where that journal can actually be reviewed.
+ */
+function renderJournalTracker() {
+  const head = el('journal-tracker-head');
+  const body = el('journal-tracker-body');
+  if (!head || !body) return;
+
+  const tracker = overviewWidgetsPayload && overviewWidgetsPayload.journalTracker;
+  if (!tracker) {
+    renderTrackerError();
+    return;
+  }
+
+  const maxWeek = Number(tracker.maxWeek) || 0;
+  const rows = tracker.trainees || [];
+  const colspan = 1 + Math.max(maxWeek, 1);
+
+  if (maxWeek < 1 || rows.length === 0) {
+    head.innerHTML = '';
+    body.innerHTML = tableStateHtml(
+      'Nothing to track yet',
+      'Weekly journal status appears here once trainees reach their first OJT week.',
+      null,
+      null,
+      colspan
+    );
+    return;
+  }
+
+  let headerCells = '<th class="jt-name" scope="col">Trainee</th>';
+  for (let week = 1; week <= maxWeek; week += 1) {
+    headerCells += `<th scope="col" title="Week ${week}">W${week}</th>`;
+  }
+  head.innerHTML = `<tr>${headerCells}</tr>`;
+
+  body.innerHTML = rows.map(row => {
+    const cells = (row.cells || []).map(journalCellHtml).join('');
     return `
-      <div class="activity-item">
-        <span class="activity-dot${isAlert ? ' activity-dot--alert' : ''}" aria-hidden="true"></span>
-        <div class="activity-item__body">
-          <p class="activity-item__text">${escapeHtml(activity.message)}</p>
-          ${time ? `<p class="activity-item__time">${escapeHtml(time)}</p>` : ''}
-        </div>
-      </div>
+      <tr>
+        <td class="jt-name"><span class="cell__name">${escapeHtml(row.fullName || 'Unnamed trainee')}</span></td>
+        ${cells}
+      </tr>
     `;
   }).join('');
 }
 
-function renderRecentActivityError() {
-  const container = el('recent-activity');
-  if (!container) return;
+function journalCellHtml(cell) {
+  const status = cell.status || 'not-due';
+  const label = JOURNAL_STATUS_LABELS[status] || status;
+  const lines = [`Week ${cell.week}`, label];
+  if (cell.submittedAt) lines.push(`Submitted: ${formatShortDate(cell.submittedAt)}`);
+  if (cell.reviewedAt) lines.push(`Reviewed: ${formatShortDate(cell.reviewedAt)}`);
+  const title = lines.map(escapeHtml).join('&#10;');
+  const aria = lines.join(', ');
 
-  container.innerHTML =
-    '<p class="text-slate-500 text-sm text-center py-6">' +
-    'Recent activity could not be loaded. ' +
-    '<button type="button" onclick="loadOverviewWidgets()" class="text-teal-400 hover:underline">Retry</button>' +
-    '</p>';
+  const clickable = cell.journalId && (status === 'submitted' || status === 'pending' || status === 'reviewed');
+  if (clickable) {
+    return `
+      <td class="jt-cell jt-cell--${status}">
+        <button type="button" class="jt-dot" title="${title}" aria-label="${escapeHtml(aria)}"
+          onclick="openJournalFromTracker('${jsStringArg(cell.journalId)}', '${status}')"></button>
+      </td>
+    `;
+  }
+  return `<td class="jt-cell jt-cell--${status}"><span class="jt-dot" title="${title}"></span></td>`;
+}
+
+function renderTrackerError() {
+  const head = el('journal-tracker-head');
+  const body = el('journal-tracker-body');
+  if (!body) return;
+  if (head) head.innerHTML = '';
+  body.innerHTML = tableStateHtml(
+    'Unable to load journal tracker',
+    'The weekly submission grid could not be loaded.',
+    'loadOverviewWidgets()',
+    'Try again',
+    2
+  );
+}
+
+/**
+ * Tracker cell click -> the Journal Review tab with that journal selected.
+ * The list loads asynchronously, and its finishing filterJournals() clears any
+ * selection made before it landed - so keep re-selecting until the selection
+ * survives two passes. Give up quietly if the journal is not in the queue.
+ */
+function openJournalFromTracker(journalId, status) {
+  const queue = status === 'reviewed' ? 'approved' : 'pending';
+  markInteraction();
+  switchTab('journal-review');
+
+  let tries = 24;
+  let stable = 0;
+  const attempt = () => {
+    const cache = journalDataCache[queue] || [];
+    const found = cache.find(journal => String(journal._id) === String(journalId));
+    if (!found) {
+      if (--tries > 0) setTimeout(attempt, 250);
+      return;
+    }
+    if (String(selectedJournalId || '') !== String(journalId)) {
+      filterJournals(null, queue);
+      const item = document.querySelector(`#journal-review .journal-item[onclick*="${journalId}"]`);
+      if (item) selectJournal(item, journalId, queue);
+    }
+    stable = String(selectedJournalId || '') === String(journalId) ? stable + 1 : 0;
+    if (stable >= 2 || --tries <= 0) return;
+    setTimeout(attempt, 250);
+  };
+  setTimeout(attempt, 0);
+}
+
+/**
+ * Snapshot View -> the Trainees tab with that row highlighted. Rows arrive
+ * asynchronously (and may sit on another page), so the poll gives up quietly.
+ */
+function openSnapshotTrainee(traineeId) {
+  markInteraction();
+  switchTab('trainees');
+
+  let tries = 24;
+  const timer = setInterval(() => {
+    const row = document.querySelector(`#trainees-table-body tr[data-trainee-id="${traineeId}"]`);
+    if (row) {
+      clearInterval(timer);
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      row.classList.add('row-flash');
+      setTimeout(() => row.classList.remove('row-flash'), 2400);
+      return;
+    }
+    if (--tries <= 0) clearInterval(timer);
+  }, 250);
 }
 
 /** Moves one counter locally (used right after the server confirms an action). */
@@ -834,18 +1554,6 @@ function openTraineesWithAttention(preset) {
   if (select) select.value = preset;
   switchTab('trainees');
   applyTraineeFilters();
-}
-
-function getTimeAgo(date) {
-  const seconds = Math.floor((new Date() - date) / 1000);
-  if (seconds < 60) return 'Just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return date.toLocaleDateString();
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -921,6 +1629,11 @@ function updateTabBackButton() {
   const hasHistory = tabHistory.length > 0;
   backButton.disabled = !hasHistory;
   backButton.classList.toggle('is-disabled', !hasHistory);
+
+  // Overview is this dashboard's home, so a Back button there has nowhere to
+  // go - the toolbar collapses instead of showing a dead control.
+  const toolbar = backButton.closest('.tab-toolbar');
+  if (toolbar) toolbar.classList.toggle('is-hidden', currentTab === 'overview');
 }
 
 function goBackTab() {
@@ -952,16 +1665,37 @@ let traineeSort = { key: 'name', dir: 'asc' };
 // Current page of the "All Students" modal
 let allTraineesPage = 1;
 
+/** Shape-matched loading rows so the table never flashes an empty shell. */
+function traineeTableSkeletonHtml(rows = 5, cols = 8) {
+  const cell = '<td class="cell"><span class="skel skel--cell"></span></td>';
+  return Array.from({ length: rows }, () => `<tr class="skel-row">${cell.repeat(cols)}</tr>`).join('');
+}
+
+/** Centered empty / error block that lives inside a table body. */
+function tableStateHtml(title, text, retryAction, actionLabel = 'Retry', colspan = 8) {
+  return `
+    <tr class="state-row">
+      <td colspan="${colspan}">
+        <div class="empty-state">
+          <p class="empty-state__title">${escapeHtml(title)}</p>
+          <p class="empty-state__text">${escapeHtml(text)}</p>
+          ${retryAction ? `<button type="button" class="link-btn" onclick="${escapeHtml(retryAction)}">${escapeHtml(actionLabel)}</button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
 async function loadTrainees(options = {}) {
   const background = options.background === true;
   const tbody = document.getElementById('trainees-table-body');
   if (!tbody) return;
 
   // The placeholder only appears while nothing has been painted yet. Swapping
-  // visible rows for "Loading trainees..." on every pass is what made the old
+  // visible rows for a loading state on every pass is what made the old
   // loop feel like it was fighting the reader.
   if (paintedPayloads.trainees === undefined) {
-    tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">Loading trainees...</td></tr>';
+    tbody.innerHTML = traineeTableSkeletonHtml(5);
   }
 
   const result = await fetchAPI('/coordinator/trainees');
@@ -974,7 +1708,11 @@ async function loadTrainees(options = {}) {
 
     traineesCache = [];
     forgetPainted('trainees');
-    tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-500">Failed to load trainees. Make sure the server is running.</td></tr>';
+    tbody.innerHTML = tableStateHtml(
+      'Trainees could not be loaded',
+      'Check that the server is running, then try again.',
+      'loadTrainees()'
+    );
     updateTraineesCountLabel(0, 0);
     return;
   }
@@ -1002,7 +1740,25 @@ function jsStringArg(value) {
     .replace(/'/g, "\\'");
 }
 
-// Build one trainee row — shared by the Trainees tab and the "All Students" modal
+/**
+ * Active / inactive / late for a table row - the same three states the
+ * Attention filter offers, so no new trainee category is introduced.
+ */
+function traineeStatusChip(trainee) {
+  const id = String(trainee._id);
+  const inactiveIds = attentionTraineeIds.inactive;
+  const lateIds = attentionTraineeIds.late;
+
+  if ((Array.isArray(inactiveIds) && inactiveIds.includes(id)) || trainee.isActive === false) {
+    return '<span class="chip chip--inactive">Inactive</span>';
+  }
+  if (Array.isArray(lateIds) && lateIds.includes(id)) {
+    return '<span class="chip chip--late">Late</span>';
+  }
+  return '<span class="chip chip--active">Active</span>';
+}
+
+// Build one trainee row — shared by the Trainees tab and the "All Trainees" modal
 function buildTraineeRowHtml(trainee) {
   const supervisorName = trainee.supervisorId
     ? `<span class="text-teal-400 font-semibold">${escapeHtml(trainee.supervisorId.fullName)}</span><br><span class="text-xs text-slate-500">${escapeHtml(trainee.supervisorId.companyName || '')}</span>`
@@ -1016,27 +1772,37 @@ function buildTraineeRowHtml(trainee) {
     : 0;
 
   return `
-    <tr class="border-b border-white/10 hover:bg-white/5 transition">
-      <td class="py-3 px-4">${escapeHtml(trainee.fullName)}</td>
-      <td class="py-3 px-4">${escapeHtml(trainee.studentId) || '—'}</td>
-      <td class="py-3 px-4">${escapeHtml(trainee.department) || '—'}</td>
-      <td class="py-3 px-4">${escapeHtml(trainee.section) || '—'}</td>
-      <td class="py-3 px-4">${escapeHtml(trainee.companyName) || '—'}</td>
-      <td class="py-3 px-4">${supervisorName}</td>
-      <td class="py-3 px-4">
-        <div class="text-sm">
-          <div class="font-semibold text-white mb-1">${completedHours.toFixed(1)}/${requiredHours} hrs</div>
-          <div class="text-xs text-slate-400">${remainingHours.toFixed(1)} hrs left</div>
-          <div class="w-20 h-2 bg-white/10 rounded-full mt-2 overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-teal-400 to-teal-500" style="width: ${hoursPercentage}%"></div>
+    <tr data-trainee-id="${trainee._id}">
+      <td class="cell cell--trainee">
+        <button type="button" class="link-btn cell__name cell__name--link"
+          onclick="openTraineeProfileModal('${jsStringArg(trainee._id)}')"
+          title="Open the full OJT progress profile for ${jsStringArg(trainee.fullName)}"
+          aria-label="View OJT profile of ${escapeHtml(trainee.fullName)}">${escapeHtml(trainee.fullName)}</button>
+        ${traineeStatusChip(trainee)}
+      </td>
+      <td class="cell">${escapeHtml(trainee.studentId) || '—'}</td>
+      <td class="cell">${escapeHtml(trainee.department) || '—'}</td>
+      <td class="cell">${escapeHtml(trainee.section) || '—'}</td>
+      <td class="cell">${escapeHtml(trainee.companyName) || '—'}</td>
+      <td class="cell cell--muted">${supervisorName}</td>
+      <td class="cell">
+        <div class="hours-cell">
+          <div class="hours-cell__value">${completedHours.toFixed(1)}/${requiredHours} hrs</div>
+          <div class="hours-cell__left">${remainingHours.toFixed(1)} hrs left</div>
+          <div class="progress-track hours-cell__track">
+            <span class="progress-fill" style="width: ${hoursPercentage}%"></span>
           </div>
         </div>
       </td>
-      <td class="py-3 px-4">
-        <button onclick="openAssignModal('${trainee._id}', '${jsStringArg(trainee.fullName)}')"
-          class="text-teal-400 hover:text-teal-300 text-xs font-semibold">
-          ${trainee.supervisorId ? 'Reassign' : 'Assign Supervisor'}
-        </button>
+      <td class="cell">
+        <div class="cell-actions">
+          <button type="button" onclick="openTraineeProfileModal('${jsStringArg(trainee._id)}')"
+            class="link-btn" title="View OJT progress, journals and DTR records">View</button>
+          <button type="button" onclick="openAssignModal('${trainee._id}', '${jsStringArg(trainee.fullName)}')"
+            class="link-btn">
+            ${trainee.supervisorId ? 'Reassign' : 'Assign Supervisor'}
+          </button>
+        </div>
       </td>
     </tr>
   `;
@@ -1067,8 +1833,10 @@ function openAssignModal(traineeId, traineeName) {
   // Reset supervisor info panel
   document.getElementById('supervisor-info').classList.add('hidden');
 
-  // Show modal
-  document.getElementById('assign-supervisor-modal').classList.remove('hidden');
+  // Show modal (lift to body level first so it isn't trapped in a hidden tab)
+  const assignModal = document.getElementById('assign-supervisor-modal');
+  if (assignModal && assignModal.parentElement !== document.body) document.body.appendChild(assignModal);
+  assignModal?.classList.remove('hidden');
 
   // Listen for dropdown change to show supervisor details
   select.onchange = () => showSupervisorInfo(select.value);
@@ -1115,6 +1883,12 @@ async function confirmAssignSupervisor() {
     showNotification('Error', result.message, 'error');
     closeAssignModal();
     loadTrainees(); // Refresh the table
+
+    // If the profile modal is open for this trainee, refresh it in place so
+    // the new supervisor appears without reopening the card.
+    if (currentTraineeProfileId && String(currentTraineeProfileId) === String(traineeId)) {
+      loadTraineeProfileData(traineeId);
+    }
   } else {
     showNotification('Error', result?.message || 'Failed to assign supervisor', 'error');
   }
@@ -1237,9 +2011,9 @@ function renderTraineesTable() {
 
   if (filtered.length === 0) {
     const emptyMessage = traineesCache.length === 0
-      ? 'No trainees registered yet.'
-      : 'No trainees match the selected filters.';
-    tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500">${emptyMessage}</td></tr>`;
+      ? tableStateHtml('No trainees yet', 'Registered trainees will appear here as soon as they are enrolled.')
+      : tableStateHtml('No trainees match', 'Try a different search term or clear one of the filters.');
+    tbody.innerHTML = emptyMessage;
     updateTraineesCountLabel(0, 0);
     if (seeAllLink) seeAllLink.classList.add('hidden');
     return;
@@ -1281,17 +2055,17 @@ function renderAllTraineesTable() {
   const pageItems = filtered.slice(start, start + ALL_TRAINEES_PAGE_SIZE);
 
   tbody.innerHTML = pageItems.length === 0
-    ? '<tr><td colspan="8" class="py-8 text-center text-slate-500">No students match the selected filters.</td></tr>'
+    ? tableStateHtml('No trainees match', 'Try a different search term or clear one of the filters.')
     : pageItems.map(buildTraineeRowHtml).join('');
 
   if (label) {
     label.textContent = filtered.length === 0
-      ? 'No students to show'
-      : `Showing ${start + 1}-${start + pageItems.length} of ${filtered.length} students`;
+      ? 'No trainees to show'
+      : `Showing ${start + 1}-${start + pageItems.length} of ${filtered.length} trainee${filtered.length === 1 ? '' : 's'}`;
   }
 
   if (subtitle) {
-    subtitle.textContent = `${filtered.length} student${filtered.length === 1 ? '' : 's'} · page ${allTraineesPage} of ${totalPages} · ${ALL_TRAINEES_PAGE_SIZE} per page`;
+    subtitle.textContent = `${filtered.length} trainee${filtered.length === 1 ? '' : 's'} · page ${allTraineesPage} of ${totalPages} · ${ALL_TRAINEES_PAGE_SIZE} per page`;
   }
 
   if (pagination) {
@@ -1302,12 +2076,11 @@ function renderAllTraineesTable() {
 function buildTraineesPaginationHtml(currentPage, totalPages) {
   if (totalPages <= 1) return '';
 
-  const baseClass = 'px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 transition';
   const parts = [];
 
   parts.push(currentPage === 1
-    ? `<button disabled class="${baseClass} text-slate-600 cursor-not-allowed">Prev</button>`
-    : `<button onclick="goAllTraineesPage(${currentPage - 1})" class="${baseClass} text-slate-300 hover:bg-white/10">Prev</button>`);
+    ? `<button type="button" disabled class="pager__btn">Prev</button>`
+    : `<button type="button" onclick="goAllTraineesPage(${currentPage - 1})" class="pager__btn">Prev</button>`);
 
   const windowSize = 2;
   const firstPage = Math.max(1, currentPage - windowSize);
@@ -1326,17 +2099,17 @@ function buildTraineesPaginationHtml(currentPage, totalPages) {
 
   pageNumbers.forEach(page => {
     if (page === 'ellipsis') {
-      parts.push('<span class="px-1 text-slate-500">…</span>');
+      parts.push('<span class="pager__ellipsis">…</span>');
       return;
     }
     parts.push(page === currentPage
-      ? `<button class="${baseClass} bg-teal-500/20 text-teal-300 border-teal-400/40">${page}</button>`
-      : `<button onclick="goAllTraineesPage(${page})" class="${baseClass} text-slate-300 hover:bg-white/10">${page}</button>`);
+      ? `<button type="button" class="pager__btn pager__btn--current" aria-current="page">${page}</button>`
+      : `<button type="button" onclick="goAllTraineesPage(${page})" class="pager__btn">${page}</button>`);
   });
 
   parts.push(currentPage === totalPages
-    ? `<button disabled class="${baseClass} text-slate-600 cursor-not-allowed">Next</button>`
-    : `<button onclick="goAllTraineesPage(${currentPage + 1})" class="${baseClass} text-slate-300 hover:bg-white/10">Next</button>`);
+    ? `<button type="button" disabled class="pager__btn">Next</button>`
+    : `<button type="button" onclick="goAllTraineesPage(${currentPage + 1})" class="pager__btn">Next</button>`);
 
   return parts.join('');
 }
@@ -1808,96 +2581,6 @@ function downloadJournal(journalId) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// OVERVIEW ANALYTICS CHARTS
-// ────────────────────────────────────────────────────────────────────────────
-
-function initOverviewCharts(stats, trainees = []) {
-  // Key Metrics Bar Chart — colour-coded categories, so each bar keeps its
-  // established hue and the legend stays hidden (the x labels already name them).
-  const metricsCtx = document.getElementById('overviewMetricsChart');
-  if (metricsCtx && !window.overviewMetricsChartInit) {
-    const metricSeries = [
-      { label: 'Total Enrolled', value: stats.totalStudents, accent: TrackITCharts.accent.teal },
-      { label: 'Active', value: stats.activeStudents, accent: TrackITCharts.accent.green },
-      { label: 'Supervisors', value: stats.supervisorCount, accent: TrackITCharts.accent.blue },
-      { label: 'Companies', value: stats.companyCount, accent: TrackITCharts.accent.purple },
-    ];
-
-    const metricsDataset = {
-      label: 'Count',
-      data: metricSeries.map(item => item.value),
-      // One hue per metric: the accent is resolved per bar by the shared fill.
-      backgroundColor: (context) => {
-        const accent = metricSeries[context.dataIndex]
-          ? metricSeries[context.dataIndex].accent
-          : TrackITCharts.accent.teal;
-        return TrackITCharts.barFill(accent, TrackITCharts.tokens(), true)(context);
-      },
-      hoverBackgroundColor: (context) => {
-        const accent = metricSeries[context.dataIndex]
-          ? metricSeries[context.dataIndex].accent
-          : TrackITCharts.accent.teal;
-        return TrackITCharts.alpha(accent, 1);
-      },
-      borderWidth: 0,
-      borderRadius: 6,
-      borderSkipped: false,
-      barPercentage: 0.72,
-      categoryPercentage: 0.7,
-      maxBarThickness: 46,
-      trackitValueLabels: true,
-      trackitAccent: TrackITCharts.accent.teal,
-    };
-
-    window.TrackITCharts.register(window.TrackITCharts.createBar(metricsCtx, {
-      data: {
-        labels: metricSeries.map(item => item.label),
-        datasets: [metricsDataset],
-      },
-      options: window.TrackITCharts.barOptions({
-        vertical: true,
-        legend: false,
-        categoryCount: metricSeries.length,
-        datasetCount: 1,
-        yTitle: 'Count',
-      }),
-    }));
-    window.overviewMetricsChartInit = true;
-  }
-
-  // Top Trainees Bar Chart (by completed hours) — several named categories, so a
-  // horizontal bar reads best.
-  const topTraineesCtx = document.getElementById('topTraineesChart');
-  if (topTraineesCtx && !window.topTraineesChartInit) {
-    // Sort trainees by completed hours (descending) and get top 5
-    const topTrainees = [...trainees]
-      .sort((a, b) => (b.completedHours || 0) - (a.completedHours || 0))
-      .slice(0, 5);
-
-    const labels = topTrainees.map(t => t.fullName.split(' ')[0]); // First name only
-    const data = topTrainees.map(t => t.completedHours || 0);
-
-    const dataset = window.TrackITCharts.styleDataset({
-      label: 'Completed Hours',
-      data: data,
-    }, { accent: TrackITCharts.accent.teal, maxBarThickness: 26 });
-
-    window.TrackITCharts.register(window.TrackITCharts.createBar(topTraineesCtx, {
-      data: { labels: labels, datasets: [dataset] },
-      options: window.TrackITCharts.barOptions({
-        horizontal: true,
-        legend: false,
-        categoryCount: labels.length,
-        datasetCount: 1,
-        xTitle: 'Hours',
-        valueFormatter: (value) => `${Math.round(value * 10) / 10} h`,
-      }),
-    }));
-    window.topTraineesChartInit = true;
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
 // ANALYTICS & CHARTS
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -2083,15 +2766,15 @@ function renderJournalStatusChart(statusData, windowDays = 90) {
   const dataset = {
     data: data.values,
     backgroundColor: [
-      'rgba(59, 130, 246, 0.8)',
       'rgba(245, 158, 11, 0.8)',
-      'rgba(168, 85, 247, 0.8)',
+      'rgba(239, 68, 68, 0.8)',
+      'rgba(0, 200, 170, 0.8)',
       'rgba(34, 197, 94, 0.8)',
     ],
     borderColor: [
-      'rgba(59, 130, 246, 1)',
       'rgba(245, 158, 11, 1)',
-      'rgba(168, 85, 247, 1)',
+      'rgba(239, 68, 68, 1)',
+      'rgba(0, 200, 170, 1)',
       'rgba(34, 197, 94, 1)',
     ],
     borderWidth: 2,
@@ -2105,7 +2788,7 @@ function renderJournalStatusChart(statusData, windowDays = 90) {
   }
 
   window.analyticsCharts = window.analyticsCharts || {};
-  window.analyticsCharts.journalStatusChart = new Chart(journalCtx, {
+  window.analyticsCharts.journalStatusChart = window.TrackITCharts.register(new Chart(journalCtx, {
     type: 'doughnut',
     data: {
       labels: data.labels,
@@ -2117,7 +2800,7 @@ function renderJournalStatusChart(statusData, windowDays = 90) {
       plugins: {
         legend: {
           position: 'right',
-          labels: { color: 'rgba(203, 213, 225, 0.8)' },
+          labels: { color: window.TrackITCharts.tokens().legend },
         },
         tooltip: {
           callbacks: {
@@ -2126,7 +2809,7 @@ function renderJournalStatusChart(statusData, windowDays = 90) {
         },
       },
     },
-  });
+  }));
 }
 
 function renderDepartmentChart() {
@@ -2136,22 +2819,22 @@ function renderDepartmentChart() {
   const deptColors = [
     'rgba(0, 200, 170, 0.8)',
     'rgba(245, 158, 11, 0.8)',
-    'rgba(59, 130, 246, 0.8)',
-    'rgba(168, 85, 247, 0.8)',
-    'rgba(239, 68, 68, 0.8)'
+    'rgba(34, 197, 94, 0.8)',
+    'rgba(148, 163, 184, 0.8)',
+    'rgba(59, 130, 246, 0.8)'
   ];
   const deptBorders = [
     'rgba(0, 200, 170, 1)',
     'rgba(245, 158, 11, 1)',
-    'rgba(59, 130, 246, 1)',
-    'rgba(168, 85, 247, 1)',
-    'rgba(239, 68, 68, 1)'
+    'rgba(34, 197, 94, 1)',
+    'rgba(148, 163, 184, 1)',
+    'rgba(59, 130, 246, 1)'
   ];
 
   const deptLabels = (window.deptData || []).map(d => d._id || 'Unknown');
   const deptValues = (window.deptData || []).map(d => d.count);
 
-  new Chart(deptCtx, {
+  window.TrackITCharts.register(new Chart(deptCtx, {
     type: 'doughnut',
     data: {
       labels: deptLabels.length > 0 ? deptLabels : ['No data'],
@@ -2168,11 +2851,11 @@ function renderDepartmentChart() {
       plugins: {
         legend: {
           position: 'right',
-          labels: { color: 'rgba(203, 213, 225, 0.8)' }
+          labels: { color: window.TrackITCharts.tokens().legend }
         }
       }
     }
-  });
+  }));
   window.deptChartInit = true;
 }
 
@@ -2214,13 +2897,13 @@ function renderAttendancePanel(attendance) {
         'rgba(34, 197, 94, 0.8)',
         'rgba(245, 158, 11, 0.8)',
         'rgba(239, 68, 68, 0.8)',
-        'rgba(59, 130, 246, 0.8)',
+        'rgba(148, 163, 184, 0.8)',
       ],
       borderColor: [
         'rgba(34, 197, 94, 1)',
         'rgba(245, 158, 11, 1)',
         'rgba(239, 68, 68, 1)',
-        'rgba(59, 130, 246, 1)',
+        'rgba(148, 163, 184, 1)',
       ],
       borderWidth: 2,
     };
@@ -2232,7 +2915,7 @@ function renderAttendancePanel(attendance) {
       window.analyticsCharts.attendanceStatusChart.update();
     } else {
       window.analyticsCharts = window.analyticsCharts || {};
-      window.analyticsCharts.attendanceStatusChart = new Chart(statusCanvas, {
+      window.analyticsCharts.attendanceStatusChart = window.TrackITCharts.register(new Chart(statusCanvas, {
         type: 'doughnut',
         data: { labels: statusLabels, datasets: [statusDataset] },
         options: {
@@ -2241,11 +2924,11 @@ function renderAttendancePanel(attendance) {
           plugins: {
             legend: {
               position: 'right',
-              labels: { color: 'rgba(203, 213, 225, 0.8)' },
+              labels: { color: window.TrackITCharts.tokens().legend },
             },
           },
         },
-      });
+      }));
     }
   }
 
@@ -2317,7 +3000,10 @@ function renderRecentDTRs(records) {
 
   const items = Array.isArray(records) ? records : [];
   if (items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-500">No DTR records recorded yet</td></tr>';
+    tbody.innerHTML = '<tr class="state-row"><td colspan="7" class="py-6 px-4"><div class="empty-state">' +
+      '<p class="empty-state__title">No DTR records yet</p>' +
+      '<p class="empty-state__text">Time in and time out entries will appear here once trainees start logging.</p>' +
+      '</div></td></tr>';
     return;
   }
 
@@ -2355,7 +3041,10 @@ function renderTraineeProgress(progress) {
 
   if (tbody) {
     if (items.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="12" class="py-6 text-center text-slate-500">No trainee records yet</td></tr>';
+      tbody.innerHTML = '<tr class="state-row"><td colspan="12" class="py-6 px-4"><div class="empty-state">' +
+        '<p class="empty-state__title">No trainee records yet</p>' +
+        '<p class="empty-state__text">Progress, hours and status will be listed here once trainees are enrolled.</p>' +
+        '</div></td></tr>';
     } else {
       tbody.innerHTML = items.map(trainee => {
         const rate = Number(trainee.completionRate) || 0;
@@ -2469,14 +3158,14 @@ function renderPerformancePanel(performance) {
       backgroundColor: [
         'rgba(34, 197, 94, 0.8)',
         'rgba(0, 200, 170, 0.8)',
-        'rgba(59, 130, 246, 0.8)',
+        'rgba(245, 158, 11, 0.8)',
         'rgba(239, 68, 68, 0.8)',
         'rgba(148, 163, 184, 0.5)',
       ],
       borderColor: [
         'rgba(34, 197, 94, 1)',
         'rgba(0, 200, 170, 1)',
-        'rgba(59, 130, 246, 1)',
+        'rgba(245, 158, 11, 1)',
         'rgba(239, 68, 68, 1)',
         'rgba(148, 163, 184, 0.8)',
       ],
@@ -2489,7 +3178,7 @@ function renderPerformancePanel(performance) {
       window.analyticsCharts.performanceChart.update();
     } else {
       window.analyticsCharts = window.analyticsCharts || {};
-      window.analyticsCharts.performanceChart = new Chart(canvas, {
+      window.analyticsCharts.performanceChart = window.TrackITCharts.register(new Chart(canvas, {
         type: 'doughnut',
         data: { labels, datasets: [dataset] },
         options: {
@@ -2498,11 +3187,11 @@ function renderPerformancePanel(performance) {
           plugins: {
             legend: {
               position: 'right',
-              labels: { color: 'rgba(203, 213, 225, 0.8)' },
+              labels: { color: window.TrackITCharts.tokens().legend },
             },
           },
         },
-      });
+      }));
     }
   }
 
@@ -2512,7 +3201,10 @@ function renderPerformancePanel(performance) {
 
   const performers = Array.isArray(data.topPerformers) ? data.topPerformers : [];
   if (performers.length === 0) {
-    list.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">No performance appraisals recorded yet</p>';
+    list.innerHTML = '<div class="empty-state">' +
+      '<p class="empty-state__title">No performance appraisals recorded yet</p>' +
+      '<p class="empty-state__text">Top rated trainees will appear here after the first appraisal cycle.</p>' +
+      '</div>';
     return;
   }
 
@@ -2598,7 +3290,10 @@ function renderDepartmentAnalytics(departments) {
 
   const items = Array.isArray(departments) ? departments : [];
   if (items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-slate-500">No department data yet</td></tr>';
+    tbody.innerHTML = '<tr class="state-row"><td colspan="6" class="py-6 px-4"><div class="empty-state">' +
+      '<p class="empty-state__title">No department data yet</p>' +
+      '<p class="empty-state__text">Per-department totals will appear once trainees are assigned.</p>' +
+      '</div></td></tr>';
     return;
   }
 
@@ -2622,7 +3317,10 @@ function renderAttentionList(attention) {
 
   const items = Array.isArray(attention) ? attention : [];
   if (items.length === 0) {
-    container.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Nothing needs attention right now</p>';
+    container.innerHTML = '<div class="empty-state">' +
+      '<p class="empty-state__title">Nothing needs attention right now</p>' +
+      '<p class="empty-state__text">Inactive trainees, pending journals and unverified DTR records will be listed here.</p>' +
+      '</div>';
     return;
   }
 
@@ -2655,7 +3353,10 @@ function renderNarrative(narrative) {
 
   const lines = Array.isArray(narrative) ? narrative : [];
   if (lines.length === 0) {
-    container.innerHTML = '<p class="text-slate-500 text-sm">No recorded data available to summarize yet.</p>';
+    container.innerHTML = '<div class="empty-state">' +
+      '<p class="empty-state__title">Nothing to summarize yet</p>' +
+      '<p class="empty-state__text">The automated summary will appear once attendance, journal and appraisal data is recorded.</p>' +
+      '</div>';
     return;
   }
 
@@ -3088,6 +3789,1980 @@ function logout() {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// GLOBAL SEARCH
+// ────────────────────────────────────────────────────────────────────────────
+
+let globalSearchDebounceTimer = null;
+let globalSearchSelectedIndex = -1;
+let globalSearchResults = [];
+let isGlobalSearchOpen = false;
+let isMobileSearchOpen = false;
+
+/** Initialize global search event listeners */
+function initGlobalSearch() {
+  const desktopInput = document.getElementById('global-search-input');
+  const mobileInput = document.getElementById('mobile-search-input');
+  const desktopResults = document.getElementById('global-search-results');
+  const mobileResults = document.getElementById('mobile-search-results');
+  const desktopLoading = document.getElementById('global-search-loading');
+  const mobileSearchBtn = document.getElementById('mobile-search-btn');
+  const mobileSearchOverlay = document.getElementById('mobile-search-overlay');
+  const mobileSearchPanel = document.getElementById('mobile-search-panel');
+
+  // Desktop search input
+  if (desktopInput) {
+    desktopInput.addEventListener('input', (e) => handleGlobalSearchInput(e.target.value));
+    desktopInput.addEventListener('focus', () => {
+      if (desktopInput.value.trim().length >= 2) {
+        showGlobalSearchResults();
+      }
+    });
+    desktopInput.addEventListener('keydown', (e) => handleGlobalSearchKeydown(e, 'desktop'));
+    desktopInput.addEventListener('blur', () => {
+      // Delay to allow click on results
+      setTimeout(() => hideGlobalSearchResults(), 200);
+    });
+  }
+
+  // Mobile search input
+  if (mobileInput) {
+    mobileInput.addEventListener('input', (e) => handleGlobalSearchInput(e.target.value, 'mobile'));
+    mobileInput.addEventListener('keydown', (e) => handleGlobalSearchKeydown(e, 'mobile'));
+  }
+
+  // Close on click outside (desktop)
+  document.addEventListener('click', (e) => {
+    const container = document.getElementById('global-search-container');
+    const resultsEl = document.getElementById('global-search-results');
+    const loadingEl = document.getElementById('global-search-loading');
+    const input = document.getElementById('global-search-input');
+
+    if (container && !container.contains(e.target) &&
+        resultsEl && !resultsEl.contains(e.target) &&
+        loadingEl && !loadingEl.contains(e.target) &&
+        input && !input.contains(e.target)) {
+      hideGlobalSearchResults();
+    }
+  });
+
+  // Mobile search toggle
+  if (mobileSearchBtn) {
+    mobileSearchBtn.addEventListener('click', toggleMobileSearch);
+  }
+  if (mobileSearchOverlay) {
+    mobileSearchOverlay.addEventListener('click', closeMobileSearch);
+  }
+
+  // Keyboard shortcuts: Ctrl+K or / to focus search
+  document.addEventListener('keydown', (e) => {
+    // Don't trigger if user is typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+      return;
+    }
+
+    // Ctrl+K (or Cmd+K on Mac)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      focusGlobalSearch();
+    }
+
+    // Forward slash / to focus search (only if not in an input)
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      focusGlobalSearch();
+    }
+
+    // Escape to close search
+    if (e.key === 'Escape') {
+      hideGlobalSearchResults();
+      closeMobileSearch();
+      closeTraineeProfileModal();
+    }
+  });
+
+  // Reposition dropdown on window resize/scroll
+  let repositionTimeout = null;
+  const reposition = () => {
+    if (isGlobalSearchOpen) {
+      positionGlobalSearchDropdown();
+    }
+  };
+  window.addEventListener('resize', () => {
+    clearTimeout(repositionTimeout);
+    repositionTimeout = setTimeout(reposition, 50);
+  }, { passive: true });
+  window.addEventListener('scroll', () => {
+    clearTimeout(repositionTimeout);
+    repositionTimeout = setTimeout(reposition, 50);
+  }, { passive: true });
+}
+
+/** Focus the global search input (desktop or mobile) */
+function focusGlobalSearch() {
+  if (window.innerWidth >= 768) {
+    const input = document.getElementById('global-search-input');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  } else {
+    toggleMobileSearch();
+    setTimeout(() => {
+      const input = document.getElementById('mobile-search-input');
+      if (input) input.focus();
+    }, 100);
+  }
+}
+
+/** Handle search input with debounce */
+function handleGlobalSearchInput(query, platform = 'desktop') {
+  const resultsEl = platform === 'desktop'
+    ? document.getElementById('global-search-results')
+    : document.getElementById('mobile-search-results');
+  const loadingEl = platform === 'desktop'
+    ? document.getElementById('global-search-loading')
+    : null;
+
+  clearTimeout(globalSearchDebounceTimer);
+
+  if (query.trim().length < 2) {
+    hideGlobalSearchResults(platform);
+    return;
+  }
+
+  // Show loading state (position it first — it's position:fixed with no offsets by default)
+  if (loadingEl) {
+    if (platform === 'desktop') positionGlobalSearchDropdown();
+    loadingEl.classList.remove('hidden');
+  }
+
+  globalSearchDebounceTimer = setTimeout(() => {
+    performGlobalSearch(query.trim(), platform);
+  }, 300); // 300ms debounce
+}
+
+/** Perform the actual search against traineesCache */
+function performGlobalSearch(query, platform = 'desktop') {
+  const resultsEl = platform === 'desktop'
+    ? document.getElementById('global-search-results')
+    : document.getElementById('mobile-search-results');
+  const loadingEl = platform === 'desktop'
+    ? document.getElementById('global-search-loading')
+    : null;
+
+  if (loadingEl) {
+    loadingEl.classList.add('hidden');
+  }
+
+  if (!traineesCache || traineesCache.length === 0) {
+    renderGlobalSearchResults([], platform, 'no-trainees');
+    return;
+  }
+
+  const lowerQuery = query.toLowerCase();
+
+  // Search across multiple fields
+  const matches = traineesCache.filter(trainee => {
+    const name = (trainee.fullName || '').toLowerCase();
+    const studentId = (trainee.studentId || '').toLowerCase();
+    const department = (trainee.department || '').toLowerCase();
+    const section = (trainee.section || '').toLowerCase();
+    const company = (trainee.companyName || '').toLowerCase();
+    const status = trainee.activityStatus || (trainee.isActive === false ? 'INACTIVE' : 'ACTIVE');
+
+    return name.includes(lowerQuery) ||
+      studentId.includes(lowerQuery) ||
+      department.includes(lowerQuery) ||
+      section.includes(lowerQuery) ||
+      company.includes(lowerQuery) ||
+      status.toLowerCase().includes(lowerQuery);
+  });
+
+  // Limit to 8 results
+  globalSearchResults = matches.slice(0, 8);
+  globalSearchSelectedIndex = -1;
+
+  renderGlobalSearchResults(globalSearchResults, platform);
+}
+
+/** Render search results */
+function renderGlobalSearchResults(results, platform = 'desktop', state = 'results') {
+  const resultsEl = platform === 'desktop'
+    ? document.getElementById('global-search-results')
+    : document.getElementById('mobile-search-results');
+
+  if (!resultsEl) return;
+
+  if (state === 'no-trainees') {
+    resultsEl.innerHTML = `
+      <div class="search-empty-state">
+        <svg class="search-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+        </svg>
+        <p class="search-empty-state__title">No trainees yet</p>
+        <p class="search-empty-state__text">Registered trainees will appear here as soon as they are enrolled.</p>
+      </div>
+    `;
+    showGlobalSearchResults(platform);
+    return;
+  }
+
+  if (results.length === 0) {
+    resultsEl.innerHTML = `
+      <div class="search-empty-state">
+        <svg class="search-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <p class="search-empty-state__title">No trainees found</p>
+        <p class="search-empty-state__text">Try searching by name, student ID, section, course, or company.</p>
+      </div>
+      <a href="#" class="search-view-all" onclick="event.preventDefault(); closeGlobalSearch(); switchTab('trainees'); document.getElementById('trainee-search').value = document.getElementById('global-search-input').value; applyTraineeFilters();">View all results →</a>
+    `;
+    showGlobalSearchResults(platform);
+    return;
+  }
+
+  const html = results.map((trainee, index) => {
+    const initials = getInitials(trainee.fullName);
+    const status = getTraineeDisplayStatus(trainee);
+    const statusClass = getStatusClassName(status);
+    const courseSection = `${trainee.department || ''} ${trainee.section ? '• ' + trainee.section : ''}`.trim();
+    const studentId = trainee.studentId ? `ID: ${trainee.studentId}` : '';
+
+    if (platform === 'desktop') {
+      return `
+        <button type="button" class="search-result-item w-full text-left" tabindex="-1" data-index="${index}" data-trainee-id="${trainee._id}" onclick="selectGlobalSearchResult('${trainee._id}')" onmouseenter="highlightGlobalSearchResult(${index})" onfocus="highlightGlobalSearchResult(${index})">
+          <span class="search-result-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+          <div class="search-result-info">
+            <span class="search-result-name">${escapeHtml(trainee.fullName || 'Unknown Trainee')}</span>
+            <div class="search-result-meta">
+              ${courseSection ? `<span class="search-result-course-section">${escapeHtml(courseSection)}</span>` : ''}
+              ${studentId ? `<span class="search-result-course-section">${escapeHtml(studentId)}</span>` : ''}
+              ${trainee.companyName ? `<span class="search-result-course-section">${escapeHtml(trainee.companyName)}</span>` : ''}
+              <span class="search-result-status ${statusClass}">${escapeHtml(status)}</span>
+            </div>
+          </div>
+        </button>
+      `;
+    } else {
+      return `
+        <div class="mobile-search-result" data-index="${index}" data-trainee-id="${trainee._id}" onclick="selectGlobalSearchResult('${trainee._id}')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')selectGlobalSearchResult('${trainee._id}')">
+          <div class="mobile-search-result-header">
+            <span class="mobile-search-result-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+            <span class="mobile-search-result-name">${escapeHtml(trainee.fullName || 'Unknown Trainee')}</span>
+            <span class="mobile-search-result-status ${statusClass}">${escapeHtml(status)}</span>
+          </div>
+          <div class="mobile-search-result-meta">
+            ${courseSection ? `<span>${escapeHtml(courseSection)}</span>` : ''}
+            ${studentId ? `<span>${escapeHtml(studentId)}</span>` : ''}
+            ${trainee.companyName ? `<span>${escapeHtml(trainee.companyName)}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+  }).join('');
+
+  // Add "View all results" link for desktop
+  const viewAllHtml = platform === 'desktop' ? `
+    <a href="#" class="search-view-all" onclick="event.preventDefault(); closeGlobalSearch(); switchTab('trainees'); document.getElementById('trainee-search').value = document.getElementById('global-search-input').value; applyTraineeFilters();">View all results →</a>
+  ` : '';
+
+  resultsEl.innerHTML = html + viewAllHtml;
+  showGlobalSearchResults(platform);
+}
+
+/** Position the desktop search dropdown below the input */
+function positionGlobalSearchDropdown() {
+  const input = document.getElementById('global-search-input');
+  const resultsEl = document.getElementById('global-search-results');
+  const loadingEl = document.getElementById('global-search-loading');
+
+  if (!input || (!resultsEl && !loadingEl)) return;
+
+  const rect = input.getBoundingClientRect();
+  const top = rect.bottom + 6; // 6px gap (fixed is viewport-relative: no scroll offsets)
+  const left = rect.left;
+  const width = rect.width;
+
+  [resultsEl, loadingEl].forEach(el => {
+    if (el) {
+      el.style.top = `${top}px`;
+      el.style.left = `${left}px`;
+      el.style.width = `${width}px`;
+    }
+  });
+}
+
+/** Show search results dropdown */
+function showGlobalSearchResults(platform = 'desktop') {
+  const resultsEl = platform === 'desktop'
+    ? document.getElementById('global-search-results')
+    : document.getElementById('mobile-search-results');
+  const loadingEl = platform === 'desktop'
+    ? document.getElementById('global-search-loading')
+    : null;
+
+  if (platform === 'desktop') {
+    positionGlobalSearchDropdown();
+  }
+
+  if (resultsEl) {
+    resultsEl.classList.remove('hidden');
+  }
+  // Results replace the loading indicator — never show both at once
+  if (loadingEl) {
+    loadingEl.classList.add('hidden');
+  }
+
+  if (platform === 'desktop') isGlobalSearchOpen = true;
+  else isMobileSearchOpen = true;
+}
+
+/** Hide search results dropdown */
+function hideGlobalSearchResults(platform = 'desktop') {
+  const desktopResults = document.getElementById('global-search-results');
+  const mobileResults = document.getElementById('mobile-search-results');
+
+  if (platform === 'desktop' || platform === 'both') {
+    if (desktopResults) desktopResults.classList.add('hidden');
+    const desktopLoading = document.getElementById('global-search-loading');
+    if (desktopLoading) desktopLoading.classList.add('hidden');
+    isGlobalSearchOpen = false;
+    globalSearchSelectedIndex = -1;
+  }
+  if (platform === 'mobile' || platform === 'both') {
+    if (mobileResults) mobileResults.classList.add('hidden');
+    isMobileSearchOpen = false;
+    globalSearchSelectedIndex = -1;
+  }
+}
+
+/** Close all search interfaces */
+function closeGlobalSearch() {
+  hideGlobalSearchResults('both');
+  const desktopInput = document.getElementById('global-search-input');
+  const mobileInput = document.getElementById('mobile-search-input');
+  if (desktopInput) desktopInput.value = '';
+  if (mobileInput) mobileInput.value = '';
+}
+
+/** Highlight a search result (keyboard navigation) */
+function highlightGlobalSearchResult(index) {
+  const resultsEl = document.getElementById('global-search-results');
+  if (!resultsEl) return;
+
+  const items = resultsEl.querySelectorAll('.search-result-item');
+  items.forEach((item, i) => {
+    if (i === index) {
+      item.classList.add('bg-teal-500/10');
+      globalSearchSelectedIndex = index;
+    } else {
+      item.classList.remove('bg-teal-500/10');
+    }
+  });
+}
+
+/** Handle keyboard navigation in search results */
+function handleGlobalSearchKeydown(e, platform = 'desktop') {
+  const resultsEl = platform === 'desktop'
+    ? document.getElementById('global-search-results')
+    : document.getElementById('mobile-search-results');
+
+  if (!resultsEl || resultsEl.classList.contains('hidden')) return;
+
+  const items = resultsEl.querySelectorAll(platform === 'desktop' ? '.search-result-item' : '.mobile-search-result');
+  if (items.length === 0) return;
+
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      globalSearchSelectedIndex = Math.min(globalSearchSelectedIndex + 1, items.length - 1);
+      highlightGlobalSearchResult(globalSearchSelectedIndex);
+      items[globalSearchSelectedIndex]?.focus();
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      globalSearchSelectedIndex = Math.max(globalSearchSelectedIndex - 1, 0);
+      highlightGlobalSearchResult(globalSearchSelectedIndex);
+      items[globalSearchSelectedIndex]?.focus();
+      break;
+    case 'Enter':
+      e.preventDefault();
+      if (globalSearchSelectedIndex >= 0 && globalSearchSelectedIndex < items.length) {
+        const traineeId = items[globalSearchSelectedIndex].dataset.traineeId;
+        selectGlobalSearchResult(traineeId);
+      }
+      break;
+    case 'Escape':
+      closeGlobalSearch();
+      break;
+  }
+}
+
+/** Select a search result and open trainee profile modal */
+function selectGlobalSearchResult(traineeId) {
+  closeGlobalSearch();
+  openTraineeProfileModal(traineeId);
+}
+
+/** Get trainee initials for avatar */
+function getInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+/** Get display status for trainee */
+function getTraineeDisplayStatus(trainee) {
+  if (trainee.activityStatus === 'INACTIVE' || trainee.isActive === false) return 'Inactive';
+  const lateIds = attentionTraineeIds.late || [];
+  if (lateIds.includes(String(trainee._id))) return 'Late';
+  return 'Active';
+}
+
+/** Get CSS class for status */
+function getStatusClassName(status) {
+  switch (status) {
+    case 'Active': return 'search-result-status--active';
+    case 'Inactive': return 'search-result-status--inactive';
+    case 'Late': return 'search-result-status--late';
+    default: return 'search-result-status--active';
+  }
+}
+
+/** Toggle mobile search panel */
+function toggleMobileSearch() {
+  const overlay = document.getElementById('mobile-search-overlay');
+  const panel = document.getElementById('mobile-search-panel');
+  const input = document.getElementById('mobile-search-input');
+
+  if (isMobileSearchOpen) {
+    closeMobileSearch();
+  } else {
+    overlay?.classList.remove('hidden');
+    panel?.classList.remove('hidden');
+    isMobileSearchOpen = true;
+    document.body.style.overflow = 'hidden';
+    if (input) input.focus();
+  }
+}
+
+/** Close mobile search panel */
+function closeMobileSearch() {
+  const overlay = document.getElementById('mobile-search-overlay');
+  const panel = document.getElementById('mobile-search-panel');
+  const input = document.getElementById('mobile-search-input');
+
+  overlay?.classList.add('hidden');
+  panel?.classList.add('hidden');
+  isMobileSearchOpen = false;
+  document.body.style.overflow = '';
+  if (input) input.value = '';
+  hideGlobalSearchResults('mobile');
+}
+
+/** Paints the profile header/overview instantly from the table cache. */
+function paintCachedTraineeProfile(traineeId) {
+  const trainee = traineesCache.find(t => String(t._id) === String(traineeId));
+  if (!trainee) return;
+
+  currentTraineeProfileId = traineeId;
+  window.currentTraineeProfileId = traineeId;
+
+  const modal = document.getElementById('trainee-profile-modal');
+  if (!modal) return;
+
+  // Populate header
+  const initials = getInitials(trainee.fullName);
+  document.getElementById('trainee-profile-avatar').textContent = initials;
+  document.getElementById('trainee-profile-name').textContent = trainee.fullName || 'Unknown Trainee';
+
+  const courseSection = `${trainee.department || ''} ${trainee.section ? '• ' + trainee.section : ''}`.trim();
+  const studentId = trainee.studentId ? `Student ID: ${trainee.studentId}` : '';
+  document.getElementById('trainee-profile-meta').textContent = [courseSection, studentId].filter(Boolean).join(' | ');
+
+  const status = getTraineeDisplayStatus(trainee);
+  const statusClass = getStatusClassName(status);
+  document.getElementById('trainee-profile-status').innerHTML = `
+    <span class="status-badge ${statusClass.replace('search-result-status--', 'status-')}">${status}</span>
+  `;
+
+  // Populate details grid
+  const detailsHtml = `
+    <div class="trainee-profile-detail">
+      <span class="trainee-profile-detail__label">Student ID</span>
+      <span class="trainee-profile-detail__value">${trainee.studentId || '—'}</span>
+    </div>
+    <div class="trainee-profile-detail">
+      <span class="trainee-profile-detail__label">Course</span>
+      <span class="trainee-profile-detail__value">${trainee.department || '—'}</span>
+    </div>
+    <div class="trainee-profile-detail">
+      <span class="trainee-profile-detail__label">Section</span>
+      <span class="trainee-profile-detail__value">${trainee.section || '—'}</span>
+    </div>
+    <div class="trainee-profile-detail">
+      <span class="trainee-profile-detail__label">Company</span>
+      <span class="trainee-profile-detail__value">${trainee.companyName || 'Not assigned'}</span>
+    </div>
+  `;
+  document.getElementById('trainee-profile-details').innerHTML = detailsHtml;
+
+  // Populate OJT Progress
+  const completedHours = Number(trainee.completedHours) || 0;
+  const requiredHours = Number(trainee.requiredHours) || 486;
+  const remainingHours = Math.max(0, requiredHours - completedHours);
+  const progressPercent = requiredHours > 0 ? Math.min(100, Math.round((completedHours / requiredHours) * 100)) : 0;
+
+  document.getElementById('trainee-profile-hours').textContent = `${completedHours.toFixed(1)} / ${requiredHours} hrs`;
+  document.getElementById('trainee-profile-progress-fill').style.width = `${progressPercent}%`;
+  document.getElementById('trainee-profile-required').textContent = `${requiredHours} hrs`;
+  document.getElementById('trainee-profile-remaining').textContent = `${remainingHours.toFixed(1)} hrs`;
+
+  // Populate Assignment
+  const supervisorName = trainee.supervisorId?.fullName || 'Unassigned';
+  const supervisorCompany = trainee.supervisorId?.companyName || '';
+  const supervisorPosition = trainee.supervisorId?.companyPosition || '';
+  const supervisorEmail = trainee.supervisorId?.email || '';
+
+  let assignmentHtml = `
+    <div class="trainee-profile-assignment__row">
+      <span class="trainee-profile-assignment__label">Supervisor</span>
+      <span class="trainee-profile-assignment__value">${escapeHtml(supervisorName)}${supervisorCompany ? ' — ' + escapeHtml(supervisorCompany) : ''}</span>
+    </div>
+  `;
+
+  if (supervisorPosition) {
+    assignmentHtml += `
+      <div class="trainee-profile-assignment__row">
+        <span class="trainee-profile-assignment__label">Position</span>
+        <span class="trainee-profile-assignment__value">${escapeHtml(supervisorPosition)}</span>
+      </div>
+    `;
+  }
+
+  if (supervisorEmail) {
+    assignmentHtml += `
+      <div class="trainee-profile-assignment__row">
+        <span class="trainee-profile-assignment__label">Email</span>
+        <span class="trainee-profile-assignment__value">${escapeHtml(supervisorEmail)}</span>
+      </div>
+    `;
+  }
+
+  if (trainee.supervisorAssignedAt) {
+    const assignedDate = new Date(trainee.supervisorAssignedAt).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+    assignmentHtml += `
+      <div class="trainee-profile-assignment__row">
+        <span class="trainee-profile-assignment__label">Assigned Since</span>
+        <span class="trainee-profile-assignment__value">${assignedDate}</span>
+      </div>
+    `;
+  }
+
+  document.getElementById('trainee-profile-assignment').innerHTML = assignmentHtml;
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  // Focus trap
+  setTimeout(() => {
+    const closeBtn = modal.querySelector('button[onclick="closeTraineeProfileModal()"]');
+    if (closeBtn) closeBtn.focus();
+  }, 100);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// TRAINEE PROFILE — comprehensive OJT monitoring view
+// ────────────────────────────────────────────────────────────────────────────
+// paintCachedTraineeProfile() above paints an instant header from the table
+// cache; everything below fetches the trainee's full OJT record from
+// GET /api/coordinator/trainee/:id and renders it across four sections.
+// Every figure is computed from those real records: verified hours only ever
+// count complete, supervisor-verified DTRs, and the view never invents a
+// time-in or time-out it does not have.
+
+let currentTraineeProfileId = null;
+let tpData = null;             // payload of the profile on screen
+let tpError = '';
+let tpLoading = false;
+let tpActiveTab = 'overview';
+let tpJournalsPage = 1;
+let tpDtrPage = 1;
+let tpOpenDtrId = null;        // DTR whose detail row is expanded
+let tpTimelineLimit = 15;
+let tpAttendanceChart = null;
+
+const TP_PAGE_SIZE = 10;
+// Mirrors TOTAL_OJT_WEEKS in backend/routes/stats.js.
+const TP_TOTAL_OJT_WEEKS = 17;
+// Week labels arrive as "Week 3", "3" or "03".
+const TP_WEEK_LABEL_RE = /^\s*(?:week\s*)?0*(\d+)\s*$/i;
+
+const TP_TIMELINE_ICONS = {
+  journal: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+  attendance: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+  supervisor: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+};
+
+// ── formatting & small utilities ────────────────────────────────────────────
+
+function tpHours(value) {
+  return Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 1 });
+}
+
+function tpParseWeekLabel(label) {
+  const match = TP_WEEK_LABEL_RE.exec(String(label == null ? '' : label));
+  return match ? Number(match[1]) : null;
+}
+
+/** OJT week number: week 1 contains the placement start day, capped at 17. */
+function tpCurrentOjtWeek(startDate, now = new Date()) {
+  const start = startOfDay(new Date(startDate));
+  const today = startOfDay(now);
+  if (Number.isNaN(start.getTime()) || today.getTime() < start.getTime()) return 0;
+  const elapsed = Math.floor((today.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  return Math.min(elapsed + 1, TP_TOTAL_OJT_WEEKS);
+}
+
+/** Calendar span an OJT week covers: [start + (week-1)*7 … +6 days]. */
+function tpCoverageForWeek(startDate, week) {
+  const from = addDays(startOfDay(new Date(startDate)), (week - 1) * 7);
+  return { from, to: addDays(from, 6) };
+}
+
+function tpFormatDay(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function tpFormatClock(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function tpFormatRange(from, to) {
+  const a = new Date(from);
+  const b = new Date(to);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return '—';
+  const left = a.toLocaleDateString('en-US', a.getFullYear() === b.getFullYear()
+    ? { month: 'short', day: 'numeric' }
+    : { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${left} – ${tpFormatDay(b)}`;
+}
+
+/**
+ * Weekdays (Mon–Fri) with no time-in record. Derived, so it is always
+ * labelled "weekdays without a record" — configured holidays are not
+ * excluded and it is never presented as an official absence count.
+ */
+function tpWeekdaysWithoutRecord(startDate, dtrs, endDate) {
+  if (!startDate) return null;
+  const from = startOfDay(new Date(startDate));
+  const to = startOfDay(new Date(endDate || Date.now()));
+  if (Number.isNaN(from.getTime()) || to.getTime() < from.getTime()) return 0;
+  const recorded = new Set(dtrs.filter(d => d.timeIn).map(d => dayKey(new Date(d.date))));
+  let gaps = 0;
+  for (let day = new Date(from); day <= to; day = addDays(day, 1)) {
+    const dow = day.getDay();
+    if (dow === 0 || dow === 6) continue;
+    if (!recorded.has(dayKey(day))) gaps += 1;
+  }
+  return gaps;
+}
+
+/** Pager shared by the profile's journal and DTR tables. */
+function tpPagerHtml(currentPage, totalPages, handler) {
+  if (totalPages <= 1) return '';
+
+  const parts = [];
+  parts.push(currentPage === 1
+    ? '<button type="button" disabled class="pager__btn">Prev</button>'
+    : `<button type="button" onclick="${handler}(${currentPage - 1})" class="pager__btn">Prev</button>`);
+
+  const windowSize = 2;
+  const first = Math.max(1, currentPage - windowSize);
+  const last = Math.min(totalPages, currentPage + windowSize);
+  const pages = [];
+  if (first > 1) {
+    pages.push(1);
+    if (first > 2) pages.push('…');
+  }
+  for (let page = first; page <= last; page++) pages.push(page);
+  if (last < totalPages) {
+    if (last < totalPages - 1) pages.push('…');
+    pages.push(totalPages);
+  }
+
+  pages.forEach(page => {
+    if (page === '…') {
+      parts.push('<span class="pager__ellipsis">…</span>');
+      return;
+    }
+    parts.push(page === currentPage
+      ? `<button type="button" class="pager__btn pager__btn--current" aria-current="page">${page}</button>`
+      : `<button type="button" onclick="${handler}(${page})" class="pager__btn">${page}</button>`);
+  });
+
+  parts.push(currentPage === totalPages
+    ? '<button type="button" disabled class="pager__btn">Next</button>'
+    : `<button type="button" onclick="${handler}(${currentPage + 1})" class="pager__btn">Next</button>`);
+
+  return parts.join('');
+}
+
+function tpSkeletonCellRows(rows, cols) {
+  let html = '';
+  for (let r = 0; r < rows; r++) {
+    html += '<tr>';
+    for (let c = 0; c < cols; c++) html += '<td class="cell"><span class="skel skel--cell"></span></td>';
+    html += '</tr>';
+  }
+  return html;
+}
+
+function tpSkeletonLines(count) {
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    html += `<span class="skel skel--line ${i === count - 1 ? 'skel--short' : 'skel--mid'}"></span>`;
+  }
+  return html;
+}
+
+/** Centered empty / info / error block for the non-table panels. */
+function tpStateBlock(title, text, actionHtml = '') {
+  return `
+    <div class="tp-state">
+      <p class="tp-state__title">${escapeHtml(title)}</p>
+      <p class="tp-state__text">${escapeHtml(text)}</p>
+      ${actionHtml}
+    </div>
+  `;
+}
+
+function setKpi(id, value, note) {
+  const card = el(id);
+  if (!card) return;
+  const num = card.querySelector('.tp-kpi__num');
+  const noteEl = card.querySelector('.tp-kpi__note-text');
+  if (num) num.textContent = value;
+  if (noteEl) noteEl.textContent = note;
+}
+
+// ── header, KPI row, loading & error states ─────────────────────────────────
+
+/** Paints the profile header from a cache or payload trainee object. */
+function renderProfileHeaderFrom(trainee) {
+  if (!trainee) return;
+
+  const name = trainee.fullName || 'Unknown Trainee';
+  const avatar = el('trainee-profile-avatar');
+  if (avatar) avatar.textContent = getInitials(name);
+  const nameEl = el('trainee-profile-name');
+  if (nameEl) nameEl.textContent = name;
+
+  const parts = [];
+  const courseSection = [trainee.department, trainee.section].filter(Boolean).join(' • ');
+  if (courseSection) parts.push(courseSection);
+  if (trainee.companyName) parts.push(trainee.companyName);
+  if (trainee.studentId) parts.push(`Student ID: ${trainee.studentId}`);
+  const meta = el('trainee-profile-meta');
+  if (meta) meta.textContent = parts.join(' | ') || 'No placement details recorded';
+
+  const status = getTraineeDisplayStatus(trainee);
+  const statusClass = getStatusClassName(status).replace('search-result-status--', 'status-');
+  const badges = [`<span class="status-badge ${statusClass}">${escapeHtml(status)}</span>`];
+
+  if (trainee.supervisorId && trainee.supervisorId.fullName) {
+    badges.push(`<span class="chip chip--info">Supervisor: ${escapeHtml(trainee.supervisorId.fullName)}</span>`);
+  } else {
+    badges.push('<span class="chip chip--warning">Unassigned</span>');
+  }
+  if (trainee.supervisorAssignedAt) {
+    const week = tpCurrentOjtWeek(trainee.supervisorAssignedAt);
+    if (week >= 1) badges.push(`<span class="chip chip--neutral">OJT Week ${week}</span>`);
+    badges.push(`<span class="chip chip--neutral">Since ${escapeHtml(tpFormatDay(trainee.supervisorAssignedAt))}</span>`);
+  }
+
+  const statusWrap = el('trainee-profile-status');
+  if (statusWrap) statusWrap.innerHTML = badges.join('');
+
+  // Assignment stays reachable from inside the profile itself.
+  const actions = el('tp-header-actions');
+  if (actions) {
+    const traineeId = trainee._id || currentTraineeProfileId || '';
+    actions.innerHTML = `
+      <button type="button" class="btn-ghost btn-ghost--sm"
+        onclick="openAssignModal('${jsStringArg(traineeId)}', '${jsStringArg(name)}')">
+        ${trainee.supervisorId ? 'Reassign Supervisor' : 'Assign Supervisor'}
+      </button>
+    `;
+  }
+}
+
+function renderProfileKpisLoading() {
+  ['tp-kpi-hours', 'tp-kpi-attendance', 'tp-kpi-journals', 'tp-kpi-dtr'].forEach(id => {
+    const card = el(id);
+    if (card) {
+      card.classList.add('is-loading');
+      card.setAttribute('aria-busy', 'true');
+    }
+    setKpi(id, '—', '');
+  });
+  const footnote = el('tp-kpi-footnote');
+  if (footnote) footnote.hidden = true;
+}
+
+/** The four overview cards, all computed from the fetched records. */
+function renderProfileKpis(data) {
+  const ids = ['tp-kpi-hours', 'tp-kpi-attendance', 'tp-kpi-journals', 'tp-kpi-dtr'];
+  ids.forEach(id => {
+    const card = el(id);
+    if (card) {
+      card.classList.remove('is-loading');
+      card.removeAttribute('aria-busy');
+    }
+  });
+
+  if (!data) {
+    ids.forEach(id => setKpi(id, '—', 'Profile data unavailable'));
+    return;
+  }
+
+  const trainee = data.trainee || {};
+  const dtrs = Array.isArray(data.dtrRecords) ? data.dtrRecords : [];
+  const journals = (Array.isArray(data.journals) ? data.journals : [])
+    .filter(j => j && j.status !== 'draft');
+
+  // Hours: verified only (complete + supervisor-verified DTRs, per the API).
+  const verified = Number(data.verifiedHours) || 0;
+  const required = Number(data.requiredHours) || Number(trainee.requiredHours) || 486;
+  const remaining = Math.max(0, required - verified);
+  const percent = required > 0 ? Math.min(100, (verified / required) * 100) : 0;
+  const recorded = dtrs.reduce((sum, d) => sum + (Number(d.hoursRendered) || 0), 0);
+  const unverifiedHours = Math.max(0, recorded - verified);
+  setKpi('tp-kpi-hours', `${tpHours(verified)} / ${tpHours(required)} h`,
+    `${percent.toFixed(1)}% complete · ${tpHours(remaining)} h remaining`
+    + (unverifiedHours > 0.05 ? ` · ${tpHours(unverifiedHours)} h awaiting verification` : ''));
+  const bar = el('tp-kpi-hours-bar');
+  if (bar) bar.style.width = `${percent}%`;
+
+  // Attendance: record counts only; derived gaps are footnoted separately.
+  const counts = { present: 0, late: 0, absent: 0, excused: 0 };
+  dtrs.forEach(d => {
+    const key = Object.prototype.hasOwnProperty.call(counts, d.status) ? d.status : 'present';
+    counts[key] += 1;
+  });
+  const unverifiedRecords = dtrs.filter(d => !d.verifiedBySupervisor).length;
+  setKpi('tp-kpi-attendance', `${counts.present}`,
+    `${counts.late} late · ${counts.excused} excused · ${counts.absent} absent · ${unverifiedRecords} unverified`);
+
+  // Weekly journals against the weeks elapsed so far.
+  const ojtStart = trainee.supervisorAssignedAt || null;
+  const currentWeek = ojtStart ? tpCurrentOjtWeek(ojtStart) : 0;
+  const expected = Math.min(currentWeek, TP_TOTAL_OJT_WEEKS);
+  const weeksFiled = new Set();
+  journals.forEach(journal => {
+    const week = tpParseWeekLabel(journal.week);
+    if (week) weeksFiled.add(week);
+  });
+  const reviewed = journals.filter(j => j.coordinatorApproved).length;
+  const awaitingReview = journals.filter(j => j.supervisorSigned && !j.coordinatorApproved).length;
+  const missing = Math.max(0, expected - weeksFiled.size);
+  if (expected <= 0) {
+    setKpi('tp-kpi-journals', '—', 'Journal weeks start with the first supervisor assignment');
+  } else {
+    setKpi('tp-kpi-journals', `${weeksFiled.size} / ${expected}`,
+      `${reviewed} reviewed · ${awaitingReview} awaiting review · ${missing} missing`);
+  }
+
+  // DTR verification counts.
+  const totalRecords = dtrs.length;
+  const verifiedRecords = dtrs.filter(d => d.verifiedBySupervisor).length;
+  if (totalRecords === 0) {
+    setKpi('tp-kpi-dtr', '0 / 0', 'No time records yet');
+  } else {
+    setKpi('tp-kpi-dtr', `${verifiedRecords} / ${totalRecords}`,
+      `${totalRecords - verifiedRecords} pending verification`);
+  }
+
+  // Derived weekday gaps — only ever shown with the caveat attached.
+  const gaps = tpWeekdaysWithoutRecord(ojtStart, dtrs, new Date());
+  const footnote = el('tp-kpi-footnote');
+  if (footnote) {
+    if (gaps > 0) {
+      footnote.textContent = `Weekdays since the OJT start with no time-in record: ${gaps}. `
+        + 'This counts missing records only — configured holidays are not excluded.';
+      footnote.hidden = false;
+    } else {
+      footnote.hidden = true;
+    }
+  }
+
+  const lastTimeIn = dtrs.map(d => d.timeIn).filter(Boolean).sort().pop();
+  const lastEl = el('tp-last-timein');
+  if (lastEl) {
+    lastEl.innerHTML = lastTimeIn
+      ? `Last time-in <strong>${escapeHtml(formatTimeIn(lastTimeIn))}</strong>`
+      : 'No time-in recorded yet';
+  }
+}
+
+function renderProfilePanelsLoading() {
+  const journalBody = el('tp-journal-body');
+  if (journalBody) journalBody.innerHTML = tpSkeletonCellRows(6, 7);
+  const dtrBody = el('tp-dtr-body');
+  if (dtrBody) dtrBody.innerHTML = tpSkeletonCellRows(6, 9);
+
+  const summary = el('tp-att-summary');
+  if (summary) {
+    summary.innerHTML = Array.from({ length: 6 }, () =>
+      '<div class="tp-stat"><span class="skel skel--line skel--short"></span><span class="skel skel--value"></span></div>').join('');
+  }
+
+  ['tp-att-issues', 'tp-att-latest'].forEach(id => {
+    const node = el(id);
+    if (node) {
+      node.innerHTML = Array.from({ length: 3 }, () =>
+        `<div class="tp-list__item"><div class="tp-list__main">${tpSkeletonLines(2)}</div></div>`).join('');
+    }
+  });
+
+  const timeline = el('tp-timeline-list');
+  if (timeline) {
+    timeline.innerHTML = Array.from({ length: 4 }, () => `
+      <li class="tp-timeline__item">
+        <span class="skel" style="width:27px;height:27px;border-radius:50%;flex-shrink:0"></span>
+        <div class="tp-timeline__body">${tpSkeletonLines(2)}</div>
+      </li>`).join('');
+  }
+
+  ['tp-journal-count', 'tp-dtr-count-label', 'tp-timeline-count'].forEach(id => {
+    const node = el(id);
+    if (node) node.textContent = '';
+  });
+  ['tp-journal-pagination', 'tp-dtr-pagination'].forEach(id => {
+    const node = el(id);
+    if (node) node.innerHTML = '';
+  });
+}
+
+function renderProfileLoadError() {
+  const message = tpError || 'The trainee profile could not be loaded.';
+  ['tp-kpi-hours', 'tp-kpi-attendance', 'tp-kpi-journals', 'tp-kpi-dtr'].forEach(id => {
+    const card = el(id);
+    if (card) {
+      card.classList.remove('is-loading');
+      card.removeAttribute('aria-busy');
+    }
+    setKpi(id, '—', 'Data unavailable');
+  });
+  const footnote = el('tp-kpi-footnote');
+  if (footnote) footnote.hidden = true;
+
+  const retry = currentTraineeProfileId
+    ? `loadTraineeProfileData('${jsStringArg(currentTraineeProfileId)}')`
+    : '';
+  const retryHtml = retry
+    ? `<button type="button" class="link-btn" onclick="${escapeHtml(retry)}">Try again</button>`
+    : '';
+
+  const journalBody = el('tp-journal-body');
+  if (journalBody) journalBody.innerHTML = tableStateHtml('Profile unavailable', message, retry, 'Try again', 7);
+  const dtrBody = el('tp-dtr-body');
+  if (dtrBody) dtrBody.innerHTML = tableStateHtml('Profile unavailable', message, retry, 'Try again', 9);
+
+  const attSummary = el('tp-att-summary');
+  if (attSummary) attSummary.innerHTML = tpStateBlock('Profile unavailable', message, retryHtml);
+  ['tp-att-issues', 'tp-att-latest'].forEach(id => {
+    const node = el(id);
+    if (node) node.innerHTML = tpStateBlock('Profile unavailable', message, retryHtml);
+  });
+  const timeline = el('tp-timeline-list');
+  if (timeline) timeline.innerHTML = tpStateBlock('Profile unavailable', message, retryHtml);
+}
+
+// ── open / load / tab switching ─────────────────────────────────────────────
+
+function tpShowProfileShell() {
+  const modal = el('trainee-profile-modal');
+  if (!modal) return;
+  // Defensive re-parenting: if a stale cached copy of the markup still nests
+  // the modal inside a tab pane (panes are display:none when inactive), lift
+  // it to body level so the profile opens from any tab, including dashboard.
+  if (modal.parentElement !== document.body) document.body.appendChild(modal);
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => {
+    const closeBtn = modal.querySelector('.tp-modal__close');
+    if (closeBtn) closeBtn.focus();
+  }, 60);
+}
+
+function resetProfileControls() {
+  [['tp-dtr-from', ''], ['tp-dtr-to', ''], ['tp-dtr-status', ''], ['tp-dtr-verification', ''],
+   ['tp-att-from', ''], ['tp-att-to', '']].forEach(([id, value]) => {
+    const node = el(id);
+    if (node) node.value = value;
+  });
+  // Empty values make renderProfileJournals repopulate with the defaults
+  // (week 1 … current week + 1) for the new trainee.
+  ['tp-journal-from', 'tp-journal-to'].forEach(id => {
+    const node = el(id);
+    if (node) node.value = '';
+  });
+  const timelineFilter = el('tp-timeline-filter');
+  if (timelineFilter) timelineFilter.value = 'all';
+  const journalStatus = el('tp-journal-status');
+  if (journalStatus) journalStatus.value = '';
+}
+
+function openTraineeProfileModal(traineeId) {
+  if (!traineeId) return;
+  markInteraction();
+
+  currentTraineeProfileId = traineeId;
+  window.currentTraineeProfileId = traineeId;
+  tpData = null;
+  tpError = '';
+  tpLoading = true;
+  tpActiveTab = 'overview';
+  tpJournalsPage = 1;
+  tpDtrPage = 1;
+  tpOpenDtrId = null;
+  tpTimelineLimit = 15;
+  destroyProfileChart();
+  resetProfileControls();
+
+  // Clear leftovers from a previously opened profile before painting.
+  const staleActions = el('tp-header-actions');
+  if (staleActions) staleActions.innerHTML = '';
+
+  // Paint what the table cache already holds so the modal answers instantly;
+  // the full record lands a moment later from the API.
+  const cached = traineesCache.find(t => String(t._id) === String(traineeId));
+  if (cached) {
+    paintCachedTraineeProfile(traineeId);
+  } else {
+    const avatar = el('trainee-profile-avatar');
+    if (avatar) avatar.textContent = '…';
+    const nameEl = el('trainee-profile-name');
+    if (nameEl) nameEl.textContent = 'Loading trainee…';
+    const meta = el('trainee-profile-meta');
+    if (meta) meta.textContent = 'Fetching the OJT record…';
+    const statusWrap = el('trainee-profile-status');
+    if (statusWrap) statusWrap.innerHTML = '';
+    const actions = el('tp-header-actions');
+    if (actions) actions.innerHTML = '';
+
+    const details = el('trainee-profile-details');
+    if (details) details.innerHTML = tpSkeletonLines(2);
+    ['trainee-profile-hours', 'trainee-profile-required', 'trainee-profile-remaining', 'trainee-profile-recorded'].forEach(id => {
+      const node = el(id);
+      if (node) node.textContent = '—';
+    });
+    const fill = el('trainee-profile-progress-fill');
+    if (fill) fill.style.width = '0%';
+    const assignment = el('trainee-profile-assignment');
+    if (assignment) assignment.innerHTML = tpSkeletonLines(2);
+  }
+
+  const lastEl = el('tp-last-timein');
+  if (lastEl) lastEl.textContent = '';
+
+  renderProfileKpisLoading();
+  renderProfilePanelsLoading();
+  switchProfileTab('overview');
+  tpShowProfileShell();
+
+  loadTraineeProfileData(traineeId);
+}
+
+async function loadTraineeProfileData(traineeId) {
+  const result = await fetchAPI(`/coordinator/trainee/${traineeId}`);
+
+  // The modal closed or moved to another trainee while the request was in flight.
+  if (String(currentTraineeProfileId || '') !== String(traineeId)) return;
+
+  tpLoading = false;
+
+  if (!result || !result.success || !result.data) {
+    tpError = (result && result.message)
+      || 'The trainee profile could not be loaded. Check your connection and try again.';
+    renderProfileLoadError();
+    return;
+  }
+
+  tpError = '';
+  tpData = result.data;
+  if (result.data.trainee) renderProfileHeaderFrom(result.data.trainee);
+  renderProfileKpis(result.data);
+  renderProfileTab();
+}
+
+function switchProfileTab(tab) {
+  tpActiveTab = tab;
+
+  document.querySelectorAll('#trainee-profile-modal .tp-tab').forEach(btn => {
+    const target = (btn.id || '').replace('tp-tab-', '');
+    const active = target === tab;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    btn.tabIndex = active ? 0 : -1;
+  });
+
+  document.querySelectorAll('#trainee-profile-modal .tp-panel').forEach(panel => {
+    const active = panel.id === `tp-panel-${tab}`;
+    panel.classList.toggle('is-active', active);
+    if (active) panel.removeAttribute('hidden');
+    else panel.setAttribute('hidden', '');
+  });
+
+  renderProfileTab();
+}
+
+function renderProfileTab() {
+  if (tpError) {
+    renderProfileLoadError();
+    return;
+  }
+  if (tpLoading || !tpData) return; // skeletons are already on screen
+
+  switch (tpActiveTab) {
+    case 'journals': renderProfileJournals(); break;
+    case 'dtr': renderProfileDtr(); break;
+    case 'attendance': renderProfileAttendance(); break;
+    case 'timeline': renderProfileTimeline(); break;
+    default: renderProfileOverview(tpData);
+  }
+}
+
+// ── Overview section ────────────────────────────────────────────────────────
+
+function renderProfileOverview(data) {
+  const trainee = data.trainee || {};
+
+  const detail = (label, value) => `
+    <div class="trainee-profile-detail">
+      <span class="trainee-profile-detail__label">${escapeHtml(label)}</span>
+      <span class="trainee-profile-detail__value">${escapeHtml(value || '—')}</span>
+    </div>`;
+
+  const details = el('trainee-profile-details');
+  if (details) {
+    details.innerHTML = [
+      detail('Student ID', trainee.studentId),
+      detail('Course', trainee.department),
+      detail('Section', trainee.section),
+      detail('Company', trainee.companyName || 'Not assigned'),
+      detail('OJT Start', trainee.supervisorAssignedAt ? tpFormatDay(trainee.supervisorAssignedAt) : 'Not started'),
+      detail('Required Hours', `${tpHours(data.requiredHours || trainee.requiredHours || 486)} hrs`),
+    ].join('');
+  }
+
+  const verified = Number(data.verifiedHours) || 0;
+  const required = Number(data.requiredHours) || Number(trainee.requiredHours) || 486;
+  const remaining = Number.isFinite(Number(data.remainingHours))
+    ? Number(data.remainingHours)
+    : Math.max(0, required - verified);
+  const percent = required > 0 ? Math.min(100, (verified / required) * 100) : 0;
+
+  const hoursEl = el('trainee-profile-hours');
+  if (hoursEl) hoursEl.textContent = `${tpHours(verified)} / ${tpHours(required)} hrs`;
+  const fill = el('trainee-profile-progress-fill');
+  if (fill) fill.style.width = `${percent}%`;
+  const requiredEl = el('trainee-profile-required');
+  if (requiredEl) requiredEl.textContent = `${tpHours(required)} hrs`;
+  const remainingEl = el('trainee-profile-remaining');
+  if (remainingEl) remainingEl.textContent = `${tpHours(remaining)} hrs`;
+  const recordedEl = el('trainee-profile-recorded');
+  if (recordedEl) {
+    const recorded = (data.dtrRecords || []).reduce((sum, d) => sum + (Number(d.hoursRendered) || 0), 0);
+    recordedEl.textContent = `${tpHours(recorded)} hrs`;
+  }
+
+  const supervisor = trainee.supervisorId || {};
+  const supervisorName = supervisor.fullName || 'Unassigned';
+  let assignmentHtml = `
+    <div class="trainee-profile-assignment__row">
+      <span class="trainee-profile-assignment__label">Supervisor</span>
+      <span class="trainee-profile-assignment__value">${escapeHtml(supervisorName)}${supervisor.companyName ? ' — ' + escapeHtml(supervisor.companyName) : ''}</span>
+    </div>
+  `;
+  if (supervisor.companyPosition) {
+    assignmentHtml += `
+      <div class="trainee-profile-assignment__row">
+        <span class="trainee-profile-assignment__label">Position</span>
+        <span class="trainee-profile-assignment__value">${escapeHtml(supervisor.companyPosition)}</span>
+      </div>`;
+  }
+  if (supervisor.email) {
+    assignmentHtml += `
+      <div class="trainee-profile-assignment__row">
+        <span class="trainee-profile-assignment__label">Email</span>
+        <span class="trainee-profile-assignment__value">${escapeHtml(supervisor.email)}</span>
+      </div>`;
+  }
+  if (trainee.supervisorAssignedAt) {
+    assignmentHtml += `
+      <div class="trainee-profile-assignment__row">
+        <span class="trainee-profile-assignment__label">Assigned Since</span>
+        <span class="trainee-profile-assignment__value">${escapeHtml(tpFormatDay(trainee.supervisorAssignedAt))}</span>
+      </div>`;
+  }
+  if (trainee.schedule && trainee.schedule.startTime && trainee.schedule.endTime) {
+    assignmentHtml += `
+      <div class="trainee-profile-assignment__row">
+        <span class="trainee-profile-assignment__label">Work Schedule</span>
+        <span class="trainee-profile-assignment__value">${escapeHtml(trainee.schedule.startTime)} – ${escapeHtml(trainee.schedule.endTime)}</span>
+      </div>`;
+  }
+  const assignment = el('trainee-profile-assignment');
+  if (assignment) assignment.innerHTML = assignmentHtml;
+}
+
+// ── Weekly Journals section ─────────────────────────────────────────────────
+
+/** Week index for the tracker: 17 OJT weeks derived from the placement date. */
+function tpJournalIndex() {
+  const trainee = (tpData && tpData.trainee) || {};
+  const startRaw = trainee.supervisorAssignedAt;
+  if (!startRaw) return null;
+  const start = new Date(startRaw);
+  if (Number.isNaN(start.getTime())) return null;
+
+  const currentWeek = tpCurrentOjtWeek(start);
+  const byWeek = new Map();
+  (tpData.journals || []).filter(j => j && j.status !== 'draft').forEach(journal => {
+    const week = tpParseWeekLabel(journal.week);
+    if (week) byWeek.set(week, journal);
+  });
+
+  const rows = [];
+  for (let week = 1; week <= TP_TOTAL_OJT_WEEKS; week++) {
+    const journal = byWeek.get(week) || null;
+    const coverage = tpCoverageForWeek(start, week);
+    rows.push({
+      week,
+      journal,
+      from: coverage.from,
+      to: coverage.to,
+      submission: journal ? 'submitted' : (week > currentWeek ? 'not-due' : 'missing'),
+    });
+  }
+  return { start, currentWeek, rows };
+}
+
+/** Review-state vocabulary taken straight from the existing journal workflow. */
+function tpJournalReviewState(journal) {
+  if (!journal) return null;
+  if (journal.coordinatorApproved) return { key: 'reviewed', label: 'Reviewed', chip: 'chip--success' };
+  if (journal.supervisorSigned) return { key: 'pending', label: 'Pending Review', chip: 'chip--info' };
+  if (journal.coordinatorRemarks) return { key: 'returned', label: 'Returned', chip: 'chip--danger' };
+  return { key: 'submitted', label: 'Awaiting Supervisor', chip: 'chip--warning' };
+}
+
+function tpJournalFilterKey(row) {
+  if (!row.journal) return row.submission;
+  const review = tpJournalReviewState(row.journal);
+  // Returned journals were still handed in, so they sit under Submitted.
+  return review.key === 'returned' ? 'submitted' : review.key;
+}
+
+function tpJournalRowHtml(row, currentWeek) {
+  const journal = row.journal;
+  const review = tpJournalReviewState(journal);
+
+  const submissionChip = journal
+    ? '<span class="chip chip--success">Submitted</span>'
+    : (row.submission === 'not-due'
+      ? '<span class="chip chip--neutral">Not Yet Due</span>'
+      : '<span class="chip chip--danger">Missing</span>');
+
+  const reviewChip = review
+    ? `<span class="chip ${review.chip}">${review.label}</span>`
+    : '<span class="tp-muted">—</span>';
+
+  const submittedAt = journal ? (formatTimeIn(journal.submittedAt) || formatTimeIn(journal.createdAt)) : null;
+
+  let action = '<span class="tp-muted">—</span>';
+  if (journal) {
+    // Deep-links into the existing review queue (approved when reviewed).
+    const queue = review.key === 'reviewed' ? 'reviewed' : 'pending';
+    action = `<button type="button" class="link-btn" onclick="tpOpenJournalFromProfile('${jsStringArg(journal._id)}', '${queue}')">Review</button>`;
+  } else if (row.submission === 'missing') {
+    action = '<span class="tp-wait" title="No journal has been submitted for this week">Not submitted</span>';
+  }
+
+  return `
+    <tr>
+      <td class="cell">
+        <div class="tp-stack">
+          <span class="tp-strong">Week ${row.week}</span>
+          ${row.week === currentWeek ? '<span class="tp-stack__sub">Current week</span>' : ''}
+        </div>
+      </td>
+      <td class="cell">${escapeHtml(tpFormatRange(row.from, row.to))}</td>
+      <td class="cell" title="No separate deadline is configured; the journal covers the whole week.">
+        <span class="tp-strong">${escapeHtml(tpFormatDay(row.to))}</span>
+      </td>
+      <td class="cell">${submissionChip}</td>
+      <td class="cell">${submittedAt ? escapeHtml(submittedAt) : '<span class="tp-muted">—</span>'}</td>
+      <td class="cell">${reviewChip}</td>
+      <td class="cell"><div class="cell-actions">${action}</div></td>
+    </tr>
+  `;
+}
+
+function renderProfileJournals() {
+  const index = tpJournalIndex();
+  const fromSel = el('tp-journal-from');
+  const toSel = el('tp-journal-to');
+  const statusSel = el('tp-journal-status');
+  const body = el('tp-journal-body');
+
+  if (!index) {
+    if (body) {
+      body.innerHTML = tableStateHtml(
+        'Journal weeks unavailable',
+        'This trainee has no recorded supervisor assignment date, so OJT weeks cannot be derived yet.',
+        '', '', 7);
+    }
+    [fromSel, toSel].forEach(sel => {
+      if (!sel) return;
+      sel.innerHTML = '<option value="">—</option>';
+      sel.disabled = true;
+    });
+    const count = el('tp-journal-count');
+    if (count) count.textContent = '';
+    const countLabel = el('tp-journal-count-label');
+    if (countLabel) countLabel.textContent = '';
+    const pager = el('tp-journal-pagination');
+    if (pager) pager.innerHTML = '';
+    return;
+  }
+
+  // Populate the configurable week range, preserving the current selection.
+  const currentFrom = Number(fromSel && fromSel.value) || 1;
+  const currentTo = Number(toSel && toSel.value)
+    || Math.min(index.currentWeek + 1, TP_TOTAL_OJT_WEEKS) || 1;
+  const options = Array.from({ length: TP_TOTAL_OJT_WEEKS }, (_, i) =>
+    `<option value="${i + 1}">Week ${i + 1}</option>`).join('');
+  if (fromSel) {
+    fromSel.disabled = false;
+    fromSel.innerHTML = options;
+    fromSel.value = String(Math.min(Math.max(currentFrom, 1), TP_TOTAL_OJT_WEEKS));
+  }
+  if (toSel) {
+    toSel.disabled = false;
+    toSel.innerHTML = options;
+    toSel.value = String(Math.min(Math.max(currentTo, 1), TP_TOTAL_OJT_WEEKS));
+  }
+
+  const statusFilter = statusSel ? statusSel.value : '';
+  const rows = index.rows.filter(row => !statusFilter || tpJournalFilterKey(row) === statusFilter);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / TP_PAGE_SIZE));
+  if (tpJournalsPage > totalPages) tpJournalsPage = totalPages;
+  const pageRows = rows.slice((tpJournalsPage - 1) * TP_PAGE_SIZE, tpJournalsPage * TP_PAGE_SIZE);
+
+  if (body) {
+    body.innerHTML = pageRows.length
+      ? pageRows.map(row => tpJournalRowHtml(row, index.currentWeek)).join('')
+      : tableStateHtml('No weeks match these filters',
+        'Change the week range or the submission status filter to see other OJT weeks.', '', '', 7);
+  }
+
+  const count = el('tp-journal-count');
+  if (count) count.textContent = `${rows.length} of ${index.rows.length} OJT weeks`;
+  const countLabel = el('tp-journal-count-label');
+  if (countLabel) {
+    countLabel.textContent = rows.length
+      ? `Showing weeks ${(tpJournalsPage - 1) * TP_PAGE_SIZE + 1}–${Math.min(tpJournalsPage * TP_PAGE_SIZE, rows.length)} of ${rows.length}`
+      : '';
+  }
+  const pager = el('tp-journal-pagination');
+  if (pager) pager.innerHTML = rows.length ? tpPagerHtml(tpJournalsPage, totalPages, 'tpGoJournalPage') : '';
+}
+
+function onTpJournalRangeChange() {
+  const fromSel = el('tp-journal-from');
+  const toSel = el('tp-journal-to');
+  if (fromSel && toSel) {
+    const from = Number(fromSel.value) || 1;
+    const to = Number(toSel.value) || 1;
+    if (from > to) {
+      // Keep the pair ordered by moving whichever edge was not just changed.
+      if (document.activeElement === fromSel) toSel.value = String(from);
+      else fromSel.value = String(to);
+    }
+  }
+  tpJournalsPage = 1;
+  renderProfileJournals();
+}
+
+function tpGoJournalPage(page) {
+  tpJournalsPage = Math.max(1, page);
+  renderProfileJournals();
+  tpScrollToTabs();
+}
+
+function tpOpenJournalFromProfile(journalId, queue) {
+  closeTraineeProfileModal();
+  openJournalFromTracker(journalId, queue);
+}
+
+// ── DTR Logs section ────────────────────────────────────────────────────────
+
+function tpFilteredDtrRows() {
+  const records = (tpData && tpData.dtrRecords) || [];
+  const from = el('tp-dtr-from') ? el('tp-dtr-from').value : '';
+  const to = el('tp-dtr-to') ? el('tp-dtr-to').value : '';
+  const status = el('tp-dtr-status') ? el('tp-dtr-status').value : '';
+  const verification = el('tp-dtr-verification') ? el('tp-dtr-verification').value : '';
+
+  return records
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .filter(record => {
+      const key = dayKey(new Date(record.date));
+      if (from && key < from) return false;
+      if (to && key > to) return false;
+      if (status && (record.status || 'present') !== status) return false;
+      const verified = record.verifiedBySupervisor === true;
+      const incomplete = !record.timeIn || !record.timeOut;
+      if (verification === 'verified' && !verified) return false;
+      if (verification === 'pending' && verified) return false;
+      if (verification === 'incomplete' && !incomplete) return false;
+      return true;
+    });
+}
+
+/** Elapsed wall-clock time of a record; null whenever either end is missing. */
+function tpRecordedDuration(record) {
+  if (!record.timeIn || !record.timeOut) return null;
+  const start = new Date(record.timeIn).getTime();
+  const end = new Date(record.timeOut).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  return (end - start) / 3600000;
+}
+
+function tpDtrRowHtml(record) {
+  const statusKey = record.status || 'present';
+  const statusChips = {
+    present: '<span class="chip chip--success">Present</span>',
+    late: '<span class="chip chip--warning">Late</span>',
+    absent: '<span class="chip chip--danger">Absent</span>',
+    excused: '<span class="chip chip--info">Excused</span>',
+  };
+  const verified = record.verifiedBySupervisor === true;
+
+  const timeIn = record.timeIn
+    ? `<span class="tp-strong">${escapeHtml(tpFormatClock(record.timeIn))}</span>`
+    : '<span class="tp-muted">—</span>';
+  const timeOut = record.timeOut
+    ? `<span class="tp-strong">${escapeHtml(tpFormatClock(record.timeOut))}</span>`
+    : (record.timeIn ? '<span class="tp-wait">No time-out</span>' : '<span class="tp-muted">—</span>');
+
+  const duration = tpRecordedDuration(record);
+  const durationCell = duration !== null
+    ? `<span class="tp-strong">${duration.toFixed(1)} h</span>`
+    : (record.timeIn ? '<span class="tp-wait">Incomplete</span>' : '<span class="tp-muted">—</span>');
+
+  const credited = verified
+    ? `<span class="tp-strong">${tpHours(record.hoursRendered)} h</span>`
+    : '<span class="tp-muted" title="Hours count toward OJT only after supervisor verification">Not verified</span>';
+
+  const trainee = (tpData && tpData.trainee) || {};
+  const schedule = trainee.schedule || {};
+  const scheduleCell = schedule.startTime && schedule.endTime
+    ? `${escapeHtml(schedule.startTime)} – ${escapeHtml(schedule.endTime)}`
+    : '<span class="tp-muted">—</span>';
+
+  const weekday = new Date(record.date).toLocaleDateString('en-US', { weekday: 'short' });
+  const expanded = tpOpenDtrId === String(record._id);
+
+  let html = `
+    <tr>
+      <td class="cell">
+        <div class="tp-stack">
+          <span class="tp-strong">${escapeHtml(tpFormatDay(record.date))}</span>
+          <span class="tp-stack__sub">${escapeHtml(weekday)}</span>
+        </div>
+      </td>
+      <td class="cell">${scheduleCell}</td>
+      <td class="cell">${timeIn}</td>
+      <td class="cell">${timeOut}</td>
+      <td class="cell">${durationCell}</td>
+      <td class="cell">${credited}</td>
+      <td class="cell">${statusChips[statusKey] || statusChips.present}</td>
+      <td class="cell">${verified
+        ? '<span class="chip chip--success">Verified</span>'
+        : '<span class="chip chip--warning">Pending</span>'}</td>
+      <td class="cell">
+        <button type="button" class="link-btn" onclick="tpToggleDtrDetail('${jsStringArg(record._id)}')"
+          aria-expanded="${expanded}">${expanded ? 'Hide' : 'Details'}</button>
+      </td>
+    </tr>`;
+
+  if (expanded) {
+    html += `
+      <tr class="tp-detail-row">
+        <td colspan="9">
+          <div class="tp-detail-grid">
+            <div><strong>Geofence validated</strong><span>${record.geofenceValidated === true ? 'Yes' : record.geofenceValidated === false ? 'No' : 'Not recorded'}</span></div>
+            <div><strong>QR check-in</strong><span>${record.qrToken ? 'Used' : 'Not used'}</span></div>
+            <div><strong>Attendance status</strong><span>${escapeHtml(statusKey)}</span></div>
+            <div><strong>Supervisor verification</strong><span>${verified ? 'Verified' : 'Pending'}</span></div>
+            <div><strong>Hours recorded</strong><span>${tpHours(record.hoursRendered)} h</span></div>
+            ${record.remarks ? `<div><strong>Remarks</strong><span>${escapeHtml(record.remarks)}</span></div>` : ''}
+            <div><strong>Last updated</strong><span>${escapeHtml(formatTimeIn(record.updatedAt) || '—')}</span></div>
+          </div>
+        </td>
+      </tr>`;
+  }
+
+  return html;
+}
+
+function renderProfileDtr() {
+  const body = el('tp-dtr-body');
+  if (!body || !tpData) return;
+
+  const rows = tpFilteredDtrRows();
+  const totalPages = Math.max(1, Math.ceil(rows.length / TP_PAGE_SIZE));
+  if (tpDtrPage > totalPages) tpDtrPage = totalPages;
+  const pageRows = rows.slice((tpDtrPage - 1) * TP_PAGE_SIZE, tpDtrPage * TP_PAGE_SIZE);
+
+  if (!rows.length) {
+    body.innerHTML = tableStateHtml(
+      'No DTR records match these filters',
+      (tpData.dtrRecords || []).length
+        ? 'This trainee has records, but none inside the selected dates and statuses.'
+        : 'No time records have been captured for this trainee yet.',
+      '', '', 9);
+  } else {
+    body.innerHTML = pageRows.map(tpDtrRowHtml).join('');
+  }
+
+  const countLabel = el('tp-dtr-count-label');
+  if (countLabel) {
+    const start = rows.length ? (tpDtrPage - 1) * TP_PAGE_SIZE + 1 : 0;
+    countLabel.textContent = `Showing ${start}–${Math.min(tpDtrPage * TP_PAGE_SIZE, rows.length)} of ${rows.length} record${rows.length === 1 ? '' : 's'}`;
+  }
+  const pager = el('tp-dtr-pagination');
+  if (pager) pager.innerHTML = rows.length ? tpPagerHtml(tpDtrPage, totalPages, 'tpGoDtrPage') : '';
+}
+
+function onTpDtrFilterChange() {
+  tpDtrPage = 1;
+  renderProfileDtr();
+}
+
+function resetTpDtrFilters() {
+  [['tp-dtr-from', ''], ['tp-dtr-to', ''], ['tp-dtr-status', ''], ['tp-dtr-verification', '']].forEach(([id, value]) => {
+    const node = el(id);
+    if (node) node.value = value;
+  });
+  tpDtrPage = 1;
+  renderProfileDtr();
+}
+
+function tpGoDtrPage(page) {
+  tpDtrPage = Math.max(1, page);
+  renderProfileDtr();
+  tpScrollToTabs();
+}
+
+function tpToggleDtrDetail(recordId) {
+  tpOpenDtrId = tpOpenDtrId === String(recordId) ? null : String(recordId);
+  renderProfileDtr();
+}
+
+// ── Attendance History section ──────────────────────────────────────────────
+
+function tpAttendanceRangeRows() {
+  const records = (tpData && tpData.dtrRecords) || [];
+  const from = el('tp-att-from') ? el('tp-att-from').value : '';
+  const to = el('tp-att-to') ? el('tp-att-to').value : '';
+
+  return records
+    .filter(record => {
+      const key = dayKey(new Date(record.date));
+      if (from && key < from) return false;
+      if (to && key > to) return false;
+      return true;
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+function destroyProfileChart() {
+  if (tpAttendanceChart) {
+    try { tpAttendanceChart.destroy(); } catch (error) { /* canvas already gone */ }
+    tpAttendanceChart = null;
+  }
+}
+
+function renderProfileAttendanceChart(rows) {
+  const canvas = el('tp-attendance-chart');
+  const overlay = el('tp-att-chart-overlay');
+  const hint = el('tp-att-chart-hint');
+  if (!canvas || !overlay) return;
+
+  const attended = rows.filter(r => r.timeIn);
+  if (attended.length < 2) {
+    destroyProfileChart();
+    overlay.hidden = false;
+    if (hint) hint.textContent = '';
+    return;
+  }
+  overlay.hidden = true;
+
+  // Short ranges bucket by week, longer histories by month.
+  const times = attended.map(r => new Date(r.date).getTime());
+  const spanDays = (Math.max(...times) - Math.min(...times)) / 86400000;
+  const weekly = spanDays <= 70;
+
+  const buckets = new Map();
+  attended.forEach(record => {
+    const date = new Date(record.date);
+    let label;
+    if (weekly) {
+      const monday = addDays(startOfDay(date), date.getDay() === 0 ? -6 : 1 - date.getDay());
+      label = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else {
+      label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    }
+    if (!buckets.has(label)) buckets.set(label, new Set());
+    buckets.get(label).add(dayKey(date));
+  });
+
+  const labels = Array.from(buckets.keys());
+  const values = labels.map(label => buckets.get(label).size);
+  const dataset = { label: 'Days attended', data: values };
+  window.TrackITCharts.styleDataset(dataset, {
+    accent: TrackITCharts.accent.teal,
+    maxBarThickness: 26,
+  });
+
+  destroyProfileChart();
+  tpAttendanceChart = window.TrackITCharts.createBar(canvas.getContext('2d'), {
+    data: { labels, datasets: [dataset] },
+    options: window.TrackITCharts.barOptions({
+      vertical: true,
+      legend: false,
+      categoryCount: labels.length,
+      datasetCount: 1,
+      xTitle: weekly ? 'Week of' : 'Month',
+      yTitle: 'Days with a time-in',
+      valueFormatter: value => Math.round(value),
+      showValues: true,
+      valueMax: Math.max(...values),
+    }),
+  });
+
+  if (hint) hint.textContent = `Distinct days with a time-in, per ${weekly ? 'week' : 'month'}`;
+}
+
+function renderProfileAttendance() {
+  if (!tpData) return;
+  const rows = tpAttendanceRangeRows();
+
+  // `excused` is still tallied so any such record never pollutes the present
+  // count, but it is not surfaced as a card — the app has no excused workflow.
+  const counts = { present: 0, late: 0, absent: 0, excused: 0 };
+  rows.forEach(r => {
+    const key = r.status || 'present';
+    if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] += 1;
+    else counts.present += 1;
+  });
+  const unverified = rows.filter(r => !r.verifiedBySupervisor).length;
+  const verifiedHoursInRange = rows
+    .filter(r => r.verifiedBySupervisor === true && r.timeIn && r.timeOut)
+    .reduce((sum, r) => sum + (Number(r.hoursRendered) || 0), 0);
+
+  const stat = (label, value, tone, note) => `
+    <div class="tp-stat">
+      <p class="tp-stat__label">${escapeHtml(label)}</p>
+      <p class="tp-stat__value${tone ? ` tp-stat__value--${tone}` : ''}">${escapeHtml(String(value))}</p>
+      ${note ? `<p class="tp-stat__note">${escapeHtml(note)}</p>` : ''}
+    </div>`;
+
+  const summary = el('tp-att-summary');
+  if (summary) {
+    summary.innerHTML = [
+      stat('Present', counts.present, 'present', 'on-time records'),
+      stat('Late', counts.late, 'late'),
+      stat('Absent', counts.absent, 'absent', 'records marked absent'),
+      stat('Verified Hours', tpHours(verifiedHoursInRange), '', 'credited in this range'),
+      stat('Unverified', unverified, unverified ? 'pending' : 'neutral', 'awaiting verification'),
+    ].join('');
+  }
+
+  renderProfileAttendanceChart(rows);
+
+  // Significant issues: late / absent records, newest first.
+  const issues = rows
+    .filter(r => r.status === 'late' || r.status === 'absent')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const issuesEl = el('tp-att-issues');
+  if (issuesEl) {
+    issuesEl.innerHTML = issues.length
+      ? issues.slice(0, 8).map(record => {
+          const label = record.status === 'late' ? 'Late' : 'Absent';
+          const tone = record.status === 'late' ? 'warning' : 'danger';
+          const sub = record.remarks
+            || (record.timeIn ? `Time-in ${tpFormatClock(record.timeIn)}` : 'No time-in recorded');
+          return `
+            <div class="tp-list__item">
+              <div class="tp-list__main">
+                <p class="tp-list__title">${label} — ${escapeHtml(tpFormatDay(record.date))}</p>
+                <p class="tp-list__sub">${escapeHtml(sub)}</p>
+              </div>
+              <span class="chip chip--${tone}">${label}</span>
+            </div>`;
+        }).join('')
+      : tpStateBlock('No attendance issues', 'No late or absent records fall inside this date range.');
+  }
+
+  // Latest attendance activity.
+  const latest = rows
+    .filter(r => r.timeIn)
+    .sort((a, b) => new Date(b.timeIn).getTime() - new Date(a.timeIn).getTime());
+  const latestEl = el('tp-att-latest');
+  if (latestEl) {
+    if (!latest.length) {
+      latestEl.innerHTML = tpStateBlock('No attendance activity', 'No time-in has been recorded for this trainee in this date range.');
+    } else {
+      const top = latest[0];
+      latestEl.innerHTML = `
+        <div class="tp-list__item">
+          <div class="tp-list__main">
+            <p class="tp-list__title">Time-in ${escapeHtml(tpFormatClock(top.timeIn))}</p>
+            <p class="tp-list__sub">${escapeHtml(tpFormatDay(top.date))}${top.timeOut
+              ? ` · Time-out ${escapeHtml(tpFormatClock(top.timeOut))}`
+              : ' · No time-out recorded'}</p>
+          </div>
+          <span class="chip ${top.verifiedBySupervisor ? 'chip--success' : 'chip--warning'}">${top.verifiedBySupervisor ? 'Verified' : 'Pending'}</span>
+        </div>`;
+    }
+  }
+}
+
+function resetTpAttendanceRange() {
+  const from = el('tp-att-from');
+  if (from) from.value = '';
+  const to = el('tp-att-to');
+  if (to) to.value = '';
+  renderProfileAttendance();
+}
+
+// ── Activity Timeline section ───────────────────────────────────────────────
+
+/** Timeline events derived only from real recorded timestamps. */
+function tpBuildTimelineEvents() {
+  const events = [];
+  const data = tpData;
+  if (!data) return events;
+  const trainee = data.trainee || {};
+
+  if (trainee.supervisorAssignedAt) {
+    const supervisor = trainee.supervisorId || {};
+    events.push({
+      type: 'supervisor',
+      title: 'First supervisor assigned',
+      desc: supervisor.fullName
+        ? `${supervisor.fullName}${supervisor.companyName ? ' — ' + supervisor.companyName : ''}`
+        : 'Placement recorded',
+      at: trainee.supervisorAssignedAt,
+      chip: '',
+    });
+  }
+
+  (data.journals || []).filter(j => j && j.status !== 'draft').forEach(journal => {
+    const week = tpParseWeekLabel(journal.week);
+    const label = week ? `Week ${week} journal` : 'Journal';
+    const review = tpJournalReviewState(journal);
+    if (journal.submittedAt || journal.createdAt) {
+      events.push({
+        type: 'journal',
+        title: `${label} submitted`,
+        desc: 'Handed in for supervisor review',
+        at: journal.submittedAt || journal.createdAt,
+        chip: '<span class="chip chip--success">Submitted</span>',
+      });
+    }
+    if (journal.supervisorSigned && journal.supervisorSignedAt) {
+      events.push({
+        type: 'journal',
+        title: `${label} signed by supervisor`,
+        desc: 'Awaiting coordinator review',
+        at: journal.supervisorSignedAt,
+        chip: '<span class="chip chip--info">Pending Review</span>',
+      });
+    }
+    if (journal.coordinatorApproved && journal.coordinatorApprovedAt) {
+      events.push({
+        type: 'journal',
+        title: `${label} reviewed`,
+        desc: 'Coordinator approved the journal',
+        at: journal.coordinatorApprovedAt,
+        chip: '<span class="chip chip--success">Reviewed</span>',
+      });
+    } else if (review && review.key === 'returned' && journal.updatedAt) {
+      events.push({
+        type: 'journal',
+        title: `${label} returned`,
+        desc: journal.coordinatorRemarks || 'Returned to the trainee for revision',
+        at: journal.updatedAt,
+        chip: '<span class="chip chip--danger">Returned</span>',
+      });
+    }
+  });
+
+  (data.dtrRecords || []).forEach(record => {
+    const day = tpFormatDay(record.date);
+    if (record.timeIn) {
+      events.push({ type: 'attendance', title: 'Time-in recorded', desc: day, at: record.timeIn, chip: '' });
+    }
+    if (record.timeOut) {
+      events.push({ type: 'attendance', title: 'Time-out recorded', desc: day, at: record.timeOut, chip: '' });
+    }
+  });
+
+  return events;
+}
+
+function renderProfileTimeline() {
+  const list = el('tp-timeline-list');
+  if (!list || !tpData) return;
+
+  const filter = el('tp-timeline-filter') ? el('tp-timeline-filter').value : 'all';
+  const events = tpBuildTimelineEvents()
+    .filter(event => filter === 'all' || event.type === filter)
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+  const count = el('tp-timeline-count');
+  if (count) count.textContent = `${events.length} event${events.length === 1 ? '' : 's'}`;
+
+  const shown = events.slice(0, tpTimelineLimit);
+  if (!shown.length) {
+    list.innerHTML = tpStateBlock('No activity yet',
+      'Real events appear here as this trainee submits journals and records attendance.');
+    return;
+  }
+
+  const items = shown.map(event => {
+    const date = new Date(event.at);
+    const time = `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+    return `
+      <li class="tp-timeline__item">
+        <span class="tp-timeline__dot tp-timeline__dot--${event.type}" aria-hidden="true">${TP_TIMELINE_ICONS[event.type] || ''}</span>
+        <div class="tp-timeline__body">
+          <div class="tp-timeline__row">
+            <span class="tp-timeline__title">${escapeHtml(event.title)}</span>
+            ${event.chip}
+            <span class="tp-timeline__time">${escapeHtml(time)}</span>
+          </div>
+          ${event.desc ? `<p class="tp-timeline__desc">${escapeHtml(event.desc)}</p>` : ''}
+        </div>
+      </li>`;
+  });
+
+  if (events.length > tpTimelineLimit) {
+    items.push(`
+      <li class="tp-timeline__item">
+        <span class="tp-timeline__dot" aria-hidden="true"></span>
+        <div class="tp-timeline__body">
+          <button type="button" class="link-btn" onclick="tpShowMoreTimeline()">
+            Show ${Math.min(15, events.length - tpTimelineLimit)} more events
+          </button>
+        </div>
+      </li>`);
+  }
+
+  list.innerHTML = items.join('');
+}
+
+function onTpTimelineFilterChange() {
+  tpTimelineLimit = 15;
+  renderProfileTimeline();
+}
+
+function tpShowMoreTimeline() {
+  tpTimelineLimit += 15;
+  renderProfileTimeline();
+}
+
+// ── shared behaviours ───────────────────────────────────────────────────────
+
+function tpScrollToTabs() {
+  const scroll = el('tp-scroll');
+  const tabs = document.querySelector('#trainee-profile-modal .tp-tabs');
+  if (scroll && tabs) scroll.scrollTo({ top: Math.max(0, tabs.offsetTop - 8), behavior: 'smooth' });
+}
+
+function tpViewInTrainees() {
+  const traineeId = window.currentTraineeProfileId;
+  closeTraineeProfileModal();
+  switchTab('trainees');
+  if (traineeId) openSnapshotTrainee(traineeId);
+}
+
+// Arrow-key navigation for the profile tablist (WAI-ARIA tabs pattern).
+document.addEventListener('keydown', (e) => {
+  const focused = e.target && e.target.closest ? e.target.closest('#trainee-profile-modal .tp-tab') : null;
+  if (!focused) return;
+  const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+  if (!step) return;
+  e.preventDefault();
+  const tabs = Array.from(document.querySelectorAll('#trainee-profile-modal .tp-tab'));
+  const next = tabs[(tabs.indexOf(focused) + step + tabs.length) % tabs.length];
+  next.focus();
+  switchProfileTab(next.id.replace('tp-tab-', ''));
+});
+
+/** Close trainee profile modal */
+function closeTraineeProfileModal() {
+  const modal = el('trainee-profile-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  destroyProfileChart();
+  currentTraineeProfileId = null;
+  window.currentTraineeProfileId = null;
+  tpData = null;
+  tpError = '';
+  tpLoading = false;
+}
+
+// Close trainee profile modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('trainee-profile-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+      closeTraineeProfileModal();
+    }
+  }
+});
+
+// Close trainee profile modal on backdrop click
+const traineeProfileModal = document.getElementById('trainee-profile-modal');
+if (traineeProfileModal) {
+  traineeProfileModal.addEventListener('click', (e) => {
+    if (e.target === traineeProfileModal) closeTraineeProfileModal();
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // INITIALIZATION
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -3096,8 +5771,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tells the refresh loop when the coordinator is mid-click, mid-scroll or
   // mid-typing so it can wait instead of repainting underneath them.
   startInteractionTracking();
+  // Initialize global search
+  initGlobalSearch();
   // Load user data and populate dashboard
   loadDashboardData();
+
+  // Overview is the landing tab: record it so the Back toolbar stays hidden
+  // here and has somewhere to return to after the first navigation.
+  currentTab = 'overview';
+  updateTabBackButton();
 
   // Load trainees and supervisors data
   loadTrainees();

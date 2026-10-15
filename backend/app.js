@@ -112,7 +112,16 @@ app.use('/api', apiRouter);
 
 // Resolve the repository root correctly in both local and serverless runtimes.
 const rootDir = process.env.VERCEL ? process.cwd() : path.join(__dirname, '..');
-app.use(express.static(rootDir));
+// HTML must always revalidate so markup updates (e.g. modals moved between
+// containers) are picked up on next navigation; versioned assets (?v=) keep
+// their own caching.
+app.use(express.static(rootDir, {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+}));
 
 // Explicit routes ensure Vercel's file tracer bundles the landing assets.
 app.get('/visuals/landingpage.css', (req, res) => {

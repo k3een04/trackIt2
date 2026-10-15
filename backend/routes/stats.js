@@ -13,7 +13,13 @@ const {
   listInactiveTraineeIds,
   startOfDay,
   addDays,
+  dayKey,
+  isApplicableDay,
+  configuredWorkDays,
+  configuredHolidays,
+  serverTimezoneOffset,
 } = require('../services/activityStatusService');
+const { backfillOjtStartDates, ojtStartDateForDisplay } = require('../services/ojtStartDate');
 
 const router = express.Router();
 
@@ -117,6 +123,312 @@ function activityShape(doc) {
   };
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// OVERVIEW SECTIONS: snapshot / attendance this week / journal tracker
+// ────────────────────────────────────────────────────────────────────────────
+// The three middle-and-bottom Overview cards read from live records only. Each
+// builder is isolated: one failing turns its own card into an error state on
+// the client instead of failing the whole payload for the Pending Actions
+// counters that already loaded.
+
+/**
+ * The journal state of one (trainee, OJT week) cell. Uses the workflow the
+ * Journal Review queues already expose - nothing is invented here:
+ *   reviewed  = coordinator approved
+ *   pending   = supervisor signed, awaiting the coordinator
+ *   submitted = handed in, awaiting the supervisor
+ *   missing   = no journal for a week that is already due
+ *   not-due   = a future OJT week
+ */
+function journalCellStatus(journal, currentWeek, weekNumber) {
+  if (journal) {
+    if (journal.coordinatorApproved) return 'reviewed';
+    if (journal.supervisorSigned) return 'pending';
+    return 'submitted';
+  }
+  if (currentWeek !== null && weekNumber > currentWeek) return 'not-due';
+  return 'missing';
+}
+
+/** Week number parsed from any label the system writes ("Week 3" | "week03" | "3"). */
+function journalWeekNumber(label) {
+  const match = /(\d+)/.exec(String(label || ''));
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Trainee Progress Snapshot + Journal Submission Tracker in one pass: both
+ * read the same roster and the same journal documents.
+ *
+ * Hours are the *verified* totals the Trainees tab shows (supervisor-approved
+ * DTRs with a complete time-in/time-out pair), never the QR-incremented stored
+ * counter, so the Overview and the Trainees tab cannot disagree.
+ */
+async function buildSnapshotAndTracker(trainees, inactiveTraineeIds, now) {
+  const ids = trainees.map(trainee => trainee._id);
+
+  await backfillOjtStartDates(trainees);
+
+  const [hoursRows, journalDocs] = await Promise.all([
+    // One aggregation for both derived fields: verified completed hours and the
+    // latest time-in on record (null when the trainee never scanned in - the
+    // $max accumulator skips nulls).
+    ids.length
+      ? DTR.aggregate([
+        { $match: { traineeId: { $in: ids } } },
+        {
+          $group: {
+            _id: '$traineeId',
+            completedHours: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ['$verifiedBySupervisor', true] },
+                      { $ne: ['$timeIn', null] },
+                      { $ne: ['$timeOut', null] },
+                      { $gt: [{ $ifNull: ['$hoursRendered', 0] }, 0] },
+                    ],
+                  },
+                  { $ifNull: ['$hoursRendered', 0] },
+                  0,
+                ],
+              },
+            },
+            lastTimeIn: { $max: '$timeIn' },
+          },
+        },
+      ])
+      : Promise.resolve([]),
+    ids.length
+      ? Journal.find({ studentId: { $in: ids }, status: { $ne: 'draft' } })
+        .select('studentId week status supervisorSigned coordinatorApproved submittedAt reviewedAt supervisorSignedAt coordinatorApprovedAt')
+        .lean()
+      : Promise.resolve([]),
+  ]);
+
+  const hoursById = new Map();
+  hoursRows.forEach((row) => {
+    hoursById.set(String(row._id), {
+      completedHours: Math.round((Number(row.completedHours) || 0) * 10) / 10,
+      lastTimeIn: row.lastTimeIn || null,
+    });
+  });
+
+  // One journal per trainee per week (enforced at submit), keyed for O(1) lookup.
+  const journalByKey = new Map();
+  journalDocs.forEach((journal) => {
+    const week = journalWeekNumber(journal.week);
+    if (week === null) return;
+    journalByKey.set(`${String(journal.studentId)}|${week}`, journal);
+  });
+
+  const currentWeekByTrainee = new Map();
+  let maxWeek = 0;
+  trainees.forEach((trainee) => {
+    const week = currentOjtWeek(ojtStartDateForDisplay(trainee), now);
+    currentWeekByTrainee.set(String(trainee._id), week);
+    if (week !== null && week > maxWeek) maxWeek = week;
+  });
+  // The student dashboard only offers Weeks 1..17; nothing beyond is trackable.
+  if (maxWeek > TOTAL_OJT_WEEKS) maxWeek = TOTAL_OJT_WEEKS;
+
+  const inactive = new Set((inactiveTraineeIds || []).map(String));
+
+  const snapshotTrainees = trainees
+    .map((trainee) => {
+      const id = String(trainee._id);
+      const hours = hoursById.get(id) || {};
+      const completedHours = hours.completedHours || 0;
+      const requiredHours = Number(trainee.requiredHours) || 486;
+      const currentWeek = currentWeekByTrainee.get(id);
+
+      let journalStatus = 'none';
+      if (currentWeek !== null && currentWeek <= TOTAL_OJT_WEEKS) {
+        journalStatus = journalCellStatus(
+          journalByKey.get(`${id}|${currentWeek}`),
+          currentWeek,
+          currentWeek
+        );
+      }
+
+      return {
+        id,
+        fullName: trainee.fullName || 'Unknown Trainee',
+        studentId: trainee.studentId || '',
+        completedHours,
+        requiredHours,
+        completionRate: requiredHours > 0
+          ? Math.min(100, Math.round((completedHours / requiredHours) * 100))
+          : 0,
+        lastTimeIn: hours.lastTimeIn || null,
+        journalStatus,
+        inactive: inactive.has(id),
+      };
+    })
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+  // Tracker columns run from Week 1 to the furthest OJT week anyone has
+  // reached, so early in the programme the matrix stays narrow.
+  const trackerTrainees = trainees
+    .map((trainee) => {
+      const id = String(trainee._id);
+      const currentWeek = currentWeekByTrainee.get(id);
+      if (maxWeek === 0) return null;
+
+      const cells = [];
+      for (let week = 1; week <= maxWeek; week += 1) {
+        const journal = journalByKey.get(`${id}|${week}`);
+        const status = journalCellStatus(journal, currentWeek, week);
+        cells.push({
+          week,
+          status,
+          journalId: journal ? String(journal._id) : null,
+          submittedAt: journal ? (journal.submittedAt || null) : null,
+          reviewedAt: journal
+            ? (journal.reviewedAt || journal.coordinatorApprovedAt || journal.supervisorSignedAt || null)
+            : null,
+        });
+      }
+
+      return { id, fullName: trainee.fullName || 'Unknown Trainee', cells };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+  return {
+    snapshot: { trainees: snapshotTrainees },
+    journalTracker: { maxWeek, trainees: trackerTrainees },
+  };
+}
+
+/**
+ * Attendance This Week: On Time / Late are day counts straight from this
+ * week's DTR records, Absent is *derived* because no route ever writes
+ * `status: 'absent'` - a missed day is an applicable OJT day (Mon-Fri per
+ * OJT_WORK_DAYS, excluding OJT_HOLIDAYS and approved leave) where a placed
+ * trainee recorded no time-in.
+ *
+ * Returns per-day breakdown with trainee details for tooltips.
+ * Accepts optional weekStart parameter to support historical week selection.
+ */
+async function buildAttendanceThisWeek(trainees, now, options = {}) {
+  const workDays = configuredWorkDays();
+  const holidays = configuredHolidays();
+  const timezone = serverTimezoneOffset();
+
+  // Support custom weekStart for historical week selection
+  const weekStart = options.weekStart
+    ? startOfDay(new Date(options.weekStart))
+    : startOfDay(addDays(now, now.getDay() === 0 ? -6 : 1 - now.getDay()));
+  const weekEnd = addDays(weekStart, 4); // Friday
+  const today = startOfDay(now);
+  const effectiveEnd = weekEnd < today ? weekEnd : today;
+
+  const placedTrainees = trainees.filter(trainee => trainee.supervisorAssignedAt);
+  const ids = placedTrainees.map(trainee => trainee._id);
+
+  // Fetch all DTR records for the week with trainee details for tooltips
+  const dtrRows = ids.length
+    ? await DTR.find({
+        traineeId: { $in: ids },
+        date: { $gte: weekStart, $lte: weekEnd },
+      })
+        .populate('traineeId', 'fullName studentId')
+        .select('traineeId date timeIn timeOut status hoursRendered')
+        .lean()
+    : [];
+
+  // Build per-day breakdown with trainee details
+  const daysData = [];
+  const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+  for (let i = 0; i < 5; i += 1) {
+    const day = addDays(weekStart, i);
+    if (!isApplicableDay(day, workDays, holidays)) continue;
+    if (day > effectiveEnd) break; // Don't include future days beyond today
+
+    const dayKeyStr = dayKey(day);
+    const dayDtrs = dtrRows.filter(dtr => dayKey(dtr.date) === dayKeyStr);
+
+    // Group by status with trainee details
+    const presentTrainees = [];
+    const lateTrainees = [];
+    const absentTrainees = [];
+
+    // Track which trainees have records for this day
+    const traineesWithRecords = new Set();
+
+    dayDtrs.forEach(dtr => {
+      const traineeId = String(dtr.traineeId._id);
+      traineesWithRecords.add(traineeId);
+      const traineeInfo = {
+        name: dtr.traineeId.fullName,
+        studentId: dtr.traineeId.studentId,
+        timeIn: dtr.timeIn ? new Date(dtr.timeIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null,
+        hoursRendered: dtr.hoursRendered || 0,
+      };
+      if (dtr.status === 'late') {
+        lateTrainees.push(traineeInfo);
+      } else if (dtr.timeIn) {
+        presentTrainees.push(traineeInfo);
+      }
+    });
+
+    // Determine absent trainees for this day
+    placedTrainees.forEach(trainee => {
+      const traineeId = String(trainee._id);
+      const start = startOfDay(new Date(trainee.supervisorAssignedAt));
+      if (day < start) return; // Trainee not yet assigned
+      if (traineesWithRecords.has(traineeId)) return; // Has a record (present, late, or excused)
+      // Check if excused
+      const excusedRecord = dayDtrs.find(dtr =>
+        String(dtr.traineeId._id) === traineeId && dtr.status === 'excused'
+      );
+      if (excusedRecord) return; // Excused absence doesn't count
+      absentTrainees.push({
+        name: trainee.fullName,
+        studentId: trainee.studentId,
+        timeIn: null,
+        hoursRendered: 0,
+      });
+    });
+
+    daysData.push({
+      date: dayKeyStr,
+      dayLabel: dayLabels[i],
+      dayIndex: i,
+      present: {
+        count: presentTrainees.length,
+        trainees: presentTrainees,
+      },
+      late: {
+        count: lateTrainees.length,
+        trainees: lateTrainees,
+      },
+      absent: {
+        count: absentTrainees.length,
+        trainees: absentTrainees,
+      },
+    });
+  }
+
+  // Calculate totals for backward compatibility
+  const onTime = daysData.reduce((sum, d) => sum + d.present.count, 0);
+  const late = daysData.reduce((sum, d) => sum + d.late.count, 0);
+  const absent = daysData.reduce((sum, d) => sum + d.absent.count, 0);
+
+  return {
+    weekStart: dayKey(weekStart),
+    weekEnd: dayKey(weekEnd),
+    onTime,
+    late,
+    absent,
+    totalDays: onTime + late + absent,
+    days: daysData, // New per-day breakdown
+  };
+}
+
 // @route   GET /api/stats/coordinator
 // @desc    Get coordinator overview stats from MongoDB
 // @access  Private (Coordinator only)
@@ -169,19 +481,23 @@ router.get('/coordinator', authenticateToken, authorizeRole('coordinator'), asyn
 });
 
 // @route   GET /api/stats/coordinator/overview
-// @desc    Data behind the two Overview cards: the Pending Actions counters
-//          (with the ids behind them, so the Trainees tab can filter to them)
-//          and the Recent Activity feed.
+// @desc    Data behind the Overview cards: the Pending Actions counters
+//          (with the ids behind them, so the Trainees tab can filter to them),
+//          the Trainee Progress Snapshot, Attendance This Week and the Journal
+//          Submission Tracker.
 //          Every number is derived from live records - nothing here is stored,
 //          cached or mocked - so the counters move as soon as the underlying
 //          journal / DTR / status data changes.
+//          Accepts optional ?weekStart=YYYY-MM-DD for historical week selection.
 // @access  Private (Coordinator only)
 router.get('/coordinator/overview', authenticateToken, authorizeRole('coordinator'), async (req, res) => {
   try {
     const now = new Date();
     const attentionWindowStart = startOfDay(addDays(now, -ATTENTION_WINDOW_DAYS));
+    // Optional weekStart for historical attendance view (defaults to current week)
+    const weekStart = req.query.weekStart ? startOfDay(new Date(req.query.weekStart)) : null;
 
-    const [journalReviews, lateTraineeIds, inactiveTraineeIds, activeTrainees, activityDocs] =
+    const [journalReviews, lateTraineeIds, inactiveTraineeIds, activeTrainees, activityDocs, roster] =
       await Promise.all([
         // Journals actually ready for the coordinator to act on: signed by the
         // supervisor and not yet approved. Mirrors the Journal Review queue.
@@ -200,9 +516,29 @@ router.get('/coordinator/overview', authenticateToken, authorizeRole('coordinato
           .sort({ createdAt: -1 })
           .limit(RECENT_ACTIVITY_LIMIT)
           .lean(),
+        // Full roster for the Snapshot / Attendance / Journal tracker cards -
+        // every enrolled student, keyed identically to the Total Trainees KPI.
+        User.find({ role: 'student' })
+          .select('fullName studentId requiredHours supervisorAssignedAt createdAt')
+          .lean(),
       ]);
 
     const missingJournals = await summarizeMissingJournals(activeTrainees, now);
+
+    // The three data-driven cards each degrade to null on their own failure so
+    // Pending Actions (already computed) still ships.
+    const [insights, attendanceThisWeek] = await Promise.all([
+      buildSnapshotAndTracker(roster, inactiveTraineeIds, now)
+        .catch((error) => {
+          console.error('Coordinator overview snapshot error:', error);
+          return null;
+        }),
+      buildAttendanceThisWeek(roster, now, { weekStart })
+        .catch((error) => {
+          console.error('Coordinator overview attendance error:', error);
+          return null;
+        }),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -219,6 +555,9 @@ router.get('/coordinator/overview', authenticateToken, authorizeRole('coordinato
           missingJournal: missingJournals.traineeIds,
         },
         recentActivity: activityDocs.map(activityShape).filter(Boolean),
+        snapshot: insights ? insights.snapshot : null,
+        journalTracker: insights ? insights.journalTracker : null,
+        attendanceThisWeek,
       },
     });
   } catch (error) {
