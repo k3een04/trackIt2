@@ -62,6 +62,7 @@ const qrRoutes = require('./routes/qr');
 const journalRoutes = require('./routes/journal');
 const geofenceRoutes = require('./routes/geofence');
 const notificationRoutes = require('./routes/notifications');
+const appraisalRoutes = require('./routes/appraisal');
 
 // API Router
 const apiRouter = express.Router();
@@ -75,6 +76,7 @@ apiRouter.use('/qr', qrRoutes);
 apiRouter.use('/journal', journalRoutes);
 apiRouter.use('/geofence', geofenceRoutes);
 apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/appraisal', appraisalRoutes);
 
 // Broad safety net for every API route. The limit is high on purpose - the
 // dashboard pages make many small calls - it only exists to blunt a runaway
@@ -194,6 +196,14 @@ app.get('/OJT_Weekly_Journal_Template.pdf', (req, res) => {
 });
 app.get('/OJT_Weekly_Journal_Template.2Rows.pdf', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'OJT_Weekly_Journal_Template.2Rows.pdf'));
+});
+// Official Performance Appraisal form template overlaid by appraisal-pdf.js.
+app.get('/Performance_Appraisal_All_Borders_Black.pdf', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'Performance_Appraisal_All_Borders_Black.pdf'));
+});
+// Shared client-side appraisal PDF builder (supervisor + OJT dashboards).
+app.get('/appraisal-pdf.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'appraisal-pdf.js'));
 });
 // Vendor libraries used by the OJT dashboard (PDF export & viewer).
 app.get('/vendor/jspdf.umd.min.js', (req, res) => {

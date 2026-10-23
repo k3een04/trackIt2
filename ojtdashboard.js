@@ -2172,6 +2172,9 @@ function switchTab(tabName, options = {}) {
         updateEstimatedCompletion(statsData, studentData);
       }
     }).catch(err => console.error('Error loading progress:', err));
+  } else if (tabName === 'documents') {
+    // Refetch so the appraisal list reflects anything signed since last visit
+    loadStudentAppraisals().catch(err => console.error('Error loading appraisals:', err));
   }
 }
 
@@ -4018,8 +4021,96 @@ async function generateJournalPdf(journals) {
   }
 }
 
-function downloadAppraisalPDF() {
-  alert('Downloading Performance Appraisal Form...\nFile: Performance_Appraisal_April_2026.pdf');
+// ────────────────────────────────────────────────────────────────────────────
+// PERFORMANCE APPRAISALS (Documents tab)
+// ────────────────────────────────────────────────────────────────────────────
+
+// Loads the signed-in student's finalized appraisals (drafts are excluded
+// server-side) and renders them with a per-record PDF download.
+async function loadStudentAppraisals() {
+  const container = document.getElementById('student-appraisal-list');
+  if (!container) return;
+
+  try {
+    const result = await fetchAPI('/appraisal/mine');
+    if (!result || !result.success) {
+      throw new Error(result?.message || 'Failed to load your appraisals.');
+    }
+
+    const records = result.data || [];
+    if (!records.length) {
+      container.innerHTML = `
+        <div class="text-center py-8">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto mb-4 text-slate-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <p class="text-sm text-slate-400 mb-1">No performance appraisals yet</p>
+          <p class="text-xs text-slate-500">Once your OJT supervisor submits and signs a monthly appraisal, it will appear here for download.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/10">
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Evaluation Period</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Total Score</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Rating Equivalent</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Status</th>
+              <th class="text-left py-3 px-4 text-slate-400 font-semibold">Download</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map((record) => {
+              const score = record.isComplete && typeof record.totalScore === 'number'
+                ? `${record.totalScore} / 100`
+                : '—';
+              const equivalent = record.isComplete && record.ratingEquivalent ? record.ratingEquivalent : '—';
+              const badgeClass = record.status === 'acknowledged' ? 'status-verified' : 'status-submitted';
+              const badgeText = record.status === 'acknowledged' ? 'Acknowledged' : 'Signed';
+              return `
+                <tr class="border-b border-white/10">
+                  <td class="py-3 px-4">${escapeHtml(record.periodLabel || record.period)}</td>
+                  <td class="py-3 px-4"><span class="font-semibold text-teal-400">${escapeHtml(score)}</span></td>
+                  <td class="py-3 px-4">${escapeHtml(equivalent)}</td>
+                  <td class="py-3 px-4"><span class="status-badge ${badgeClass}">${badgeText}</span></td>
+                  <td class="py-3 px-4">
+                    <button type="button" onclick="downloadAppraisalPDF('${record._id}')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold">Download PDF</button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (error) {
+    console.error('Error loading appraisals:', error);
+    container.innerHTML = `<p class="text-sm text-red-400 text-center py-6">${escapeHtml(error.message || 'Failed to load your appraisals.')}</p>`;
+  }
+}
+
+// Generate the official appraisal PDF from the saved, finalized record.
+async function downloadAppraisalPDF(recordId) {
+  try {
+    if (!recordId) {
+      showNotification('Error', 'No appraisal selected.', 'error');
+      return;
+    }
+    const result = await fetchAPI(`/appraisal/record/${encodeURIComponent(recordId)}`);
+    if (!result || !result.success) {
+      throw new Error(result?.message || 'Failed to load the appraisal record.');
+    }
+    if (!window.AppraisalPDF) {
+      throw new Error('PDF library is not loaded yet. Please try again in a moment.');
+    }
+    await window.AppraisalPDF.download(result.data);
+    showNotification('Success', 'Performance appraisal PDF downloaded.', 'success');
+  } catch (error) {
+    console.error('Error generating appraisal PDF:', error);
+    showNotification('Error', error.message || 'Failed to generate the appraisal PDF. Please try again.', 'error');
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────

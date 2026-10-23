@@ -649,109 +649,137 @@
 
       <!-- Appraisal Form -->
       <div class="glass-card p-8 mb-8">
-        <h3 class="font-display font-700 mb-6">Evaluation Criteria</h3>
+        <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+          <div>
+            <h3 class="font-display font-700">Performance Appraisal Form</h3>
+            <p class="text-xs text-slate-500 mt-1">Official 100-point evaluation — Technical Competence 30, Attitude 30, Quality of Work 25, Attendance &amp; Punctuality 15</p>
+          </div>
+          <span id="appraisal-status-badge" class="status-badge" hidden></span>
+        </div>
+        <p id="appraisal-lock-notice" class="hidden mb-6 px-4 py-3 rounded-lg text-sm bg-amber-400/10 border border-amber-400/20 text-amber-300">
+          This appraisal has been submitted and signed. It is locked and can no longer be edited.
+        </p>
+        <p id="appraisal-empty-notice" class="mb-6 px-4 py-3 rounded-lg text-sm bg-white/5 border border-white/10 text-slate-300">
+          Select a trainee and an appraisal month to start an evaluation.
+        </p>
+
         <form id="appraisal-form" onsubmit="submitAppraisal(event)">
-          
-          <!-- Rating Sections -->
-          <div class="space-y-6">
-            <div class="pb-6 border-b border-white/10">
-              <label class="block text-sm font-semibold mb-3">Work Quality</label>
-              <div class="flex gap-2" id="work-quality-stars">
-                <button type="button" onclick="setRating('work-quality', 1)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('work-quality', 2)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('work-quality', 3)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('work-quality', 4)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('work-quality', 5)" class="star-btn text-2xl">★</button>
-              </div>
-            </div>
-
-            <div class="pb-6 border-b border-white/10">
-              <label class="block text-sm font-semibold mb-3">Punctuality & Attendance</label>
-              <div class="flex gap-2" id="punctuality-stars">
-                <button type="button" onclick="setRating('punctuality', 1)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('punctuality', 2)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('punctuality', 3)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('punctuality', 4)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('punctuality', 5)" class="star-btn text-2xl">★</button>
-              </div>
-            </div>
-
-            <div class="pb-6 border-b border-white/10">
-              <label class="block text-sm font-semibold mb-3">Initiative & Attitude</label>
-              <div class="flex gap-2" id="initiative-stars">
-                <button type="button" onclick="setRating('initiative', 1)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('initiative', 2)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('initiative', 3)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('initiative', 4)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('initiative', 5)" class="star-btn text-2xl">★</button>
-              </div>
-            </div>
-
-            <div class="pb-6 border-b border-white/10">
-              <label class="block text-sm font-semibold mb-3">Technical Skills</label>
-              <div class="flex gap-2" id="technical-stars">
-                <button type="button" onclick="setRating('technical', 1)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('technical', 2)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('technical', 3)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('technical', 4)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('technical', 5)" class="star-btn text-2xl">★</button>
-              </div>
-            </div>
-
-            <div class="pb-6 border-b border-white/10">
-              <label class="block text-sm font-semibold mb-3">Communication Skills</label>
-              <div class="flex gap-2" id="communication-stars">
-                <button type="button" onclick="setRating('communication', 1)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('communication', 2)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('communication', 3)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('communication', 4)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('communication', 5)" class="star-btn text-2xl">★</button>
-              </div>
-            </div>
-
-            <div class="pb-6 border-b border-white/10">
-              <label class="block text-sm font-semibold mb-3">Teamwork & Cooperation</label>
-              <div class="flex gap-2" id="teamwork-stars">
-                <button type="button" onclick="setRating('teamwork', 1)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('teamwork', 2)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('teamwork', 3)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('teamwork', 4)" class="star-btn text-2xl">★</button>
-                <button type="button" onclick="setRating('teamwork', 5)" class="star-btn text-2xl">★</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Overall Remarks -->
-          <div class="mb-6">
-            <label class="block text-sm font-semibold mb-3">Overall Remarks</label>
-            <textarea id="overall-remarks" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" rows="4" placeholder="Add your remarks here..."></textarea>
-          </div>
-
-          <!-- Recommended for Completion -->
-          <div class="mb-8">
-            <label class="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" id="recommended-completion" class="w-4 h-4 accent-teal-400">
-              <span class="text-sm font-semibold">Recommended for Completion</span>
-            </label>
-          </div>
-
-          <!-- Overall Rating Display -->
-          <div class="p-6 rounded-lg bg-white/5 border border-white/10 mb-8">
-            <p class="text-slate-400 text-sm mb-2">Overall Rating</p>
-            <div class="flex items-end gap-4">
+          <fieldset id="appraisal-fieldset">
+            <!-- Trainee & Period Information (official form header fields) -->
+            <legend class="text-sm font-semibold mb-3 text-slate-300">Trainee &amp; Evaluation Information</legend>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div>
-                <p class="text-4xl font-display font-700 text-teal-400" id="overall-rating-num">0.0</p>
+                <label for="info-lastName" class="block text-xs text-slate-400 mb-1">Last Name</label>
+                <input type="text" id="info-lastName" data-info="lastName" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="Dela Cruz">
               </div>
               <div>
-                <p class="text-lg font-semibold text-teal-400" id="overall-rating-label">No Rating</p>
+                <label for="info-firstName" class="block text-xs text-slate-400 mb-1">First Name</label>
+                <input type="text" id="info-firstName" data-info="firstName" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="Juan">
+              </div>
+              <div>
+                <label for="info-mi" class="block text-xs text-slate-400 mb-1">M.I.</label>
+                <input type="text" id="info-mi" data-info="mi" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="S">
+              </div>
+              <div>
+                <label for="info-stiCampus" class="block text-xs text-slate-400 mb-1">STI Campus</label>
+                <input type="text" id="info-stiCampus" data-info="stiCampus" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="STI College Bacolod">
+              </div>
+              <div>
+                <label for="info-program" class="block text-xs text-slate-400 mb-1">Program</label>
+                <input type="text" id="info-program" data-info="program" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="BS Information Technology">
+              </div>
+              <div>
+                <label for="info-yearLevel" class="block text-xs text-slate-400 mb-1">Year Level</label>
+                <input type="text" id="info-yearLevel" data-info="yearLevel" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="4th Year">
+              </div>
+              <div>
+                <label for="info-section" class="block text-xs text-slate-400 mb-1">Section</label>
+                <input type="text" id="info-section" data-info="section" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="4A">
+              </div>
+              <div>
+                <label for="info-hostTrainingEstablishment" class="block text-xs text-slate-400 mb-1">Host Training Establishment</label>
+                <input type="text" id="info-hostTrainingEstablishment" data-info="hostTrainingEstablishment" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="Company name">
+              </div>
+              <div>
+                <label for="info-departmentAssigned" class="block text-xs text-slate-400 mb-1">Department Assigned To</label>
+                <input type="text" id="info-departmentAssigned" data-info="departmentAssigned" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="IT Department">
+              </div>
+              <div>
+                <label for="info-ojtSupervisor" class="block text-xs text-slate-400 mb-1">OJT Supervisor</label>
+                <input type="text" id="info-ojtSupervisor" data-info="ojtSupervisor" maxlength="120" readonly class="w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 text-slate-400 cursor-not-allowed" placeholder="—">
+              </div>
+              <div>
+                <label for="info-designation" class="block text-xs text-slate-400 mb-1">Designation</label>
+                <input type="text" id="info-designation" data-info="designation" maxlength="120" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="—">
+              </div>
+              <div>
+                <label for="info-evaluationPeriodLabel" class="block text-xs text-slate-400 mb-1">Evaluation Period</label>
+                <input type="text" id="info-evaluationPeriodLabel" data-info="evaluationPeriodLabel" maxlength="120" readonly class="w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 text-slate-400 cursor-not-allowed" placeholder="—">
+              </div>
+              <div>
+                <label for="info-totalHours" class="block text-xs text-slate-400 mb-1">Total No. of Hours</label>
+                <input type="number" id="info-totalHours" data-info="totalHours" min="0" step="any" class="appraisal-info w-full glass-card px-3 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" placeholder="0">
               </div>
             </div>
-          </div>
+
+            <!-- Evaluation Criteria (rendered from the server's official criteria) -->
+            <legend class="text-sm font-semibold mb-3 text-slate-300">Evaluation Criteria</legend>
+            <div id="appraisal-criteria-container" class="mb-8">
+              <p class="text-sm text-slate-500">Loading evaluation criteria…</p>
+            </div>
+
+            <!-- Live totals: subtotals per category + total + rating equivalent -->
+            <div class="p-6 rounded-lg bg-white/5 border border-white/10 mb-8">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5" id="appraisal-subtotals">
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Technical Competence (30%)</p>
+                  <p class="text-lg font-semibold text-teal-400" id="subtotal-technical">—</p>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Attitude (30%)</p>
+                  <p class="text-lg font-semibold text-teal-400" id="subtotal-attitude">—</p>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Quality of Work (25%)</p>
+                  <p class="text-lg font-semibold text-teal-400" id="subtotal-quality">—</p>
+                </div>
+                <div>
+                  <p class="text-xs text-slate-400 mb-1">Attendance &amp; Punctuality (15%)</p>
+                  <p class="text-lg font-semibold text-teal-400" id="subtotal-attendance">—</p>
+                </div>
+              </div>
+              <div class="flex items-end gap-4 flex-wrap">
+                <div>
+                  <p class="text-slate-400 text-sm mb-1">Total Score</p>
+                  <p class="text-4xl font-display font-700 text-teal-400" id="overall-rating-num">—</p>
+                </div>
+                <div>
+                  <p class="text-slate-400 text-sm mb-1">Rating Equivalent</p>
+                  <p class="text-lg font-semibold text-teal-400" id="overall-rating-label">Incomplete</p>
+                </div>
+                <p id="appraisal-incomplete-note" class="hidden text-xs text-amber-300 pb-1">All 9 criteria are required before submitting.</p>
+              </div>
+            </div>
+
+            <!-- Other Comments/Remarks -->
+            <div class="mb-6">
+              <label class="block text-sm font-semibold mb-3">Other Comments/Remarks</label>
+              <textarea id="overall-remarks" maxlength="3000" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" rows="4" placeholder="Add your remarks here..."></textarea>
+            </div>
+
+            <!-- Recommended for Completion -->
+            <div class="mb-8">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="recommended-completion" class="w-4 h-4 accent-teal-400">
+                <span class="text-sm font-semibold">Recommended for Completion</span>
+              </label>
+            </div>
+          </fieldset>
 
           <!-- Action Buttons -->
           <div class="flex gap-4">
-            <button type="button" onclick="saveDraftAppraisal()" class="btn-ghost flex-1">Save Draft</button>
-            <button type="submit" class="btn-primary flex-1" style="background: linear-gradient(135deg, #00c8aa 0%, #00a88c 100%);">Submit & Sign</button>
+            <button type="button" id="appraisal-save-draft-btn" onclick="saveDraftAppraisal()" class="btn-ghost flex-1">Save Draft</button>
+            <button type="submit" id="appraisal-submit-btn" class="btn-primary flex-1" style="background: linear-gradient(135deg, #00c8aa 0%, #00a88c 100%);">Submit &amp; Sign</button>
           </div>
         </form>
       </div>
@@ -764,23 +792,15 @@
             <thead>
               <tr class="border-b border-white/10">
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Month</th>
-                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Overall Score</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Total Score</th>
+                <th class="text-left py-3 px-4 text-slate-400 font-semibold">Rating Equivalent</th>
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Status</th>
                 <th class="text-left py-3 px-4 text-slate-400 font-semibold">Action</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="appraisal-history-body">
               <tr class="border-b border-white/10">
-                <td class="py-3 px-4">March 2026</td>
-                <td class="py-3 px-4"><span class="font-semibold text-teal-400">4.2</span></td>
-                <td class="py-3 px-4"><span class="status-badge status-completed">Submitted</span></td>
-                <td class="py-3 px-4"><button onclick="downloadAppraisalPDF('march')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold">Download PDF</button></td>
-              </tr>
-              <tr class="border-b border-white/10">
-                <td class="py-3 px-4">February 2026</td>
-                <td class="py-3 px-4"><span class="font-semibold text-teal-400">3.8</span></td>
-                <td class="py-3 px-4"><span class="status-badge status-completed">Submitted</span></td>
-                <td class="py-3 px-4"><button onclick="downloadAppraisalPDF('february')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold">Download PDF</button></td>
+                <td colspan="5" class="py-6 px-4 text-center text-slate-500">Select a trainee to view their appraisal history.</td>
               </tr>
             </tbody>
           </table>
@@ -930,12 +950,23 @@
 
   </div>
 
+  <!-- PDF libraries used by the Performance Appraisal PDF builder: jsPDF draws
+       the overlay, pdf.js renders the official form template as background. -->
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script type="module">
+    import * as pdfjsLib from './vendor/pdf.mjs';
+    window.pdfjsLib = pdfjsLib;
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.mjs';
+  </script>
+  <!-- Shared appraisal PDF overlay builder (window.AppraisalPDF); must precede
+       the dashboard script that calls it for the appraisal download actions. -->
+  <script src="appraisal-pdf.js?v=1"></script>
   <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
        which writes .value and listens for the change events it re-dispatches. -->
   <script src="trackit-calendar.js?v=1"></script>
   <!-- Defines window.VerificationModal; must precede the dashboard script that
        opens it from the journal, DTR and appraisal actions. -->
   <script src="verification-modal.js?v=5"></script>
-  <script src="supervisor-dashboard.js?v=3"></script>
+  <script src="supervisor-dashboard.js?v=4"></script>
 </body>
 </html>

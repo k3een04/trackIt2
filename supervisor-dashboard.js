@@ -601,6 +601,9 @@ function switchTab(tabName, options = {}) {
     loadNotifications();
   } else if (tabName === 'schedule-manager') {
     loadScheduleTraineeList().catch(err => console.error('Error loading schedule trainees:', err));
+  } else if (tabName === 'performance') {
+    // Performance Appraisal: load criteria + context for the selected trainee
+    initAppraisalTab();
   }
 
   // Close sidebar on mobile
@@ -773,20 +776,11 @@ async function viewTraineeFullProfile(traineeId) {
         <div class="glass-card p-6">
           <h4 class="font-semibold mb-4">Supervisor Feedback</h4>
           
-          <!-- Rating Section -->
+          <!-- Performance Appraisal shortcut (the official 100-point form) -->
           <div class="mb-6 pb-6 border-b border-white/10">
-            <p class="text-sm text-slate-400 mb-3">Performance Rating (0-5 stars)</p>
-            <div class="flex gap-2 items-center">
-              ${[1, 2, 3, 4, 5].map(star => `
-                <button onclick="rateTrainee('${traineeId}', ${star})" class="rating-star text-2xl hover:scale-110 transition" data-rating="${star}">
-                  ☆
-                </button>
-              `).join('')}
-              <span id="rating-display" class="ml-4 text-teal-400 font-semibold">
-                ${trainee.supervisorRating ? trainee.supervisorRating + '★' : 'Not rated'}
-              </span>
-            </div>
-            <p class="text-xs text-slate-500 mt-2">${trainee.supervisorRating ? `Rated on ${new Date(trainee.supervisorRatingDate).toLocaleDateString()}` : 'Click a star to submit rating'}</p>
+            <p class="text-sm text-slate-400 mb-3">Performance Appraisal</p>
+            <button onclick="openPerformanceAppraisal('${traineeId}')" class="btn-primary w-full">Evaluate in Performance Appraisal</button>
+            <p class="text-xs text-slate-500 mt-2">Monthly appraisals use the official 100-point form with Save Draft and Submit &amp; Sign.</p>
           </div>
 
           <!-- Notes -->
@@ -812,44 +806,6 @@ function saveTraineeNotes(traineeId) {
   const notes = document.getElementById('trainee-notes')?.value || '';
   console.log(`Saving notes for trainee ${traineeId}:`, notes);
   showNotification('Success', 'Trainee notes saved successfully', 'success');
-}
-
-async function rateTrainee(traineeId, rating) {
-  try {
-    // Update star display
-    document.querySelectorAll('.rating-star').forEach((star, index) => {
-      if (index < rating) {
-        star.textContent = '★';
-        star.style.color = '#fbbf24';
-      } else {
-        star.textContent = '☆';
-        star.style.color = '#9ca3af';
-      }
-    });
-
-    // Submit rating to backend
-    const result = await fetchAPI('/supervisor/rate-trainee', {
-      method: 'POST',
-      body: JSON.stringify({
-        traineeId,
-        rating
-      })
-    });
-
-    if (result && result.success) {
-      // Update rating display
-      const ratingDisplay = document.getElementById('rating-display');
-      if (ratingDisplay) {
-        ratingDisplay.textContent = `${rating}★`;
-      }
-      console.log(`Rating ${rating} submitted for trainee ${traineeId}`);
-    } else {
-      showNotification('Error', 'Failed to submit rating. Please try again.', 'error');
-    }
-  } catch (error) {
-    console.error('Error submitting rating:', error);
-    showNotification('Error', 'Error submitting rating. Please try again.', 'error');
-  }
 }
 
 function messageTrainee(traineeId) {
@@ -1734,85 +1690,450 @@ function startSupervisorRealtimeUpdates() {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// PERFORMANCE APPRAISAL SECTION
+// PERFORMANCE APPRAISAL SECTION (official 100-point form)
 // ────────────────────────────────────────────────────────────────────────────
 
-let appraisalRatings = {};
+// Criteria/categories come from the server (single source of truth); totals
+// shown here are a live preview only — the backend always recomputes them.
+let appraisalCriteria = null;
+let appraisalCriteriaPromise = null;
 
-function setRating(category, rating) {
-  appraisalRatings[category] = rating;
-  updateRatingStars(category, rating);
-  calculateOverallRating();
+const APPRAISAL_PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+async function initAppraisalTab() {
+  try {
+    if (!appraisalCriteriaPromise) {
+      appraisalCriteriaPromise = fetchAPI('/appraisal/criteria').then((result) => {
+        if (!result || !result.success) {
+          throw new Error(result?.message || 'Failed to load evaluation criteria.');
+        }
+        appraisalCriteria = result.data;
+        renderAppraisalCriteria();
+        return appraisalCriteria;
+      });
+    }
+    await appraisalCriteriaPromise;
+    await loadAppraisalContext();
+  } catch (error) {
+    const container = document.getElementById('appraisal-criteria-container');
+    if (container) {
+      container.innerHTML = `<p class="text-sm text-red-400">${escapeHtml(error.message || 'Failed to load evaluation criteria.')}</p>`;
+    }
+  }
 }
 
-function updateRatingStars(category, rating) {
-  const buttons = document.querySelectorAll(`#${category}-stars .star-btn`);
-  buttons.forEach((btn, idx) => {
-    if (idx < rating) {
-      btn.classList.add('active');
+/** Render the four weighted categories and their nine official indicators. */
+function renderAppraisalCriteria() {
+  const container = document.getElementById('appraisal-criteria-container');
+  if (!container || !appraisalCriteria) return;
+  const { categories, criteria } = appraisalCriteria;
+
+  container.innerHTML = categories.map((category) => {
+    const rows = criteria.filter((c) => c.category === category.key);
+    return `
+      <div class="mb-6 pb-6 border-b border-white/10">
+        <p class="text-sm font-semibold mb-1">${escapeHtml(category.label)}</p>
+        <p class="text-xs text-slate-500 mb-4">Maximum points: ${category.max}</p>
+        <div class="space-y-4">
+          ${rows.map((row) => `
+            <div class="p-4 rounded-lg bg-white/5 border border-white/10">
+              <div class="flex items-start justify-between gap-4">
+                <p class="text-sm text-slate-300 flex-1">${escapeHtml(row.text)}</p>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <span class="text-xs text-slate-500">Max <span class="font-semibold text-slate-300">${row.max}</span></span>
+                  <input type="number" data-score="${row.key}" min="0" max="${row.max}" step="any"
+                    aria-label="Rating for ${escapeHtml(row.short)} out of ${row.max}"
+                    placeholder="—"
+                    class="w-20 px-3 py-2 text-white text-sm text-center rounded-lg border border-white/10 focus:border-teal-400 outline-none" style="background: rgba(15, 23, 42, 0.5);">
+                </div>
+              </div>
+              <input type="text" data-remarks="${row.key}" maxlength="300" placeholder="Remarks (optional)"
+                class="mt-3 w-full px-3 py-2 text-white text-xs rounded-lg border border-white/10 focus:border-teal-400 outline-none" style="background: rgba(15, 23, 42, 0.5);">
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/** Live preview of subtotals / total / rating equivalent from the inputs. */
+function updateAppraisalTotals() {
+  if (!appraisalCriteria) return;
+  const { categories, criteria, ratingEquivalents } = appraisalCriteria;
+
+  const scores = {};
+  let allScored = true;
+  criteria.forEach((criterion) => {
+    const el = document.querySelector(`[data-score="${criterion.key}"]`);
+    const raw = el ? String(el.value).trim() : '';
+    let score = null;
+    if (raw !== '') {
+      const num = Number(raw);
+      // An out-of-range or non-numeric entry is not a valid score.
+      if (Number.isFinite(num) && num >= 0 && num <= criterion.max) score = num;
+      else allScored = false;
     } else {
-      btn.classList.remove('active');
+      allScored = false;
     }
+    scores[criterion.key] = score;
+  });
+
+  categories.forEach((category) => {
+    const rows = criteria.filter((c) => c.category === category.key);
+    const complete = rows.every((c) => scores[c.key] !== null);
+    const subtotal = complete
+      ? Math.round(rows.reduce((sum, c) => sum + scores[c.key], 0) * 100) / 100
+      : null;
+    const el = document.getElementById(`subtotal-${category.key}`);
+    if (el) el.textContent = subtotal === null ? '—' : `${subtotal} / ${category.max}`;
+  });
+
+  const numEl = document.getElementById('overall-rating-num');
+  const labelEl = document.getElementById('overall-rating-label');
+  const noteEl = document.getElementById('appraisal-incomplete-note');
+
+  if (!allScored) {
+    // Incomplete evaluations never show a fabricated grade.
+    if (numEl) numEl.textContent = '—';
+    if (labelEl) labelEl.textContent = 'Incomplete';
+    if (noteEl) noteEl.classList.remove('hidden');
+    return;
+  }
+
+  const total = Math.round(criteria.reduce((sum, c) => sum + scores[c.key], 0) * 100) / 100;
+  const band = (ratingEquivalents || []).find((entry) => total >= entry.min && total <= entry.max);
+  if (numEl) numEl.textContent = `${total} / 100`;
+  // "Below 75 → Fail" covers fractional totals such as 74.5 (backend agrees).
+  if (labelEl) labelEl.textContent = band ? band.label : (total < 75 ? 'Fail' : '—');
+  if (noteEl) noteEl.classList.add('hidden');
+}
+
+function clearAppraisalForm() {
+  document.querySelectorAll('[data-info]').forEach((el) => { el.value = ''; });
+  document.querySelectorAll('[data-score]').forEach((el) => { el.value = ''; });
+  document.querySelectorAll('[data-remarks]').forEach((el) => { el.value = ''; });
+  const remarks = document.getElementById('overall-remarks');
+  if (remarks) remarks.value = '';
+  const checkbox = document.getElementById('recommended-completion');
+  if (checkbox) checkbox.checked = false;
+  ['technical', 'attitude', 'quality', 'attendance'].forEach((key) => {
+    const el = document.getElementById(`subtotal-${key}`);
+    if (el) el.textContent = '—';
+  });
+  const numEl = document.getElementById('overall-rating-num');
+  if (numEl) numEl.textContent = '—';
+  const labelEl = document.getElementById('overall-rating-label');
+  if (labelEl) labelEl.textContent = 'Incomplete';
+  const noteEl = document.getElementById('appraisal-incomplete-note');
+  if (noteEl) noteEl.classList.add('hidden');
+  const badge = document.getElementById('appraisal-status-badge');
+  if (badge) badge.hidden = true;
+  const lockNotice = document.getElementById('appraisal-lock-notice');
+  if (lockNotice) lockNotice.classList.add('hidden');
+}
+
+function setAppraisalFormEnabled(enabled) {
+  const fieldset = document.getElementById('appraisal-fieldset');
+  if (fieldset) fieldset.disabled = !enabled;
+  const saveBtn = document.getElementById('appraisal-save-draft-btn');
+  const submitBtn = document.getElementById('appraisal-submit-btn');
+  if (saveBtn) saveBtn.classList.toggle('hidden', !enabled);
+  if (submitBtn) submitBtn.classList.toggle('hidden', !enabled);
+}
+
+function showAppraisalEmptyNotice(show) {
+  const notice = document.getElementById('appraisal-empty-notice');
+  if (notice) notice.classList.toggle('hidden', !show);
+}
+
+function showAppraisalStatusBadge(status) {
+  const badge = document.getElementById('appraisal-status-badge');
+  if (!badge) return;
+  badge.hidden = false;
+  badge.classList.remove('status-pending', 'status-completed');
+  if (status === 'draft') {
+    badge.classList.add('status-pending');
+    badge.textContent = 'Draft';
+  } else {
+    badge.classList.add('status-completed');
+    badge.textContent = status === 'acknowledged' ? 'Acknowledged' : 'Submitted & Signed';
+  }
+}
+
+function populateAppraisalForm(info, record) {
+  document.querySelectorAll('[data-info]').forEach((el) => {
+    el.value = (info && info[el.getAttribute('data-info')]) || '';
+  });
+  const ratings = (record && record.ratings) || {};
+  document.querySelectorAll('[data-score]').forEach((el) => {
+    const entry = ratings[el.getAttribute('data-score')];
+    const score = entry ? entry.score : null;
+    el.value = score === null || score === undefined ? '' : score;
+  });
+  document.querySelectorAll('[data-remarks]').forEach((el) => {
+    const entry = ratings[el.getAttribute('data-remarks')];
+    el.value = (entry && entry.remarks) || '';
   });
 }
 
-function calculateOverallRating() {
-  const ratings = Object.values(appraisalRatings);
-  if (ratings.length === 0) {
-    document.getElementById('overall-rating-num').textContent = '0.0';
-    document.getElementById('overall-rating-label').textContent = 'No Rating';
+/**
+ * Load the selected trainee + month: prefilled defaults from the trainee
+ * record, or the saved record when one exists (drafts reopen, submitted
+ * records lock the form).
+ */
+async function loadAppraisalContext() {
+  const traineeSelect = document.getElementById('appraisal-trainee-select');
+  const monthPicker = document.getElementById('appraisal-month-picker');
+  const traineeId = traineeSelect ? traineeSelect.value : '';
+  const period = monthPicker ? monthPicker.value : '';
+
+  clearAppraisalForm();
+  setAppraisalFormEnabled(false);
+
+  if (!traineeId || !APPRAISAL_PERIOD_RE.test(period || '')) {
+    showAppraisalEmptyNotice(true);
+    await loadAppraisalHistory(traineeId || '');
     return;
   }
-  
-  const avg = (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1);
-  let label = 'No Rating';
-  
-  if (avg >= 4.5) label = 'Excellent';
-  else if (avg >= 4) label = 'Very Good';
-  else if (avg >= 3) label = 'Good';
-  else label = 'Needs Improvement';
-  
-  document.getElementById('overall-rating-num').textContent = avg;
-  document.getElementById('overall-rating-label').textContent = label;
+  showAppraisalEmptyNotice(false);
+
+  try {
+    const result = await fetchAPI(`/appraisal/context?traineeId=${encodeURIComponent(traineeId)}&period=${encodeURIComponent(period)}`);
+    if (!result || !result.success) {
+      throw new Error(result?.message || 'Failed to load the appraisal form.');
+    }
+
+    const { defaults, record } = result.data;
+    // The saved snapshot always wins over fresh defaults when reopening.
+    populateAppraisalForm(record ? record.info : defaults, record);
+
+    const remarks = document.getElementById('overall-remarks');
+    if (remarks) remarks.value = (record && record.overallRemarks) || '';
+    const checkbox = document.getElementById('recommended-completion');
+    if (checkbox) checkbox.checked = !!(record && record.recommendedCompletion);
+
+    updateAppraisalTotals();
+
+    const locked = !!record && record.status !== 'draft';
+    setAppraisalFormEnabled(!locked);
+    if (record) {
+      showAppraisalStatusBadge(record.status);
+      const lockNotice = document.getElementById('appraisal-lock-notice');
+      if (lockNotice) lockNotice.classList.toggle('hidden', !locked);
+    }
+
+    await loadAppraisalHistory(traineeId);
+  } catch (error) {
+    showNotification('Error', error.message || 'Failed to load the appraisal form.', 'error');
+  }
 }
 
-function saveDraftAppraisal() {
-  showNotification('Success', 'Appraisal saved as draft', 'success');
+/** Previous Appraisals table for the selected trainee. */
+async function loadAppraisalHistory(traineeId) {
+  const body = document.getElementById('appraisal-history-body');
+  if (!body) return;
+
+  if (!traineeId) {
+    body.innerHTML = '<tr class="border-b border-white/10"><td colspan="5" class="py-6 px-4 text-center text-slate-500">Select a trainee to view their appraisal history.</td></tr>';
+    return;
+  }
+
+  try {
+    const result = await fetchAPI(`/appraisal/trainee/${encodeURIComponent(traineeId)}`);
+    if (!result || !result.success) {
+      throw new Error(result?.message || 'Failed to load appraisal history.');
+    }
+
+    const records = result.data || [];
+    if (!records.length) {
+      body.innerHTML = '<tr class="border-b border-white/10"><td colspan="5" class="py-6 px-4 text-center text-slate-500">No appraisals yet for this trainee.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = records.map((record) => {
+      const isDraft = record.status === 'draft';
+      const month = (record.info && record.info.evaluationPeriodLabel) || record.period;
+      const score = record.isComplete && typeof record.totalScore === 'number'
+        ? `${record.totalScore} / 100`
+        : '—';
+      const equivalent = record.isComplete && record.ratingEquivalent ? record.ratingEquivalent : 'Incomplete';
+      const badge = isDraft
+        ? '<span class="status-badge status-pending">Draft</span>'
+        : `<span class="status-badge status-completed">${record.status === 'acknowledged' ? 'Acknowledged' : 'Submitted'}</span>`;
+      const action = isDraft
+        ? `<button type="button" onclick="openAppraisalDraft('${record.period}')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold">Continue Draft</button>`
+        : `<button type="button" onclick="downloadAppraisalPDF('${record._id}')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold">Download PDF</button>`;
+      return `
+        <tr class="border-b border-white/10">
+          <td class="py-3 px-4">${escapeHtml(month)}</td>
+          <td class="py-3 px-4"><span class="font-semibold text-teal-400">${escapeHtml(score)}</span></td>
+          <td class="py-3 px-4">${escapeHtml(equivalent)}</td>
+          <td class="py-3 px-4">${badge}</td>
+          <td class="py-3 px-4">${action}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (error) {
+    body.innerHTML = `<tr class="border-b border-white/10"><td colspan="5" class="py-6 px-4 text-center text-red-400">${escapeHtml(error.message || 'Failed to load appraisal history.')}</td></tr>`;
+  }
+}
+
+/** Reopen a draft by switching the month picker to its period. */
+function openAppraisalDraft(period) {
+  const monthPicker = document.getElementById('appraisal-month-picker');
+  if (monthPicker && APPRAISAL_PERIOD_RE.test(period || '')) monthPicker.value = period;
+  loadAppraisalContext();
+}
+
+/** Jump from the trainee profile modal to the appraisal form. */
+function openPerformanceAppraisal(traineeId) {
+  closeTraineeDetail();
+  const select = document.getElementById('appraisal-trainee-select');
+  if (select) select.value = traineeId;
+  switchTab('performance');
+}
+
+/** Gather the form into the API payload shape (totals are never sent). */
+function collectAppraisalPayload() {
+  const info = {};
+  document.querySelectorAll('[data-info]').forEach((el) => {
+    info[el.getAttribute('data-info')] = el.value.trim();
+  });
+  const ratings = {};
+  document.querySelectorAll('[data-score]').forEach((el) => {
+    const key = el.getAttribute('data-score');
+    const remarksEl = document.querySelector(`[data-remarks="${key}"]`);
+    const raw = String(el.value).trim();
+    ratings[key] = {
+      score: raw === '' ? null : raw,
+      remarks: remarksEl ? remarksEl.value.trim() : '',
+    };
+  });
+  const traineeSelect = document.getElementById('appraisal-trainee-select');
+  const monthPicker = document.getElementById('appraisal-month-picker');
+  return {
+    traineeId: traineeSelect ? traineeSelect.value : '',
+    period: monthPicker ? monthPicker.value : '',
+    info,
+    ratings,
+    overallRemarks: document.getElementById('overall-remarks')?.value || '',
+    recommendedCompletion: document.getElementById('recommended-completion')?.checked || false,
+  };
+}
+
+async function saveDraftAppraisal() {
+  if (!appraisalCriteria) {
+    showNotification('Notice', 'The evaluation criteria are still loading. Please try again in a moment.', 'info');
+    return;
+  }
+  const traineeSelect = document.getElementById('appraisal-trainee-select');
+  if (!traineeSelect || !traineeSelect.value) {
+    showNotification('Notice', 'Select a trainee first.', 'info');
+    return;
+  }
+
+  try {
+    const result = await fetchAPI('/appraisal/draft', {
+      method: 'POST',
+      body: JSON.stringify(collectAppraisalPayload()),
+    });
+    if (!result || !result.success) {
+      const errors = result?.data?.errors;
+      throw new Error((errors && errors.length ? errors.join(' ') : null)
+        || result?.message
+        || 'Failed to save the draft.');
+    }
+    showNotification('Success', 'Appraisal saved as draft', 'success');
+    await loadAppraisalContext();
+  } catch (error) {
+    showNotification('Error', error.message || 'Failed to save the draft.', 'error');
+  }
 }
 
 function submitAppraisal(event) {
   event.preventDefault();
 
-  const supervisor = window.currentUser?.fullName || 'Supervisor';
-  const ratingValue = document.getElementById('overall-rating-num')?.textContent?.trim() || '0.0';
-  const ratingLabel = document.getElementById('overall-rating-label')?.textContent?.trim() || 'No Rating';
+  if (!appraisalCriteria) {
+    showNotification('Notice', 'The evaluation criteria are still loading. Please try again in a moment.', 'info');
+    return;
+  }
+  const traineeSelect = document.getElementById('appraisal-trainee-select');
+  if (!traineeSelect || !traineeSelect.value) {
+    showNotification('Notice', 'Select a trainee first.', 'info');
+    return;
+  }
+
+  // Client-side completeness gate; the backend enforces this too. Out-of-range
+  // entries (e.g. 20 for a max-15 criterion) block submission as well.
+  const invalid = Array.from(document.querySelectorAll('[data-score]')).filter((el) => {
+    const raw = String(el.value).trim();
+    if (raw === '') return true;
+    const criterion = appraisalCriteria.criteria.find((c) => c.key === el.getAttribute('data-score'));
+    const num = Number(raw);
+    return !criterion || !Number.isFinite(num) || num < 0 || num > criterion.max;
+  });
+  if (invalid.length) {
+    const noteEl = document.getElementById('appraisal-incomplete-note');
+    if (noteEl) noteEl.classList.remove('hidden');
+    updateAppraisalTotals();
+    showNotification('Error', `All 9 criteria need a valid score (0 to max) — ${invalid.length} unscored or out of range.`, 'error');
+    return;
+  }
+
+  const traineeLabel = traineeSelect.selectedOptions[0]?.textContent || 'Trainee';
+  const periodLabel = document.getElementById('info-evaluationPeriodLabel')?.value || '';
+  const totalText = document.getElementById('overall-rating-num')?.textContent?.trim() || '—';
+  const equivalent = document.getElementById('overall-rating-label')?.textContent?.trim() || '—';
 
   VerificationModal.open({
     type: 'appraisal',
     summary: [
-      { label: 'Form', value: 'Performance Appraisal' },
-      { label: 'Supervisor', value: supervisor },
-      { label: 'Overall Rating', value: `${ratingValue} (${ratingLabel})` },
-      { label: 'Status', value: 'Pending Signature' },
+      { label: 'Trainee', value: traineeLabel },
+      { label: 'Evaluation Period', value: periodLabel },
+      { label: 'Total Score', value: totalText },
+      { label: 'Rating Equivalent', value: equivalent },
     ],
     successSummary: [
-      { label: 'Form', value: 'Performance Appraisal' },
-      { label: 'Supervisor', value: supervisor },
-      { label: 'Status', value: 'Signed' },
+      { label: 'Trainee', value: traineeLabel },
+      { label: 'Evaluation Period', value: periodLabel },
+      { label: 'Status', value: 'Submitted & Signed' },
     ],
-    onConfirm: () => {
-      // This form has no verification request: run the action immediately so
-      // the modal never shows a fake loading state.
-      const form = document.getElementById('appraisal-form');
-      if (form) form.reset();
-      appraisalRatings = {};
-      calculateOverallRating();
+    onConfirm: async () => {
+      const result = await fetchAPI('/appraisal/submit', {
+        method: 'POST',
+        body: JSON.stringify(collectAppraisalPayload()),
+      });
+      if (!result || !result.success) {
+        const errors = result?.data?.errors;
+        throw new Error((errors && errors.length ? errors.join(' ') : null)
+          || result?.message
+          || 'Failed to submit the appraisal.');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      showNotification('Success', 'Appraisal submitted and signed.', 'success');
+      loadAppraisalContext();
     },
   });
 }
 
-function downloadAppraisalPDF(month) {
-  showNotification('Notice', `Downloading appraisal for ${month}...\nFile: Appraisal_JohnDoe_${month.toUpperCase()}2026.pdf`, 'info');
+/** Generate the official PDF from the SAVED record (never unsaved inputs). */
+async function downloadAppraisalPDF(recordId) {
+  try {
+    const result = await fetchAPI(`/appraisal/record/${encodeURIComponent(recordId)}`);
+    if (!result || !result.success) {
+      throw new Error(result?.message || 'Failed to load the appraisal record.');
+    }
+    if (!window.AppraisalPDF) {
+      throw new Error('PDF library is not loaded yet. Please try again in a moment.');
+    }
+    await window.AppraisalPDF.download(result.data);
+    showNotification('Success', 'Performance appraisal PDF downloaded.', 'success');
+  } catch (error) {
+    showNotification('Error', error.message || 'Failed to generate the appraisal PDF.', 'error');
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2525,12 +2846,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadSignaturePreview();
 
-  // Initialize star rating buttons
-  document.querySelectorAll('.star-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-    });
-  });
+  // Performance Appraisal: reload context when the trainee or month changes
+  const appraisalTraineeSelect = document.getElementById('appraisal-trainee-select');
+  if (appraisalTraineeSelect) {
+    appraisalTraineeSelect.addEventListener('change', () => loadAppraisalContext());
+  }
+  const appraisalMonthPicker = document.getElementById('appraisal-month-picker');
+  if (appraisalMonthPicker) {
+    // Default to the current month (mirrors the DTR picker).
+    const now = new Date();
+    appraisalMonthPicker.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    appraisalMonthPicker.addEventListener('change', () => loadAppraisalContext());
+  }
+  // Live subtotals/total preview as any criterion input changes
+  const appraisalForm = document.getElementById('appraisal-form');
+  if (appraisalForm) {
+    appraisalForm.addEventListener('input', updateAppraisalTotals);
+  }
 
   // Mobile sidebar close on main content click
   const mainContent = document.querySelector('.main-content');
