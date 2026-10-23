@@ -1542,30 +1542,38 @@ body.light-mode .attendance-schedule__value {
     margin: 0 auto;
   }
 
-  /* Table responsiveness */
+  /* Table responsiveness: keep the real table and scroll it horizontally.
+     (Hiding thead / nowrap + min-width made cells overflow their cards on
+     phones, causing the overlapping content.) */
   .analytics-table-wrap,
   .trainee-progress-table,
   .overflow-x-auto {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    max-width: 100%;
   }
 
   .analytics-table-wrap table,
   .trainee-progress-table table,
   .overflow-x-auto table {
-    min-width: 700px;
+    min-width: 640px;
   }
 
   table {
     font-size: 0.85rem;
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    border-collapse: collapse;
   }
 
   table th,
   table td {
     padding: 8px 6px;
+    white-space: nowrap;
+  }
+
+  /* Wide tables scroll inside their card instead of bleeding past it */
+  .glass-card {
+    max-width: 100%;
+    overflow-wrap: break-word;
   }
 
   /* Card adjustments */
@@ -1743,21 +1751,23 @@ body.light-mode .attendance-schedule__value {
     margin: 0 auto;
   }
 
-  /* Tables */
+  /* Tables: scroll horizontally inside the card, no negative margins
+     (those pushed the scroll area past the card edge and overlapped content) */
   .analytics-table-wrap,
   .trainee-progress-table,
   .overflow-x-auto {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    margin: 0 -12px;
-    padding: 0 12px;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
   }
 
   .analytics-table-wrap table,
   .trainee-progress-table table,
   .overflow-x-auto table {
-    min-width: 800px;
-    font-size: 0.7rem;
+    min-width: 640px;
+    font-size: 0.75rem;
   }
 
   .analytics-table-wrap th,
@@ -1996,6 +2006,25 @@ select option:hover {
   .main-content {
     padding-left: max(20px, env(safe-area-inset-left));
     padding-right: max(20px, env(safe-area-inset-right));
+  }
+}
+
+/* The @supports safe-area nav padding above applies at every width and made
+   the fixed nav ~72px tall on phones while .main-content only offset 60px,
+   so content slid under the nav. Restore the compact mobile nav and a
+   matching content offset. */
+@media (max-width: 768px) {
+  nav {
+    padding: 10px 12px;
+  }
+
+  .main-content {
+    margin-top: 68px;
+  }
+
+  .sidebar {
+    top: 64px;
+    height: calc(100vh - 64px);
   }
 }
 

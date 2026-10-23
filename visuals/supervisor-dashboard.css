@@ -695,59 +695,37 @@ nav {
     grid-template-columns: 1fr;
   }
 
-  /* Table responsiveness */
+  /* Table responsiveness: keep the real table and scroll it horizontally.
+     (The old stacked-rows approach hid the thead and forced nowrap cells to
+     overflow their cards, which caused the overlapping content on phones.) */
   .analytics-table-wrap,
   .trainee-progress-table,
   .overflow-x-auto {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    max-width: 100%;
   }
 
   .analytics-table-wrap table,
   .trainee-progress-table table,
   .overflow-x-auto table {
-    min-width: 700px;
+    min-width: 640px;
   }
 
   table {
     font-size: 0.85rem;
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    border-collapse: collapse;
   }
 
   table th, table td {
     padding: 8px 6px;
+    white-space: nowrap;
   }
 
-  thead {
-    display: none;
-  }
-
-  tbody tr {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 12px;
-    padding: 12px;
-    background: rgba(255,255,255,0.02);
-  }
-
-  tbody tr td {
-    display: block;
-    text-align: left;
-    padding: 8px 0;
-    border: none;
-  }
-
-  tbody tr td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #94a3b8;
-    display: block;
-    font-size: 0.75rem;
-    margin-bottom: 4px;
+  /* Wide tables scroll inside their card instead of bleeding past it */
+  .glass-card {
+    max-width: 100%;
+    overflow-wrap: break-word;
   }
 
   /* Card adjustments */
@@ -935,21 +913,23 @@ nav {
     height: 32px;
   }
 
-  /* Tables */
+  /* Tables: scroll horizontally inside the card, no negative margins
+     (those pushed the scroll area past the card edge and overlapped content) */
   .analytics-table-wrap,
   .trainee-progress-table,
   .overflow-x-auto {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    margin: 0 -12px;
-    padding: 0 12px;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
   }
 
   .analytics-table-wrap table,
   .trainee-progress-table table,
   .overflow-x-auto table {
-    min-width: 800px;
-    font-size: 0.7rem;
+    min-width: 640px;
+    font-size: 0.75rem;
   }
 
   .analytics-table-wrap th,
@@ -1148,6 +1128,23 @@ select option:hover {
   z-index: 35;
   opacity: 0;
   transition: opacity 0.3s ease;
+}
+
+/* DTR signature divider uses inline negative margins for desktop alignment;
+   on small screens they push past the card edge, so neutralize them. */
+@media (max-width: 768px) {
+  #dtr-signature-area .border-t {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Action button rows wrap instead of overflowing */
+  #dtr-verification .flex.gap-4,
+  #overview .flex.gap-4 {
+    flex-wrap: wrap;
+  }
 }
 
 .sidebar-overlay.visible {
