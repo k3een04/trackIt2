@@ -1000,6 +1000,19 @@ function renderSnapshotError() {
   );
 }
 
+function renderAttendanceError() {
+  const container = el('attendance-chart-container');
+  const overlay = el('attendance-chart-overlay');
+  if (!container) return;
+  container.style.display = 'none';
+  if (!overlay) return;
+  overlay.hidden = false;
+  const title = overlay.querySelector('.empty-state__title');
+  const text = overlay.querySelector('.empty-state__text');
+  if (title) title.textContent = 'Unable to load attendance';
+  if (text) text.textContent = 'The weekly attendance chart could not be loaded. Try again.';
+}
+
 let weeklyAttendanceChart = null;
 let currentAttendanceWeekStart = null;
 
@@ -1017,7 +1030,14 @@ function renderWeeklyAttendanceChart() {
   const data = overviewWidgetsPayload && overviewWidgetsPayload.attendanceThisWeek;
   if (!data || !data.days || data.days.length === 0) {
     container.style.display = 'none';
-    if (overlay) overlay.hidden = false;
+    if (overlay) {
+      overlay.hidden = false;
+      // Reset the copy in case the error state swapped it earlier.
+      const title = overlay.querySelector('.empty-state__title');
+      const text = overlay.querySelector('.empty-state__text');
+      if (title) title.textContent = 'No attendance data';
+      if (text) text.textContent = 'Attendance records will appear here once trainees time in.';
+    }
     if (weekSelect) weekSelect.innerHTML = '<option value="">Current Week</option>';
     return;
   }
@@ -5838,3 +5858,58 @@ document.addEventListener('DOMContentLoaded', () => {
     if (event.key === 'Escape') closeReportModal();
   });
 });
+
+/* ── Mobile stacked tables ──────────────────────────────────────────────────
+   On phones, wide tables render as stacked label/value cards: thead hidden,
+   each row becomes a bordered card and each cell shows its column name via a
+   data-label pseudo-element. Labels are stamped from the thead here and
+   re-stamped whenever a render replaces the rows, so no render code changes. */
+(function initStackedTables() {
+  const TARGETS = ['#trainees-table-body', '#all-trainees-table-body', '#recent-dtr-body', '#trainee-progress-body', '#department-analytics-body'];
+
+  function stamp(tbody) {
+    const table = tbody.closest('table');
+    if (!table) return;
+    table.classList.add('tk-stack');
+    const labels = Array.from(table.querySelectorAll('thead th'))
+      .map((th) => {
+        // Strip sort arrows / screen-only text so card labels stay clean
+        const clone = th.cloneNode(true);
+        clone.querySelectorAll('.sort-indicator, .sr-only').forEach((n) => n.remove());
+        return (clone.textContent || '').trim().replace(/\s+/g, ' ');
+      });
+    Array.from(tbody.children).forEach((tr) => {
+      Array.from(tr.children).forEach((td, i) => {
+        if (td.hasAttribute('colspan')) { td.removeAttribute('data-label'); return; }
+        const label = labels[i];
+        if (label) td.setAttribute('data-label', label);
+        else td.removeAttribute('data-label');
+      });
+    });
+  }
+
+  const stampAll = () => TARGETS.forEach((sel) => {
+    const tb = document.querySelector(sel);
+    if (tb) stamp(tb);
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', stampAll);
+  else stampAll();
+
+  const obs = new MutationObserver((muts) => {
+    const seen = new Set();
+    for (const m of muts) {
+      const node = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+      const tb = node && node.closest ? node.closest('tbody') : null;
+      if (tb && !seen.has(tb)) { seen.add(tb); stamp(tb); }
+    }
+  });
+
+  const attach = () => TARGETS.forEach((sel) => {
+    const tb = document.querySelector(sel);
+    if (tb) obs.observe(tb, { childList: true });
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();

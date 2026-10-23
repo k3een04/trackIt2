@@ -5593,3 +5593,58 @@ document.addEventListener('click', (e) => {
 });
 
 
+
+/* ── Mobile stacked tables ──────────────────────────────────────────────────
+   On phones, wide tables render as stacked label/value cards: thead hidden,
+   each row becomes a bordered card and each cell shows its column name via a
+   data-label pseudo-element. Labels are stamped from the thead here and
+   re-stamped whenever a render replaces the rows, so no render code changes. */
+(function initStackedTables() {
+  const TARGETS = ['#dtr-table-body', '#all-records-table-body', '#dutylog-table-body'];
+
+  function stamp(tbody) {
+    const table = tbody.closest('table');
+    if (!table) return;
+    table.classList.add('tk-stack');
+    const labels = Array.from(table.querySelectorAll('thead th'))
+      .map((th) => {
+        // Strip sort arrows / screen-only text so card labels stay clean
+        const clone = th.cloneNode(true);
+        clone.querySelectorAll('.sort-indicator, .sr-only').forEach((n) => n.remove());
+        return (clone.textContent || '').trim().replace(/\s+/g, ' ');
+      });
+    Array.from(tbody.children).forEach((tr) => {
+      Array.from(tr.children).forEach((td, i) => {
+        if (td.hasAttribute('colspan')) { td.removeAttribute('data-label'); return; }
+        const label = labels[i];
+        if (label) td.setAttribute('data-label', label);
+        else td.removeAttribute('data-label');
+      });
+    });
+  }
+
+  const stampAll = () => TARGETS.forEach((sel) => {
+    const tb = document.querySelector(sel);
+    if (tb) stamp(tb);
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', stampAll);
+  else stampAll();
+
+  const obs = new MutationObserver((muts) => {
+    const seen = new Set();
+    for (const m of muts) {
+      const node = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+      const tb = node && node.closest ? node.closest('tbody') : null;
+      if (tb && !seen.has(tb)) { seen.add(tb); stamp(tb); }
+    }
+  });
+
+  const attach = () => TARGETS.forEach((sel) => {
+    const tb = document.querySelector(sel);
+    if (tb) obs.observe(tb, { childList: true });
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();

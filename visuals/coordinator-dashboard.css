@@ -741,6 +741,14 @@ nav {
   }
 
   /* Grid adjustments */
+  /* Grid items default to min-width:auto, so a wide table's intrinsic width
+     propagates into the track sizing and blows the page out to ~768px on a
+     360px phone (the pinch-to-zoom-out bug). Letting items shrink keeps the
+     overflow inside each card's own scroll wrapper. */
+  .grid > * {
+    min-width: 0;
+  }
+
   .grid.grid-cols-1.lg\\:grid-cols-3 {
     grid-template-columns: 1fr;
   }
@@ -3385,6 +3393,12 @@ body.light-mode .pager__btn--current { color: var(--teal-deep, #008573); backgro
   .ov-header__actions .btn-ghost--sm { flex: 1 1 auto; justify-content: center; }
   .ov-panel { padding: 16px; }
   .table-foot { flex-direction: column; align-items: flex-start; }
+
+  /* Panel headers: title + controls don't fit side by side on a phone —
+     the sort select (min-width 148px) pushed 3px past a 360px viewport. */
+  .ov-panel__head { flex-wrap: wrap; }
+  .ov-panel__actions { margin-left: 0; width: 100%; flex-shrink: 1; }
+  .ov-panel__actions .field__control { min-width: 0; flex: 1 1 auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4429,3 +4443,53 @@ body.light-mode .tp-table-wrap { background: rgba(255, 255, 255, 0.6); }
 body.light-mode .tp-detail-row td { background: rgba(15, 23, 42, 0.03); }
 body.light-mode .tp-wait { color: #b45309; }
 body.light-mode .tp-strong { color: #0f172a; }
+
+/* ── Stacked table cards (mobile) ────────────────────────────────────────────
+   Tables marked .tk-stack (stamped by the dashboard script) render as
+   label/value cards on phones: thead hidden, each row becomes a bordered
+   card, each cell shows its column name from data-label. Data-labels are
+   stamped automatically from the thead by the dashboard script. */
+@media (max-width: 640px) {
+  table.tk-stack { display: block; width: 100%; min-width: 0 !important; }
+  table.tk-stack thead { display: none; }
+  table.tk-stack > tbody { display: block; width: 100%; }
+  table.tk-stack > tbody > tr {
+    display: block;
+    width: 100%;
+    margin: 0 0 12px;
+    padding: 4px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  table.tk-stack > tbody > tr:last-child { margin-bottom: 0; }
+  table.tk-stack > tbody > tr > td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 7px 0;
+    border: none;
+    text-align: right;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  table.tk-stack > tbody > tr > td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 55%;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    text-align: left;
+  }
+  table.tk-stack > tbody > tr > td[data-label=""]::before,
+  table.tk-stack > tbody > tr > td:not([data-label])::before { content: none; }
+  table.tk-stack > tbody > tr > td[data-label=""],
+  table.tk-stack > tbody > tr > td:not([data-label]) { justify-content: flex-start; }
+  /* A desktop wrap's max-height must not clip a long stacked list */
+  .analytics-table-wrap { max-height: none; }
+}
