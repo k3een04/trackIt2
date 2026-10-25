@@ -27,10 +27,15 @@
       "destination": "/index.html"
     }
   ],
-  "staticFiles": [
+  "headers": [
     {
-      "source": "visuals/(.*)",
-      "destination": "/visuals/$1"
+      "source": "/visuals/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ]
 }
