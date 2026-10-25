@@ -1656,6 +1656,14 @@ body.light-mode .attendance-schedule__value {
     white-space: nowrap;
   }
 
+  /* Icon-only Logout: same compact chip as the coordinator header so all
+     three navs are identical on a phone. #navbar outranks the shared
+     `body .btn-ghost { min-height: 44px }` rule in trackit-glass.css. */
+  #navbar .btn-ghost {
+    min-height: 34px;
+    padding: 5px 6px;
+  }
+
   nav #theme-toggle,
   nav #menu-toggle {
     min-height: 40px;
@@ -4422,19 +4430,14 @@ body.light-mode #overview {
   flex: 0 0 auto;
 }
 
-/* The header's Logout is a utility, not a primary action: it should never
-   compete with the dashboard content for attention. */
-#navbar .btn-ghost {
-  color: var(--ov-text-muted);
-  border-color: var(--ov-hairline);
-  background: transparent;
-}
-
-#navbar .btn-ghost:hover {
-  color: var(--ov-text);
-  border-color: var(--ov-hairline-strong);
-  background: var(--ov-surface-2);
-}
+/* The header's Logout intentionally has no local override: it inherits the
+   shared `body .btn-ghost` chip (hairline border + L2 fill) so it matches the
+   coordinator and supervisor headers exactly.
+   It used to override border-color/color with the --ov-* tokens, but those are
+   declared on #overview, not on #navbar. Outside #overview they resolve to
+   nothing, the declarations became invalid at computed-value time and fell
+   back to currentColor — which is why this one Logout drew a harsh white
+   outline on phones while the other two dashboards drew a subtle chip. */
 
 @media (min-width: 1024px) {
   .ov-pagehead { margin-bottom: 24px; }

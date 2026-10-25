@@ -818,6 +818,14 @@ nav {
     white-space: nowrap;
   }
 
+  /* Icon-only Logout: same compact chip as the coordinator header so all
+     three navs are identical on a phone. #navbar outranks the shared
+     `body .btn-ghost { min-height: 44px }` rule in trackit-glass.css. */
+  #navbar .btn-ghost {
+    min-height: 34px;
+    padding: 5px 6px;
+  }
+
   nav #theme-toggle,
   nav #menu-toggle {
     min-height: 40px;

@@ -1204,24 +1204,88 @@ select option:hover {
   }
 }
 
+/* This dashboard's nav carries one control more than the student/supervisor
+   navs (mobile search AND the menu toggle). The right-hand cluster is
+   `flex-wrap` in markup, so on a phone the hamburger dropped to a second row
+   and the fixed nav grew taller than the 60px offset the page below assumes.
+   Pin everything to one row and let the wordmark shrink instead. */
+@media (max-width: 768px) {
+  nav > .max-w-7xl,
+  nav > .max-w-7xl > div {
+    flex-wrap: nowrap;
+  }
+
+  /* Brand block may compress, but the mark itself keeps its size. */
+  nav > .max-w-7xl > a {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  nav > .max-w-7xl > a > img {
+    flex-shrink: 0;
+  }
+
+  nav > .max-w-7xl > a > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Controls never shrink; they stay square and vertically centred.
+     Scoped to the icon buttons so the `hidden sm:inline-flex` text Logout
+     stays hidden on phones. */
+  nav #theme-toggle,
+  nav #notif-btn,
+  nav #mobile-search-btn,
+  nav #menu-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 /* On small phones the nav holds six controls; without this they exceed a
    360px viewport, wrap to a second row and grow the fixed nav over content. */
 @media (max-width: 480px) {
+  nav {
+    padding: 8px 10px;
+  }
+
   nav > .max-w-7xl > div {
-    gap: 4px;
+    gap: 2px;
   }
 
   nav #theme-toggle,
   nav #notif-btn,
   nav #menu-toggle,
   nav #mobile-search-btn {
-    min-height: 36px;
-    padding: 6px;
+    min-height: 34px;
+    padding: 5px;
   }
 
-  nav .btn-ghost {
-    min-height: 36px;
-    padding: 6px 8px;
+  /* Icon-only Logout: the one nav control that is a .btn-ghost. #navbar
+     outranks the shared `body .btn-ghost { min-height: 44px }` in
+     trackit-glass.css, so the compact chip actually takes effect and lines up
+     with the theme/bell/menu buttons beside it. */
+  #navbar .btn-ghost {
+    min-height: 34px;
+    padding: 5px 6px;
+  }
+
+  /* Keep the wordmark on one line inside the tighter row. */
+  nav > .max-w-7xl > a > span {
+    font-size: 1rem;
+    letter-spacing: -0.03em;
+  }
+}
+
+/* Below ~340px even the compact row is tight: drop the wordmark and keep the
+   logo mark, which is what the phone layout actually needs. */
+@media (max-width: 359px) {
+  nav > .max-w-7xl > a > span {
+    display: none;
   }
 }
 
