@@ -992,6 +992,7 @@ nav {
   /* Sidebars and modals */
   .sidebar {
     width: min(280px, 88vw);
+    left: -100%; /* closed drawer must clear the wider 88vw panel */
     height: calc(100vh - 60px);
     top: 60px;
     background: #0f172a;
@@ -1398,8 +1399,8 @@ body.light-mode #theme-toggle:hover {
 .notif-popup {
   position: absolute;
   top: 48px;
-  right: 20px;
-  width: 380px;
+  right: 8px;
+  width: min(380px, calc(100vw - 24px));
   max-height: 480px;
   background: var(--navy-mid);
   border: 1px solid var(--border);

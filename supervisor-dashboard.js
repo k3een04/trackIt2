@@ -1728,8 +1728,8 @@ function renderAppraisalCriteria() {
         <div class="space-y-4">
           ${rows.map((row) => `
             <div class="p-4 rounded-lg bg-white/5 border border-white/10">
-              <div class="flex items-start justify-between gap-4">
-                <p class="text-sm text-slate-300 flex-1">${escapeHtml(row.text)}</p>
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <p class="text-sm text-slate-300 flex-1 min-w-0">${escapeHtml(row.text)}</p>
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <span class="text-xs text-slate-500">Max <span class="font-semibold text-slate-300">${row.max}</span></span>
                   <input type="number" data-score="${row.key}" min="0" max="${row.max}" step="any"

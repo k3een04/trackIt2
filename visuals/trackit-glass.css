@@ -2015,3 +2015,100 @@ body.light-mode .schedule-info-note {
   }
   body .table-stack tbody tr td:last-child { border-bottom: 0; }
 }
+
+/* ===========================================================================
+   13. PHONE LAYOUT SAFETY
+   Fixes for content that overlapped or drifted out of alignment on narrow
+   screens. Nothing here changes desktop layout - every rule is inside a
+   max-width query and only removes overflow/overlap.
+   =========================================================================== */
+
+/* Page headers are a flex row (title + description, or title + actions).
+   Without wrapping, a long heading collides with its description on a phone. */
+body .page-header {
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-width: 0;
+}
+
+body .page-header > * {
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  body .page-header,
+  body .page-header.ov-header {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  body .page-header h1,
+  body .page-header p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  /* Action clusters that sit beside a heading drop below it, full width. */
+  body .page-header .ov-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* Long unbroken strings (IDs, URLs, emails) must not widen the page. */
+  body .glass-card h1,
+  body .glass-card h2,
+  body .glass-card h3,
+  body .glass-card p,
+  body .glass-card td,
+  body .glass-card th {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* The notification panel is anchored to the bell, which sits close to the
+   right edge - a 380px panel then pushed past the left edge of a 360px
+   phone. On small screens pin it to the viewport instead of the button. */
+@media (max-width: 560px) {
+  body .notif-popup,
+  body #notif-popup {
+    position: fixed;
+    top: 64px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 84px);
+  }
+
+  body .notif-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  body .notif-item {
+    padding: 12px;
+  }
+}
+
+/* Toolbars and control rows keep their buttons reachable instead of
+   squashing them into the edge of the screen. */
+@media (max-width: 560px) {
+  body .tab-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  body .filter-tabs,
+  body .notif-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* Trainee cards: the avatar is fixed, the name column may shrink. Without
+   min-width:0 a long unbroken name widened the card past the phone gutter. */
+body .trainee-card .flex-1 { min-width: 0; }
+body .trainee-card h4 { overflow-wrap: anywhere; }
+body .trainee-card .rounded-full { flex-shrink: 0; }
