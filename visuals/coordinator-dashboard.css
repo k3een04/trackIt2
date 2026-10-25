@@ -3452,7 +3452,30 @@ body.light-mode .pager__btn--current { color: var(--teal-deep, #1d4ed8); backgro
 @media (max-width: 640px) {
   .page-header { margin-bottom: 20px; }
   .ov-kpi-grid { grid-template-columns: 1fr; }
-  .filters-grid { grid-template-columns: 1fr; }
+
+  /* Phones: the four trainee filters read as a 2x2 grid instead of one tall
+     column, which ate most of the viewport before the table ever started.
+     DOM order already matches the intended reading order:
+       Row 1  Search Trainee | Department
+       Row 2  Section        | Attention
+     minmax(0, 1fr) plus min-width:0 on the cells is what keeps a long select
+     value ("Late Attendance (30d)") clipping inside its own cell instead of
+     stretching the grid past the viewport. */
+  .filters-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .filters-grid > .field { min-width: 0; }
+  .filters-grid .field__control {
+    min-width: 0;
+    max-width: 100%;
+    /* `input[type="text"] { padding: 12px 16px }` outranks .field__control, so
+       the text input rendered 8px taller than the three selects and its text
+       sat 4px further right — obvious once they share a grid row. Match the
+       selects here; tablet and desktop keep their existing sizing. */
+    padding: 9px 12px;
+  }
+
   .ov-header__actions { width: 100%; }
   .ov-header__actions .btn-ghost--sm { flex: 1 1 auto; justify-content: center; }
   .ov-panel { padding: 16px; }
