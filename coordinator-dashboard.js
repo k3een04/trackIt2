@@ -622,7 +622,9 @@ let paintedWidgetBlocks = null;
 let snapshotSort = 'lowest';
 
 // How many rows the snapshot previews before the "View All Trainees" link.
-const SNAPSHOT_PREVIEW_LIMIT = 8;
+// Five keeps the panel a snapshot: the Overview should not turn into a table
+// view, and the full roster is one click away on the Trainees tab.
+const SNAPSHOT_PREVIEW_LIMIT = 5;
 
 // Latest payloads behind the Overview summary row. The two endpoints load
 // independently, so each card renders from whatever has actually arrived and
@@ -3791,7 +3793,6 @@ function initGlobalSearch() {
   const desktopResults = document.getElementById('global-search-results');
   const mobileResults = document.getElementById('mobile-search-results');
   const desktopLoading = document.getElementById('global-search-loading');
-  const mobileSearchBtn = document.getElementById('mobile-search-btn');
   const mobileSearchOverlay = document.getElementById('mobile-search-overlay');
   const mobileSearchPanel = document.getElementById('mobile-search-panel');
 
@@ -3831,10 +3832,10 @@ function initGlobalSearch() {
     }
   });
 
-  // Mobile search toggle
-  if (mobileSearchBtn) {
-    mobileSearchBtn.addEventListener('click', toggleMobileSearch);
-  }
+  // Mobile search toggle. #mobile-search-btn is wired from the markup with
+  // onclick="toggleMobileSearch()" — do NOT also add a listener here. Both fire
+  // on one tap, the second call sees isMobileSearchOpen === true and closes the
+  // panel again, so the button appeared dead on phones.
   if (mobileSearchOverlay) {
     mobileSearchOverlay.addEventListener('click', closeMobileSearch);
   }
@@ -4103,8 +4104,9 @@ function showGlobalSearchResults(platform = 'desktop') {
     loadingEl.classList.add('hidden');
   }
 
+  // isMobileSearchOpen tracks the full-screen panel, which toggleMobileSearch
+  // owns. Showing results must not claim the panel is open (or that it closed).
   if (platform === 'desktop') isGlobalSearchOpen = true;
-  else isMobileSearchOpen = true;
 }
 
 /** Hide search results dropdown */
@@ -4121,7 +4123,9 @@ function hideGlobalSearchResults(platform = 'desktop') {
   }
   if (platform === 'mobile' || platform === 'both') {
     if (mobileResults) mobileResults.classList.add('hidden');
-    isMobileSearchOpen = false;
+    // isMobileSearchOpen belongs to toggleMobileSearch/closeMobileSearch: the
+    // panel can stay open with no results (query too short), so hiding the
+    // results list must not mark the panel as closed.
     globalSearchSelectedIndex = -1;
   }
 }
@@ -4191,6 +4195,14 @@ function handleGlobalSearchKeydown(e, platform = 'desktop') {
 /** Select a search result and open trainee profile modal */
 function selectGlobalSearchResult(traineeId) {
   closeGlobalSearch();
+  // On phones the search UI is a full-screen panel. closeGlobalSearch() only
+  // hides the result list, so without this the profile modal would close back
+  // onto an empty search screen. Read the DOM rather than the flag so this is
+  // correct no matter how the panel was opened.
+  const mobilePanel = document.getElementById('mobile-search-panel');
+  if (mobilePanel && !mobilePanel.classList.contains('hidden')) {
+    closeMobileSearch();
+  }
   openTraineeProfileModal(traineeId);
 }
 

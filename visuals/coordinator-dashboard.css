@@ -3490,6 +3490,17 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
   position: relative;
 }
 
+/* The magnifier is absolutely positioned at left: 12px and is 18px wide, so
+   the field needs ~40px of left padding to clear it. The `input[type="text"]`
+   rule above sets a `padding: 12px 16px` shorthand at (0,1,1) specificity,
+   which outranks Tailwind's `.pl-10` (0,1,0) — that is why the icon landed on
+   top of the placeholder in both the desktop and the mobile search fields. */
+#global-search-input,
+#mobile-search-input {
+  padding-left: 40px;
+  padding-right: 16px;
+}
+
 #global-search-input {
   width: 280px !important;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
