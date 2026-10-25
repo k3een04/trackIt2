@@ -3005,6 +3005,30 @@ button.jt-dot:focus-visible { outline: 2px solid var(--teal); outline-offset: 1p
 .jt-cell--missing .jt-dot::before { background: #ef4444; }
 .jt-cell--not-due .jt-dot::before { background: rgba(148, 163, 184, 0.35); }
 
+/* Tracker footer: week pager on the left, "View all students" on the right.
+   Inside the modal the same element also carries .table-foot, which supplies
+   the divider above it. */
+.jt-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-top: 12px;
+}
+
+.jt-foot__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.jt-foot__group p {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 /* --- Skeletons ---------------------------------------------------------- */
 
 .skel {
@@ -3484,12 +3508,39 @@ body.light-mode .pager__btn--current { color: var(--teal-deep, #1d4ed8); backgro
   .ov-header__actions .btn-ghost--sm { flex: 1 1 auto; justify-content: center; }
   .ov-panel { padding: 16px; }
   .table-foot { flex-direction: column; align-items: flex-start; }
+  /* Week pager and "View all students" don't share a phone row comfortably. */
+  .jt-foot { flex-direction: column; align-items: flex-start; }
+  .jt-foot__group { width: 100%; }
+
+  /* The tracker is a dot matrix, not a text table: the generic glass-card cell
+     padding (11px 12px) inflated every week column to 48px, so five columns
+     plus the trainee name needed 390px and always scrolled sideways. Keep the
+     compact cells so W1-W5 fit beside the sticky name column. */
+  body .glass-card .jt-table thead th,
+  body .glass-card .jt-table tbody td { padding: 6px 4px; }
+  body .glass-card .jt-table tbody td.jt-name { padding: 8px 10px 8px 4px; }
+  /* Drop the desktop name-column floor so the five week columns fit inside the
+     panel and the (narrower) modal card; long names wrap instead of forcing a
+     horizontal scroll. The generic mobile table rule makes every td nowrap,
+     which pinned the name column at its full text width. */
+  body .glass-card .jt-table th.jt-name { min-width: 0; }
+  body .glass-card .jt-table tbody td.jt-name { white-space: normal; }
+  /* The tracker modal's card already supplies the phone gutter; its p-6 header
+     and body doubled it and left the five-week grid too narrow at 320px. */
+  body #journal-tracker-modal .p-6 { padding: 16px; }
 
   /* Panel headers: title + controls don't fit side by side on a phone —
      the sort select (min-width 148px) pushed 3px past a 360px viewport. */
   .ov-panel__head { flex-wrap: wrap; }
   .ov-panel__actions { margin-left: 0; width: 100%; flex-shrink: 1; }
   .ov-panel__actions .field__control { min-width: 0; flex: 1 1 auto; }
+}
+
+/* 320px phones: the five week columns plus the trainee name need 218px and
+   only 212px is left inside the tracker modal, so shave the dot cells. */
+@media (max-width: 359px) {
+  body .glass-card .jt-table thead th,
+  body .glass-card .jt-table tbody td { padding: 6px 3px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4516,6 +4567,14 @@ body.light-mode .tp-modal__close:hover {
 }
 
 body.light-mode .tp-modal__foot { background: rgba(248, 250, 252, 0.8); }
+
+/* The tracker modal card carries an inline dark background (same as the other
+   overlays), so light mode needs !important to repaint it — without this the
+   dark-mode text tokens became dark-on-dark. */
+body.light-mode #journal-tracker-modal > div > .glass-card {
+  background: var(--tk-surface-1) !important;
+  border-color: var(--tk-hairline-strong) !important;
+}
 
 body.light-mode .tp-avatar { color: #ffffff; }
 

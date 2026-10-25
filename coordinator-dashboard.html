@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=20">
+    <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=21">
   <!-- Shared TrackIT date/month picker (the same one used on the OJT and
        supervisor dashboards). Enhances any [data-trackit-cal] input. -->
   <link rel="stylesheet" href="visuals/trackit-calendar.css?v=3">
@@ -365,6 +365,15 @@
                 <tr class="skel-row"><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td><td><span class="skel skel--cell"></span></td></tr>
               </tbody>
             </table>
+          </div>
+          <!-- Week columns page 5 at a time (W1-W5, W6-W10, ...); the link to
+               the full list only shows when the 5-row preview truncates. -->
+          <div class="jt-foot">
+            <div id="journal-tracker-pagination" class="pager"></div>
+            <button type="button" id="journal-tracker-view-all" class="link-btn hidden"
+              onclick="openJournalTrackerModal()">
+              View all students <span aria-hidden="true">→</span>
+            </button>
           </div>
         </section>
       </div>
@@ -1395,6 +1404,48 @@
     </div>
   </div>
 
+  <!-- Journal Submission Tracker: every trainee, 10 per page, 5 weeks per
+       page with its own week pager. Body-level like the overlays above so it
+       can open from any tab. -->
+  <div id="journal-tracker-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
+    <div class="min-h-full flex items-start justify-center p-4">
+      <div class="glass-card w-full max-w-5xl my-8" style="background: #151f32;">
+        <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
+          <div>
+            <h3 class="font-display font-700 text-lg">Journal Submission Tracker</h3>
+            <p id="journal-tracker-modal-subtitle" class="text-xs text-slate-500"></p>
+          </div>
+          <button onclick="closeJournalTrackerModal()" class="btn-ghost text-xs">Close</button>
+        </div>
+
+        <div class="p-6">
+          <ul class="jt-legend" aria-label="Journal status legend">
+            <li><span class="jt-legend__dot jt-legend__dot--submitted" aria-hidden="true"></span>Submitted</li>
+            <li><span class="jt-legend__dot jt-legend__dot--reviewed" aria-hidden="true"></span>Reviewed</li>
+            <li><span class="jt-legend__dot jt-legend__dot--pending" aria-hidden="true"></span>Pending</li>
+            <li><span class="jt-legend__dot jt-legend__dot--missing" aria-hidden="true"></span>Missing</li>
+            <li><span class="jt-legend__dot jt-legend__dot--not-due" aria-hidden="true"></span>Not Yet Due</li>
+          </ul>
+
+          <div class="jt-scroll">
+            <table class="jt-table">
+              <thead id="journal-tracker-modal-head"></thead>
+              <tbody id="journal-tracker-modal-body"></tbody>
+            </table>
+          </div>
+
+          <div class="table-foot jt-foot">
+            <div id="journal-tracker-modal-week-pagination" class="pager"></div>
+            <div class="jt-foot__group">
+              <p id="journal-tracker-modal-count"></p>
+              <div id="journal-tracker-modal-pagination" class="pager"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
   <script src="chart-theme.js?v=2"></script>
@@ -1404,6 +1455,6 @@
   <!-- Defines window.VerificationModal; must precede the dashboard script that
        opens it from the notification, journal and session actions. -->
   <script src="verification-modal.js?v=5"></script>
-  <script src="coordinator-dashboard.js?v=16"></script>
+  <script src="coordinator-dashboard.js?v=17"></script>
 </body>
 </html>

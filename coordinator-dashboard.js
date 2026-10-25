@@ -1387,8 +1387,11 @@ const JOURNAL_STATUS_LABELS = {
 
 /**
  * Journal Submission Tracker: trainees × weeks grid up to the current OJT
- * week. Only cells backed by a real journal are clickable, and they deep-link
- * into the Journal Review tab where that journal can actually be reviewed.
+ * week. The overview panel is a preview - the first TRACKER_PREVIEW_ROWS
+ * trainees and TRACKER_WEEK_PAGE_SIZE week columns per page - and "View all
+ * students" opens the full list. Only cells backed by a real journal are
+ * clickable, and they deep-link into the Journal Review tab where that journal
+ * can actually be reviewed.
  */
 function renderJournalTracker() {
   const head = el('journal-tracker-head');
@@ -1403,7 +1406,6 @@ function renderJournalTracker() {
 
   const maxWeek = Number(tracker.maxWeek) || 0;
   const rows = tracker.trainees || [];
-  const colspan = 1 + Math.max(maxWeek, 1);
 
   if (maxWeek < 1 || rows.length === 0) {
     head.innerHTML = '';
@@ -1412,19 +1414,77 @@ function renderJournalTracker() {
       'Weekly journal status appears here once trainees reach their first OJT week.',
       null,
       null,
-      colspan
+      1 + Math.max(maxWeek, 1)
     );
+    const emptyPager = el('journal-tracker-pagination');
+    if (emptyPager) emptyPager.innerHTML = '';
+    const emptyViewAll = el('journal-tracker-view-all');
+    if (emptyViewAll) emptyViewAll.classList.add('hidden');
+    renderJournalTrackerModal();
     return;
   }
 
+  const range = trackerWeekRange(trackerWeekPage, maxWeek);
+  trackerWeekPage = range.page;
+
+  head.innerHTML = journalTrackerHeadHtml(range.start, range.end);
+  body.innerHTML = journalTrackerRowsHtml(
+    rows.slice(0, TRACKER_PREVIEW_ROWS),
+    range.start,
+    range.end
+  );
+
+  const pagination = el('journal-tracker-pagination');
+  if (pagination) {
+    pagination.innerHTML = buildPagerHtml(range.page, range.totalPages, 'goTrackerWeekPage');
+  }
+
+  // The link only earns its place when the preview is actually truncating.
+  const viewAll = el('journal-tracker-view-all');
+  if (viewAll) viewAll.classList.toggle('hidden', rows.length <= TRACKER_PREVIEW_ROWS);
+
+  renderJournalTrackerModal();
+}
+
+// Week columns are paged TRACKER_WEEK_PAGE_SIZE at a time: W1-W5, W6-W10, ...
+function trackerWeekRange(page, maxWeek) {
+  const totalPages = Math.max(1, Math.ceil(maxWeek / TRACKER_WEEK_PAGE_SIZE));
+  const current = Math.min(Math.max(1, Number(page) || 1), totalPages);
+  return {
+    page: current,
+    totalPages,
+    start: (current - 1) * TRACKER_WEEK_PAGE_SIZE + 1,
+    end: Math.min(maxWeek, current * TRACKER_WEEK_PAGE_SIZE),
+  };
+}
+
+function journalTrackerHeadHtml(startWeek, endWeek) {
   let headerCells = '<th class="jt-name" scope="col">Trainee</th>';
-  for (let week = 1; week <= maxWeek; week += 1) {
+  for (let week = startWeek; week <= endWeek; week += 1) {
     headerCells += `<th scope="col" title="Week ${week}">W${week}</th>`;
   }
-  head.innerHTML = `<tr>${headerCells}</tr>`;
+  return `<tr>${headerCells}</tr>`;
+}
 
-  body.innerHTML = rows.map(row => {
-    const cells = (row.cells || []).map(journalCellHtml).join('');
+function journalTrackerRowsHtml(rows, startWeek, endWeek) {
+  return rows.map(row => {
+    // Key off each cell's own week number rather than its array position, so a
+    // payload that skips a week still lines up with the visible columns.
+    const byWeek = new Map();
+    (row.cells || []).forEach(cell => {
+      if (cell && cell.week !== null && cell.week !== undefined) {
+        byWeek.set(Number(cell.week), cell);
+      }
+    });
+
+    let cells = '';
+    for (let week = startWeek; week <= endWeek; week += 1) {
+      const cell = byWeek.get(week);
+      cells += cell
+        ? journalCellHtml(cell)
+        : `<td class="jt-cell jt-cell--not-due"><span class="jt-dot" title="Week ${week}, ${escapeHtml(JOURNAL_STATUS_LABELS['not-due'] || 'Not Yet Due')}"></span></td>`;
+    }
+
     return `
       <tr>
         <td class="jt-name"><span class="cell__name">${escapeHtml(row.fullName || 'Unnamed trainee')}</span></td>
@@ -1432,6 +1492,95 @@ function renderJournalTracker() {
       </tr>
     `;
   }).join('');
+}
+
+// "View all students": every trainee, TRACKER_MODAL_PAGE_SIZE per page, with
+// its own week pager. Opens on whichever week page the panel is showing.
+function openJournalTrackerModal() {
+  const modal = el('journal-tracker-modal');
+  if (!modal) return;
+  trackerModalPage = 1;
+  trackerModalWeekPage = trackerWeekPage;
+  modal.classList.remove('hidden');
+  renderJournalTrackerModal();
+}
+
+function closeJournalTrackerModal() {
+  const modal = el('journal-tracker-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function goTrackerWeekPage(page) {
+  trackerWeekPage = page;
+  renderJournalTracker();
+}
+
+function goTrackerModalWeekPage(page) {
+  trackerModalWeekPage = page;
+  renderJournalTrackerModal();
+}
+
+function goTrackerModalPage(page) {
+  trackerModalPage = page;
+  renderJournalTrackerModal();
+}
+
+function renderJournalTrackerModal() {
+  const modal = el('journal-tracker-modal');
+  if (!modal || modal.classList.contains('hidden')) return;
+
+  const head = el('journal-tracker-modal-head');
+  const body = el('journal-tracker-modal-body');
+  const subtitle = el('journal-tracker-modal-subtitle');
+  const count = el('journal-tracker-modal-count');
+  const weekPager = el('journal-tracker-modal-week-pagination');
+  const rowPager = el('journal-tracker-modal-pagination');
+  if (!head || !body) return;
+
+  const tracker = overviewWidgetsPayload && overviewWidgetsPayload.journalTracker;
+  const maxWeek = tracker ? (Number(tracker.maxWeek) || 0) : 0;
+  const rows = tracker ? (tracker.trainees || []) : [];
+
+  if (maxWeek < 1 || rows.length === 0) {
+    head.innerHTML = '';
+    body.innerHTML = tableStateHtml(
+      'Nothing to track yet',
+      'Weekly journal status appears here once trainees reach their first OJT week.',
+      null,
+      null,
+      2
+    );
+    if (subtitle) subtitle.textContent = '';
+    if (count) count.textContent = '';
+    if (weekPager) weekPager.innerHTML = '';
+    if (rowPager) rowPager.innerHTML = '';
+    return;
+  }
+
+  const range = trackerWeekRange(trackerModalWeekPage, maxWeek);
+  trackerModalWeekPage = range.page;
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / TRACKER_MODAL_PAGE_SIZE));
+  trackerModalPage = Math.min(Math.max(1, trackerModalPage), totalPages);
+
+  const start = (trackerModalPage - 1) * TRACKER_MODAL_PAGE_SIZE;
+  const pageRows = rows.slice(start, start + TRACKER_MODAL_PAGE_SIZE);
+
+  head.innerHTML = journalTrackerHeadHtml(range.start, range.end);
+  body.innerHTML = journalTrackerRowsHtml(pageRows, range.start, range.end);
+
+  if (subtitle) {
+    subtitle.textContent = `Weeks ${range.start}-${range.end} of ${maxWeek}`;
+  }
+  if (count) {
+    count.textContent = `Showing ${start + 1}-${start + pageRows.length} of ${rows.length} trainee${rows.length === 1 ? '' : 's'}`;
+  }
+  if (weekPager) {
+    weekPager.innerHTML = buildPagerHtml(range.page, range.totalPages, 'goTrackerModalWeekPage');
+  }
+  if (rowPager) {
+    rowPager.innerHTML = buildPagerHtml(trackerModalPage, totalPages, 'goTrackerModalPage');
+  }
 }
 
 function journalCellHtml(cell) {
@@ -1467,6 +1616,11 @@ function renderTrackerError() {
     'Try again',
     2
   );
+  // The error panel replaces the grid, so its pager and link must go too.
+  const pager = el('journal-tracker-pagination');
+  if (pager) pager.innerHTML = '';
+  const viewAll = el('journal-tracker-view-all');
+  if (viewAll) viewAll.classList.add('hidden');
 }
 
 /**
@@ -1477,6 +1631,9 @@ function renderTrackerError() {
  */
 function openJournalFromTracker(journalId, status) {
   const queue = status === 'reviewed' ? 'approved' : 'pending';
+  // The same cells appear in the "View all students" overlay, which sits above
+  // the tabs; without this the review tab would open behind an open modal.
+  closeJournalTrackerModal();
   markInteraction();
   switchTab('journal-review');
 
@@ -1675,6 +1832,19 @@ let traineeSort = { key: 'name', dir: 'asc' };
 
 // Current page of the "All Students" modal
 let allTraineesPage = 1;
+
+// Journal Submission Tracker. The overview panel is a preview: the first
+// TRACKER_PREVIEW_ROWS trainees over TRACKER_WEEK_PAGE_SIZE week columns. The
+// "View all students" modal lists every trainee TRACKER_MODAL_PAGE_SIZE at a
+// time. The panel and the modal page their week columns independently, so
+// opening the modal never disturbs the grid behind it.
+const TRACKER_PREVIEW_ROWS = 5;
+const TRACKER_WEEK_PAGE_SIZE = 5;
+const TRACKER_MODAL_PAGE_SIZE = 10;
+
+let trackerWeekPage = 1;
+let trackerModalWeekPage = 1;
+let trackerModalPage = 1;
 
 /** Shape-matched loading rows so the table never flashes an empty shell. */
 function traineeTableSkeletonHtml(rows = 5, cols = 8) {
@@ -2091,13 +2261,22 @@ function renderAllTraineesTable() {
 }
 
 function buildTraineesPaginationHtml(currentPage, totalPages) {
+  return buildPagerHtml(currentPage, totalPages, 'goAllTraineesPage');
+}
+
+/**
+ * Shared pager markup (All Trainees modal, journal tracker week columns, and
+ * the tracker modal's student list). `goFn` names the global page handler the
+ * buttons call with the target page number.
+ */
+function buildPagerHtml(currentPage, totalPages, goFn) {
   if (totalPages <= 1) return '';
 
   const parts = [];
 
   parts.push(currentPage === 1
     ? `<button type="button" disabled class="pager__btn">Prev</button>`
-    : `<button type="button" onclick="goAllTraineesPage(${currentPage - 1})" class="pager__btn">Prev</button>`);
+    : `<button type="button" onclick="${goFn}(${currentPage - 1})" class="pager__btn">Prev</button>`);
 
   const windowSize = 2;
   const firstPage = Math.max(1, currentPage - windowSize);
@@ -2121,12 +2300,12 @@ function buildTraineesPaginationHtml(currentPage, totalPages) {
     }
     parts.push(page === currentPage
       ? `<button type="button" class="pager__btn pager__btn--current" aria-current="page">${page}</button>`
-      : `<button type="button" onclick="goAllTraineesPage(${page})" class="pager__btn">${page}</button>`);
+      : `<button type="button" onclick="${goFn}(${page})" class="pager__btn">${page}</button>`);
   });
 
   parts.push(currentPage === totalPages
     ? `<button type="button" disabled class="pager__btn">Next</button>`
-    : `<button type="button" onclick="goAllTraineesPage(${currentPage + 1})" class="pager__btn">Next</button>`);
+    : `<button type="button" onclick="${goFn}(${currentPage + 1})" class="pager__btn">Next</button>`);
 
   return parts.join('');
 }
@@ -5840,6 +6019,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeReportModal();
+  });
+
+  // Journal tracker modal: close on backdrop click or Escape
+  const trackerModal = document.getElementById('journal-tracker-modal');
+  if (trackerModal) {
+    trackerModal.addEventListener('click', (event) => {
+      if (event.target === trackerModal) closeJournalTrackerModal();
+    });
+  }
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const modal = document.getElementById('journal-tracker-modal');
+    if (modal && !modal.classList.contains('hidden')) closeJournalTrackerModal();
   });
 });
 
