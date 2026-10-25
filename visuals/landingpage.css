@@ -49,6 +49,38 @@
       backdrop-filter: none;
     }
 
+    /* Team avatar -------------------------------------------------------------
+       The initials are the base layer with the photo sitting on top of them. If
+       the file has not been added yet, the inline onerror removes the <img> and
+       the initials show through instead of a broken image icon. */
+    .team-avatar {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      background: var(--navy-mid);
+      box-shadow: 0 0 0 1px var(--border);
+    }
+
+    .team-avatar img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+
     /* Gradient text */
     .gradient-text {
       background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 55%, #2563eb 100%);
@@ -186,13 +218,51 @@
     /* Divider line */
     .divider { height: 1px; background: var(--border); }
 
-    /* Scroll reveal */
-    .reveal { opacity: 1; transform: translateY(0); transition: opacity 0.7s ease, transform 0.7s ease; }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-    .reveal-delay-4 { transition-delay: 0.4s; }
+    /* Scroll reveal -----------------------------------------------------------
+       The hidden state only exists while html.reveal-ready is set (by the
+       inline head script) and motion is allowed. Without JS, or with reduced
+       motion, .reveal stays fully visible. landingpage.js adds .is-visible and
+       then strips these classes once the entrance has played, so each card's
+       own hover transition works exactly as before afterwards. */
+    .reveal { opacity: 1; transform: none; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      html.reveal-ready .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.55s cubic-bezier(0.22, 0.61, 0.36, 1),
+          transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+      }
+
+      html.reveal-ready .reveal.is-visible {
+        opacity: 1;
+        transform: none;
+      }
+
+      /* The hero frame's float loop owns its transform, so the entrance slide
+         lives on the inner frame instead of fighting the keyframes. */
+      html.reveal-ready .reveal .mockup-wrap {
+        transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+      }
+      html.reveal-ready .reveal:not(.is-visible) .mockup-wrap {
+        transform: translateY(18px);
+      }
+
+      /* Groups stagger in DOM order - left to right on desktop, top to bottom
+         once the grid stacks. The index is stamped on by landingpage.js. */
+      html.reveal-ready .reveal[data-reveal-item] {
+        transition-delay: calc(var(--reveal-i, 0) * 80ms);
+      }
+
+      /* Hero sequence (page load, not scroll): pill -> heading -> copy -> CTAs ->
+         stats, with the dashboard frame tucked in behind the copy. These need
+         to out-specify the transition shorthand above, which resets the delay. */
+      html.reveal-ready .reveal.reveal-delay-1 { transition-delay: 0.1s; }
+      html.reveal-ready .reveal.reveal-delay-2 { transition-delay: 0.2s; }
+      html.reveal-ready .reveal.reveal-delay-3 { transition-delay: 0.3s; }
+      html.reveal-ready .reveal.reveal-delay-4 { transition-delay: 0.4s; }
+    }
 
     /* Hero mockup */
     .mockup-wrap {
@@ -320,5 +390,36 @@
 
       .stat-num {
         font-size: 1.75rem;
+      }
+    }
+
+    /* Reduced motion ----------------------------------------------------------
+       No entrance movement, no stagger, no smooth scrolling and no ambient
+       loops. Every element is simply visible from the first paint. */
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+
+      .reveal,
+      html.reveal-ready .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+        transition-delay: 0s;
+      }
+
+      html.reveal-ready .reveal .mockup-wrap,
+      html.reveal-ready .reveal:not(.is-visible) .mockup-wrap {
+        transform: none;
+        transition: none;
+      }
+
+      html.reveal-ready .reveal[data-reveal-item] { transition-delay: 0s; }
+
+      .float-anim,
+      .float-anim-2,
+      .geofence-badge svg,
+      .geofence-ring,
+      .pill-dot {
+        animation: none !important;
       }
     }

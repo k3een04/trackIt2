@@ -9,7 +9,20 @@
   <title>TrackIT – OJT Monitoring System</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="visuals/landingpage.css?v=2">
+  <link rel="stylesheet" href="visuals/landingpage.css?v=3">
+  <script>
+    // Arm the reveal hidden state before first paint. If landingpage.js never
+    // runs (blocked, missing, or throws) the timer disarms it again so no
+    // content can stay permanently invisible.
+    (function () {
+      if (!('IntersectionObserver' in window)) return;
+      var root = document.documentElement;
+      root.classList.add('reveal-ready');
+      setTimeout(function () {
+        if (!window.__revealInit) root.classList.remove('reveal-ready');
+      }, 1200);
+    })();
+  </script>
 </head>
 <body class="bg-[#0b1120] text-slate-100 font-sans antialiased min-h-screen">
 
@@ -70,7 +83,7 @@
           </h1>
 
           <p class="text-slate-400 text-base md:text-lg leading-relaxed mb-8 max-w-md reveal reveal-delay-2">
-            TrackIT is a centralized web-based On-the-Job Training monitoring system powered by Dynamic QR, descriptive analytics, NLP auto-summarization, and real-time dashboards.
+            TrackIT is a centralized web-based On-the-Job Training monitoring system powered by GPS geofencing, descriptive analytics, NLP auto-summarization, and real-time dashboards.
           </p>
 
           <div class="flex flex-wrap gap-4 reveal reveal-delay-3">
@@ -218,25 +231,25 @@
   <section id="features" class="px-5 md:px-10 py-20">
     <div class="max-w-6xl mx-auto">
 
-      <div class="text-center mb-14 reveal">
-        <div class="pill mx-auto mb-4">Core Features</div>
-        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4" style="font-weight:800;letter-spacing:-0.02em;">Everything You Need,<br/><span class="gradient-text">In One System.</span></h2>
-        <p class="text-slate-400 max-w-xl mx-auto text-base">Six powerful modules built to eliminate manual OJT inefficiencies for trainees, supervisors, and coordinators alike.</p>
+      <div class="text-center mb-14" data-reveal-group>
+        <div class="pill mx-auto mb-4 reveal" data-reveal-item>Core Features</div>
+        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4 reveal" data-reveal-item style="font-weight:800;letter-spacing:-0.02em;">Everything You Need,<br/><span class="gradient-text">In One System.</span></h2>
+        <p class="text-slate-400 max-w-xl mx-auto text-base reveal" data-reveal-item>Six powerful modules built to eliminate manual OJT inefficiencies for trainees, supervisors, and coordinators alike.</p>
       </div>
 
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5" data-reveal-group>
 
         <!-- Feature 1 -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-1 hover:border-blue-500/30 transition-all duration-300 group">
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30 transition-all duration-300 group" data-reveal-item>
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
-          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Dynamic QR Attendance</h3>
-          <p class="text-sm text-slate-400 leading-relaxed">Real-time, secure attendance tracking via Dynamic QR codes with geotagging and camera-based DTR authentication to prevent proxy attendance.</p>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Geofenced Attendance</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">GPS-verified time-in and time-out against each company's own site radius. Punches made outside the geofence are rejected, and every DTR entry stores its coordinates and validated location.</p>
         </div>
 
         <!-- Feature 2 -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-2 hover:border-blue-500/30 transition-all duration-300 group">
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30 transition-all duration-300 group" data-reveal-item>
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           </div>
@@ -245,7 +258,7 @@
         </div>
 
         <!-- Feature 3 -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-3 hover:border-blue-500/30 transition-all duration-300 group">
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30 transition-all duration-300 group" data-reveal-item>
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           </div>
@@ -254,7 +267,7 @@
         </div>
 
         <!-- Feature 4 -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-1 hover:border-blue-500/30 transition-all duration-300 group">
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30 transition-all duration-300 group" data-reveal-item>
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
@@ -263,7 +276,7 @@
         </div>
 
         <!-- Feature 5 -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-2 hover:border-blue-500/30 transition-all duration-300 group">
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30 transition-all duration-300 group" data-reveal-item>
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
           </div>
@@ -272,7 +285,7 @@
         </div>
 
         <!-- Feature 6 -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-3 hover:border-blue-500/30 transition-all duration-300 group">
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30 transition-all duration-300 group" data-reveal-item>
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </div>
@@ -290,24 +303,24 @@
   <section id="how" class="px-5 md:px-10 py-20">
     <div class="max-w-6xl mx-auto">
 
-      <div class="text-center mb-14 reveal">
-        <div class="pill mx-auto mb-4">How It Works</div>
-        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4" style="font-weight:800;letter-spacing:-0.02em;">From Check-In to<br/><span class="gradient-text">Certified Report.</span></h2>
-        <p class="text-slate-400 max-w-md mx-auto text-base">A seamless end-to-end workflow that replaces every paper form.</p>
+      <div class="text-center mb-14" data-reveal-group>
+        <div class="pill mx-auto mb-4 reveal" data-reveal-item>How It Works</div>
+        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4 reveal" data-reveal-item style="font-weight:800;letter-spacing:-0.02em;">From Check-In to<br/><span class="gradient-text">Certified Report.</span></h2>
+        <p class="text-slate-400 max-w-md mx-auto text-base reveal" data-reveal-item>A seamless end-to-end workflow that replaces every paper form.</p>
       </div>
 
-      <div class="max-w-2xl mx-auto space-y-0">
+      <div class="max-w-2xl mx-auto space-y-0" data-reveal-group>
 
-        <div class="relative pl-16 pb-10 reveal reveal-delay-1">
+        <div class="relative pl-16 pb-10 reveal" data-reveal-item>
           <div class="timeline-line"></div>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
             <span class="text-blue-400 font-bold font-display" style="font-family:'Syne',sans-serif;">01</span>
           </div>
-          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Trainee Scans Dynamic QR</h3>
-          <p class="text-sm text-slate-400 leading-relaxed">Upon arrival at the company, the OJT trainee scans the daily Dynamic QR code. Geotagging confirms the trainee's location for authenticity.</p>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Trainee Times In On-Site</h3>
+          <p class="text-sm text-slate-400 leading-relaxed">Arriving at the company, the trainee taps time-in from their dashboard. GPS confirms they are inside the company's geofence before the punch is accepted, and late arrivals are flagged automatically.</p>
         </div>
 
-        <div class="relative pl-16 pb-10 reveal reveal-delay-2">
+        <div class="relative pl-16 pb-10 reveal" data-reveal-item>
           <div class="timeline-line"></div>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
             <span class="text-blue-400 font-bold font-display" style="font-family:'Syne',sans-serif;">02</span>
@@ -316,7 +329,7 @@
           <p class="text-sm text-slate-400 leading-relaxed">Trainees submit virtual duty logs of daily tasks and write weekly journals with checkbox-based theory-to-practice entries and grammar correction.</p>
         </div>
 
-        <div class="relative pl-16 pb-10 reveal reveal-delay-3">
+        <div class="relative pl-16 pb-10 reveal" data-reveal-item>
           <div class="timeline-line"></div>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
             <span class="text-blue-400 font-bold font-display" style="font-family:'Syne',sans-serif;">03</span>
@@ -325,7 +338,7 @@
           <p class="text-sm text-slate-400 leading-relaxed">Company supervisors verify DTRs and duty logs, then digitally sign the weekly journal and monthly performance appraisal form with a single click.</p>
         </div>
 
-        <div class="relative pl-16 pb-10 reveal reveal-delay-4">
+        <div class="relative pl-16 pb-10 reveal" data-reveal-item>
           <div class="timeline-line"></div>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
             <span class="text-blue-400 font-bold font-display" style="font-family:'Syne',sans-serif;">04</span>
@@ -334,7 +347,7 @@
           <p class="text-sm text-slate-400 leading-relaxed">The NLP engine auto-generates concise summaries of trainee journals, allowing OJT coordinators to quickly assess trainee learning outcomes.</p>
         </div>
 
-        <div class="relative pl-16 reveal reveal-delay-1">
+        <div class="relative pl-16 reveal" data-reveal-item>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center">
             <span class="text-yellow-400 font-bold font-display" style="font-family:'Syne',sans-serif;">05</span>
           </div>
@@ -352,15 +365,15 @@
   <section id="users" class="px-5 md:px-10 py-20">
     <div class="max-w-6xl mx-auto">
 
-      <div class="text-center mb-14 reveal">
-        <div class="pill mx-auto mb-4">Target Users</div>
-        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4" style="font-weight:800;letter-spacing:-0.02em;">Built for <span class="gradient-text">Everyone</span><br/>in the OJT Ecosystem.</h2>
+      <div class="text-center mb-14" data-reveal-group>
+        <div class="pill mx-auto mb-4 reveal" data-reveal-item>Target Users</div>
+        <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-4 reveal" data-reveal-item style="font-weight:800;letter-spacing:-0.02em;">Built for <span class="gradient-text">Everyone</span><br/>in the OJT Ecosystem.</h2>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-6">
+      <div class="grid md:grid-cols-3 gap-6" data-reveal-group>
 
         <!-- Trainee -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-1 hover:border-blue-500/30">
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30" data-reveal-item>
           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 border border-blue-500/20 flex items-center justify-center mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
@@ -369,7 +382,7 @@
           <ul class="space-y-2">
             <li class="flex items-start gap-2 text-sm text-slate-400">
               <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Scan QR for attendance with Dynamic QR technology
+              Time in and out on-site with GPS geofence verification
             </li>
             <li class="flex items-start gap-2 text-sm text-slate-400">
               <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -387,7 +400,7 @@
         </div>
 
         <!-- Supervisor -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-2 hover:border-blue-500/30" >
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30" data-reveal-item>
           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/30 to-blue-500/10 border border-blue-500/30 flex items-center justify-center mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
@@ -414,7 +427,7 @@
         </div>
 
         <!-- Coordinator -->
-        <div class="glass-card rounded-2xl p-6 reveal reveal-delay-3 hover:border-blue-500/30">
+        <div class="glass-card rounded-2xl p-6 reveal hover:border-blue-500/30" data-reveal-item>
           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 border border-yellow-500/20 flex items-center justify-center mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
           </div>
@@ -452,14 +465,14 @@
 
       <div class="grid md:grid-cols-2 gap-14 items-center">
 
-        <div class="reveal">
-          <div class="pill mb-6">About the Project</div>
-          <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-5" style="font-weight:800;letter-spacing:-0.02em;">Capstone Project<br/><span class="gradient-text">IT27-E05</span></h2>
-          <p class="text-slate-400 leading-relaxed mb-5">TrackIT is a Capstone Project for INTE1031 – Capstone Project 1 developed by Group IT27-E05 at the College of Information and Communications Technology, STI West Negros University, Bacolod City.</p>
-          <p class="text-slate-400 leading-relaxed mb-8">The system addresses the research gap of the absence of a centralized, web-based OJT monitoring platform for the CICT department — replacing inefficient manual processes with intelligent, automated solutions.</p>
+        <div data-reveal-group>
+          <div class="pill mb-6 reveal" data-reveal-item>About the Project</div>
+          <h2 class="text-3xl md:text-4xl font-display font-800 text-white mb-5 reveal" data-reveal-item style="font-weight:800;letter-spacing:-0.02em;">Capstone Project<br/><span class="gradient-text">IT27-E05</span></h2>
+          <p class="text-slate-400 leading-relaxed mb-5 reveal" data-reveal-item>TrackIT is a Capstone Project for INTE1031 – Capstone Project 1 developed by Group IT27-E05 at the College of Information and Communications Technology, STI West Negros University, Bacolod City.</p>
+          <p class="text-slate-400 leading-relaxed mb-8 reveal" data-reveal-item>The system addresses the research gap of the absence of a centralized, web-based OJT monitoring platform for the CICT department — replacing inefficient manual processes with intelligent, automated solutions.</p>
 
           <!-- SDG badges -->
-          <div class="mb-6">
+          <div class="mb-6 reveal" data-reveal-item>
             <div class="text-xs text-slate-500 mb-3 uppercase tracking-widest">UN Sustainable Development Goals</div>
             <div class="flex flex-wrap gap-2">
               <span class="sdg-badge" style="background:rgba(38,114,190,0.15);border:1px solid rgba(38,114,190,0.3);color:#5eb8f5;">SDG 4 · Quality Education</span>
@@ -470,12 +483,15 @@
         </div>
 
         <!-- Team -->
-        <div class="reveal reveal-delay-2">
-          <div class="text-xs text-slate-500 mb-4 uppercase tracking-widest">Development Team</div>
+        <div data-reveal-group>
+          <div class="text-xs text-slate-500 mb-4 uppercase tracking-widest reveal" data-reveal-item>Development Team</div>
           <div class="space-y-3">
 
-            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-navy font-bold text-sm flex-shrink-0" style="color:#0b1120;">ZM</div>
+            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4 reveal" data-reveal-item>
+              <div class="team-avatar bg-gradient-to-br from-blue-600 to-blue-700">
+                <span aria-hidden="true">ZM</span>
+                <img src="visuals/team/zoe.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">
+              </div>
               <div>
                 <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Zoe Nicole D. Mandal</div>
                 <div class="text-xs text-slate-500">Project Manager</div>
@@ -485,8 +501,11 @@
               </div>
             </div>
 
-            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">KM</div>
+            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4 reveal" data-reveal-item>
+              <div class="team-avatar bg-gradient-to-br from-blue-600 to-blue-700">
+                <span aria-hidden="true">KM</span>
+                <img src="visuals/team/kevin.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">
+              </div>
               <div>
                 <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Kevin Nicolas N. Marciano</div>
                 <div class="text-xs text-slate-500">Lead Programmer</div>
@@ -496,8 +515,11 @@
               </div>
             </div>
 
-            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">EE</div>
+            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4 reveal" data-reveal-item>
+              <div class="team-avatar bg-gradient-to-br from-purple-400 to-purple-700">
+                <span aria-hidden="true">EE</span>
+                <img src="visuals/team/emmanuel.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">
+              </div>
               <div>
                 <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Emmanuel Kay John H. Estorco</div>
                 <div class="text-xs text-slate-500">System Analyst</div>
@@ -507,8 +529,11 @@
               </div>
             </div>
 
-            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">JC</div>
+            <div class="glass-card rounded-xl px-4 py-3 flex items-center gap-4 reveal" data-reveal-item>
+              <div class="team-avatar bg-gradient-to-br from-pink-400 to-pink-700">
+                <span aria-hidden="true">JC</span>
+                <img src="visuals/team/john.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">
+              </div>
               <div>
                 <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">John Michael M. Celis</div>
                 <div class="text-xs text-slate-500">UI/UX Designer</div>
@@ -529,15 +554,15 @@
   <!-- CTA -->
   <section id="contact" class="px-5 md:px-10 py-24 relative overflow-hidden">
     <div class="orb orb-3"></div>
-    <div class="max-w-3xl mx-auto text-center relative z-10 reveal">
-      <div class="pill mx-auto mb-6">Ready to Start?</div>
-      <h2 class="text-3xl md:text-5xl font-display font-800 text-white mb-6" style="font-weight:800;letter-spacing:-0.03em;line-height:1.1;">
+    <div class="max-w-3xl mx-auto text-center relative z-10" data-reveal-group>
+      <div class="pill mx-auto mb-6 reveal" data-reveal-item>Ready to Start?</div>
+      <h2 class="text-3xl md:text-5xl font-display font-800 text-white mb-6 reveal" data-reveal-item style="font-weight:800;letter-spacing:-0.03em;line-height:1.1;">
         End Manual OJT<br/>Tracking. <span class="gradient-text">For Good.</span>
       </h2>
-      <p class="text-slate-400 text-base md:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+      <p class="text-slate-400 text-base md:text-lg mb-10 max-w-xl mx-auto leading-relaxed reveal" data-reveal-item>
         TrackIT brings together real-time attendance, intelligent journals, digital signatures, and descriptive analytics into one unified platform for the CICT department.
       </p>
-      <div class="flex flex-wrap justify-center gap-4">
+      <div class="flex flex-wrap justify-center gap-4 reveal" data-reveal-item>
         <a href="#features" class="btn-primary text-base">
           Explore Features
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -549,7 +574,7 @@
 
   <!-- FOOTER -->
   <footer class="px-5 md:px-10 py-8 border-t border-white/5">
-    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 reveal">
       <div class="flex items-center gap-2.5">
         <img src="Trackitlogo.png" alt="TrackIT Logo" class="w-6 h-6 object-contain">
         <span class="font-display text-sm text-white" style="font-family:'Syne',sans-serif;font-weight:700;">Track<span class="text-blue-400">IT</span></span>
@@ -564,6 +589,6 @@
   </footer>
 
 
-  <script src="landingpage.js?v=1"></script>
+  <script src="landingpage.js?v=2"></script>
 </body>
 </html>
