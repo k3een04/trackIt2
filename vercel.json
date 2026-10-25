@@ -1,7 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "echo 'Static site - no build needed'",
-  "outputDirectory": ".",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "**/*"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -18,17 +21,6 @@
     {
       "source": "/landing",
       "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/visuals/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
     }
   ]
 }
