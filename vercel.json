@@ -26,5 +26,11 @@
       "source": "/landing",
       "destination": "/index.html"
     }
+  ],
+  "staticFiles": [
+    {
+      "source": "visuals/(.*)",
+      "destination": "/visuals/$1"
+    }
   ]
 }
