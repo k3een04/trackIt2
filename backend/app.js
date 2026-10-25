@@ -190,6 +190,22 @@ app.get('/supervisor-dashboard.js', (req, res) => {
 app.get('/Trackitlogo.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'Trackitlogo.png'));
 });
+// Development team headshots used by the landing page About section. These need
+// their own routes for the same reason as the assets above: Vercel's file tracer
+// only bundles files it can see in a literal sendFile() call, so without them the
+// photos 404 in production even though they are committed.
+app.get('/visuals/team/zoe.jpg', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'team', 'zoe.jpg'));
+});
+app.get('/visuals/team/kevin.jpg', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'team', 'kevin.jpg'));
+});
+app.get('/visuals/team/emmanuel.jpg', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'team', 'emmanuel.jpg'));
+});
+app.get('/visuals/team/john.jpg', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'team', 'john.jpg'));
+});
 // Journal PDF templates used by the OJT dashboard download feature.
 app.get('/OJT_Weekly_Journal_Template.pdf', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'OJT_Weekly_Journal_Template.pdf'));

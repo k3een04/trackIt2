@@ -13,11 +13,27 @@ picks them up automatically.
 
 ## Guidelines
 
-- Square crop, at least 240 x 240 px (they render as a 40 px circle, so the
-  face should be centred and fill most of the frame).
+- Square crop, 240 x 240 px (they render as a 40 px circle, so the face should
+  be centred and fill most of the frame). The four committed files are already
+  cropped and compressed to ~9-10 KB each.
 - Keep each file under ~150 KB so the About section stays light.
 - The markup asks for `.jpg`. A PNG renamed to `.jpg` also loads, but exporting
   a real JPEG is cleaner.
+
+## Important: register a route when adding a new file
+
+Production is served by the Express app in `backend/app.js`, not by Vercel's
+static hosting. Vercel's file tracer only bundles files it can see in a literal
+`res.sendFile()` call, so a new image placed here without a matching route will
+404 in production even though it works locally.
+
+Add one small block next to the existing avatar routes in `backend/app.js`:
+
+```js
+app.get('/visuals/team/<name>.jpg', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'team', '<name>.jpg'));
+});
+```
 
 ## Fallback
 
