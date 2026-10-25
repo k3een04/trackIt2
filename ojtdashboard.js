@@ -375,15 +375,9 @@ function showNotification(title, message, type = 'info') {
   }
 
   const notificationEl = document.createElement('div');
-  const bgColor = type === 'success' ? 'rgba(0, 200, 170, 0.1)' : type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)';
-  const borderColor = type === 'success' ? 'rgba(0, 200, 170, 0.3)' : type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
-  const textColor = type === 'success' ? '#00c8aa' : type === 'error' ? '#ef4444' : '#3b82f6';
-  const messageColor = document.body.classList.contains('light-mode') ? '#1e293b' : '#cbd5e1';
-
+  const toastType = type === 'success' || type === 'error' ? type : 'info';
+  notificationEl.className = `trackit-toast trackit-toast-${toastType}`;
   notificationEl.style.cssText = `
-    background: ${bgColor};
-    border: 1px solid ${borderColor};
-    color: ${textColor};
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 10px;
@@ -391,8 +385,8 @@ function showNotification(title, message, type = 'info') {
   `;
 
   notificationEl.innerHTML = `
-    <p style="margin: 0; font-weight: 600; font-size: 14px; color: ${textColor};">${title}</p>
-    <p style="margin: 5px 0 0 0; font-size: 12px; color: ${messageColor};">${message}</p>
+    <p style="margin: 0; font-weight: 600; font-size: 14px;">${title}</p>
+    <p style="margin: 5px 0 0 0; font-size: 12px;">${message}</p>
   `;
 
   notificationContainer.appendChild(notificationEl);
@@ -557,7 +551,7 @@ function renderNotificationList() {
     list.innerHTML = `
       <div class="notif-empty">
         <p>${escapeHtml(notifError)}</p>
-        <button onclick="loadOJTNotifications()" class="text-xs text-teal-400 hover:underline mt-2">Retry</button>
+        <button onclick="loadOJTNotifications()" class="text-xs text-blue-400 hover:underline mt-2">Retry</button>
       </div>`;
     return;
   }
@@ -728,7 +722,7 @@ function updateChartTheme(isLightMode) {
   if (!weeklyChartInstance || !weeklyChartInstance.options || !weeklyChartInstance.options.scales) return;
 
   const ticksColor = isLightMode ? 'rgba(30, 41, 59, 0.6)' : 'rgba(203, 213, 225, 0.6)';
-  const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+  const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.15)' : '#29364b';
 
   if (weeklyChartInstance.options.scales.y) {
     if (weeklyChartInstance.options.scales.y.ticks) weeklyChartInstance.options.scales.y.ticks.color = ticksColor;
@@ -2437,7 +2431,7 @@ async function updateEstimatedCompletion(stats, student) {
     // Update the estimated completion date in the progress tab
     const remainingCard = document.querySelector('#progress .glass-card:has(.text-4xl.font-display)');
     if (remainingCard) {
-      const dateEl = remainingCard.querySelector('.text-sm.font-semibold.text-teal-400');
+      const dateEl = remainingCard.querySelector('.text-sm.font-semibold.text-blue-400');
       if (dateEl) {
         dateEl.textContent = estimatedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       }
@@ -2505,10 +2499,10 @@ async function updateHoursByWeek(student) {
         <div>
           <div class="flex justify-between items-center mb-2">
             <span class="text-sm text-slate-400">Week ${week}</span>
-            <span class="text-lg font-semibold text-teal-400">${hours.toFixed(1)}</span>
+            <span class="text-lg font-semibold text-blue-400">${hours.toFixed(1)}</span>
           </div>
           <div class="w-full bg-white/10 rounded-full h-2">
-            <div class="bg-teal-400 h-2 rounded-full" style="width: ${percentage}%;"></div>
+            <div class="bg-blue-400 h-2 rounded-full" style="width: ${percentage}%;"></div>
           </div>
         </div>
       `;
@@ -3081,11 +3075,11 @@ async function loadPreviousJournals() {
     visible.forEach(journal => {
       const returned = journal.status === 'draft' && !!journal.supervisorReview;
       const journalEl = document.createElement('div');
-      journalEl.className = 'p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-teal-400/50 transition group';
+      journalEl.className = 'p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-blue-400/50 transition group';
       journalEl.innerHTML = `
         <div class="flex items-start justify-between mb-2">
           <div>
-            <p class="font-semibold text-sm text-teal-400">${journal.week || 'Week unavailable'}</p>
+            <p class="font-semibold text-sm text-blue-400">${journal.week || 'Week unavailable'}</p>
             <p class="text-xs text-slate-400">Day covered: ${journal.dayCovered || 'Not specified'}</p>
           </div>
           <span class="px-2 py-1 rounded text-xs font-medium ${
@@ -3127,13 +3121,13 @@ function renderTheoriesList(identifiedTheories) {
 
   const list = Array.isArray(identifiedTheories) ? identifiedTheories : [];
   if (list.length === 0) {
-    theoriesListEl.innerHTML = '<p style="color: #cbd5e1; font-size: 13px;">No IT theories or practices were identified in your narrative. Please provide more details about your OJT activities.</p>';
+    theoriesListEl.innerHTML = '<p class="text-slate-500 text-sm">No IT theories or practices were identified in your narrative. Please provide more details about your OJT activities.</p>';
   } else {
     theoriesListEl.innerHTML = list.map((theory) => `
-        <div style="padding: 12px; background: rgba(0,200,170,0.05); border-radius: 6px; border-left: 3px solid #00c8aa; margin-bottom: 8px;">
-          <p style="margin: 0; font-weight: 600; color: #00c8aa; font-size: 12px;">${theory.course} – ${theory.courseName}</p>
-          <p style="margin: 4px 0 0 0; color: #cbd5e1; font-size: 13px;">${theory.category}</p>
-          <p style="margin: 6px 0 0 0; color: #cbd5e1; font-size: 13px;">${theory.theory}</p>
+        <div class="theory-card" style="padding: 12px; border-radius: 6px; border-left: 3px solid var(--tk-teal); margin-bottom: 8px;">
+          <p class="theory-card__title" style="margin: 0; font-weight: 600; font-size: 12px;">${theory.course} – ${theory.courseName}</p>
+          <p class="theory-card__text" style="margin: 4px 0 0 0; font-size: 13px;">${theory.category}</p>
+          <p class="theory-card__text" style="margin: 6px 0 0 0; font-size: 13px;">${theory.theory}</p>
         </div>
       `).join('');
   }
@@ -3454,7 +3448,7 @@ function showJournalTooltip(journal) {
           <p class="text-xs text-slate-400 mb-2 font-semibold">CONCEPTS APPLIED</p>
           <div class="flex flex-wrap gap-2">
             ${journal.concepts.map(concept => `
-              <span class="px-2 py-1 bg-teal-500/20 text-teal-300 rounded text-xs">${concept}</span>
+              <span class="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs">${concept}</span>
             `).join('')}
           </div>
         </div>
@@ -3649,7 +3643,7 @@ function ensurePdfRenderContainer(rowCount = 3) {
   supervisorNameEl.style.position = 'absolute';
   supervisorNameEl.style.fontFamily = 'Arial, sans-serif';
   supervisorNameEl.style.fontWeight = '600';
-  supervisorNameEl.style.color = '#111827';
+  supervisorNameEl.style.color = '#151f32';
   supervisorNameEl.style.whiteSpace = 'nowrap';
   supervisorNameEl.style.pointerEvents = 'none';
   container.appendChild(supervisorNameEl);
@@ -4072,11 +4066,11 @@ async function loadStudentAppraisals() {
               return `
                 <tr class="border-b border-white/10">
                   <td class="py-3 px-4">${escapeHtml(record.periodLabel || record.period)}</td>
-                  <td class="py-3 px-4"><span class="font-semibold text-teal-400">${escapeHtml(score)}</span></td>
+                  <td class="py-3 px-4"><span class="font-semibold text-blue-400">${escapeHtml(score)}</span></td>
                   <td class="py-3 px-4">${escapeHtml(equivalent)}</td>
                   <td class="py-3 px-4"><span class="status-badge ${badgeClass}">${badgeText}</span></td>
                   <td class="py-3 px-4">
-                    <button type="button" onclick="downloadAppraisalPDF('${record._id}')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold">Download PDF</button>
+                    <button type="button" onclick="downloadAppraisalPDF('${record._id}')" class="text-blue-400 hover:text-blue-300 text-xs font-semibold">Download PDF</button>
                   </td>
                 </tr>
               `;
@@ -4252,9 +4246,9 @@ async function refreshQRCode() {
         
         if (qrStatus) {
           qrStatus.innerHTML = `
-            <div style="padding: 15px; border-radius: 8px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
-              <p style="color: #22c55e; font-weight: 600; margin: 0 0 5px 0;">✅ Time Out Completed</p>
-              <p style="color: #cbd5e1; font-size: 12px; margin: 0;">You have already completed your time in and time out for today. No new QR code can be generated until tomorrow.</p>
+            <div class="attendance-completion" style="padding: 15px; border-radius: 8px;">
+              <p class="attendance-completion__title" style="font-weight: 600; margin: 0 0 5px 0;">✅ Time Out Completed</p>
+              <p class="attendance-completion__text" style="font-size: 12px; margin: 0;">You have already completed your time in and time out for today. No new QR code can be generated until tomorrow.</p>
             </div>
           `;
         }
@@ -5158,22 +5152,20 @@ function populateDTRTable(records) {
       ? new Date(record.timeOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       : '—';
     
-    // Determine status based on verification
     let displayStatus = 'Unverified';
-    let statusColor = '#94a3b8'; // Gray for unverified
+    let statusClass = 'status-neutral';
     
     if (record.verifiedBySupervisor) {
-      // Show actual status only if verified; fall back to Present when missing
       const rawStatus = typeof record.status === 'string' ? record.status : '';
       const normalizedStatus = rawStatus ? rawStatus.toLowerCase() : 'present';
       displayStatus = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
-      const statusColors = {
-        present: '#22c55e',
-        late: '#f59e0b',
-        absent: '#ef4444',
-        excused: '#8b5cf6',
+      const statusClasses = {
+        present: 'status-present',
+        late: 'status-late',
+        absent: 'status-absent',
+        excused: 'status-excused',
       };
-      statusColor = statusColors[normalizedStatus] || '#94a3b8';
+      statusClass = statusClasses[normalizedStatus] || 'status-neutral';
     }
 
     return `
@@ -5183,7 +5175,7 @@ function populateDTRTable(records) {
         <td class="py-3 px-4">${timeOut}</td>
         <td class="py-3 px-4 font-semibold">${(Number.isFinite(record.hoursRendered) ? record.hoursRendered : 0).toFixed(2)}h</td>
         <td class="py-3 px-4">
-          <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: ${statusColor}20; color: ${statusColor}; font-size: 11px; font-weight: 600; text-transform: uppercase;">
+          <span class="status-badge ${statusClass}" style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
             ${displayStatus}
           </span>
         </td>
@@ -5262,7 +5254,7 @@ function populateAllRecordsTable(records) {
         present: '#22c55e',
         late: '#f59e0b',
         absent: '#ef4444',
-        excused: '#8b5cf6',
+        excused: '#60a5fa',
       };
       statusColor = statusColors[normalizedStatus] || '#94a3b8';
     }
@@ -5274,7 +5266,7 @@ function populateAllRecordsTable(records) {
         <td class="py-3 px-4">${timeOut}</td>
         <td class="py-3 px-4 font-semibold">${(Number.isFinite(record.hoursRendered) ? record.hoursRendered : 0).toFixed(2)}h</td>
         <td class="py-3 px-4">
-          <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: ${statusColor}20; color: ${statusColor}; font-size: 11px; font-weight: 600; text-transform: uppercase;">
+          <span class="status-badge ${statusClass}" style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
             ${displayStatus}
           </span>
         </td>

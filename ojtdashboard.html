@@ -23,17 +23,17 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=13">
+  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=14">
   <!-- Verification workflow (confirmation, loading and text-entry dialogs).
        Self-contained .vm-* rules so it stays identical on every dashboard. -->
-  <link rel="stylesheet" href="visuals/verification-modal.css?v=4">
+  <link rel="stylesheet" href="visuals/verification-modal.css?v=5">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
-  <link rel="stylesheet" href="visuals/trackit-glass.css?v=1">
+  <link rel="stylesheet" href="visuals/trackit-glass.css?v=2">
   <!-- Reusable date/month picker. Loaded last so its field and popover rules
        win against the per-page input styles above. -->
-  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=2">
+  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=4">
 </head>
 <body>
   <script>
@@ -60,11 +60,11 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between min-w-0">
       <a href="ojtdashboard.html" class="flex items-center gap-2.5 flex-shrink-0">
         <img src="Trackitlogo.png" alt="TrackIT Logo" class="nav-logo-img w-8 h-8 md:w-9 md:h-9 object-contain">
-        <span class="font-display font-800 text-lg md:text-xl text-white tracking-tight" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-teal-400">IT</span></span>
+        <span class="font-display font-800 text-lg md:text-xl text-white tracking-tight" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-blue-400">IT</span></span>
       </a>
 
       <div class="flex items-center gap-3 md:gap-4 flex-wrap">
-        <span class="hidden md:inline text-sm text-slate-400">Welcome, <span id="user-name" class="text-teal-400">Student</span></span>
+        <span class="hidden md:inline text-sm text-slate-400">Welcome, <span id="user-name" class="text-blue-400">Student</span></span>
         <button id="theme-toggle" onclick="toggleTheme()" class="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" title="Toggle dark/light mode" aria-label="Toggle theme">
           <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <!-- Moon icon (shown in light mode) -->
@@ -89,7 +89,7 @@
           <div class="notif-header">
             <h3>Notifications</h3>
             <div class="flex items-center gap-3 flex-wrap">
-              <button onclick="clearAllNotifications()" class="text-xs text-teal-400 hover:text-teal-300">Mark all read</button>
+              <button onclick="clearAllNotifications()" class="text-xs text-blue-400 hover:text-blue-300">Mark all read</button>
               <button onclick="deleteAllNotifications()" class="text-xs text-red-400 hover:text-red-300" title="Permanently delete all notifications">Clear all</button>
             </div>
           </div>
@@ -430,10 +430,10 @@
 
             <!-- Primary action + supervisor schedule -->
             <div class="attendance-actions">
-              <button id="time-in-btn" onclick="recordTimeIn()" class="btn-attendance-disabled" style="--attend-dark: rgba(0, 91, 79, 0.55); --attend-dark-pulse: rgba(0, 116, 100, 0.7); --attend-bright: #00c8aa; --attend-bright-pulse: #19dcc4; --attend-accent: #00c8aa; --attend-accent-soft: rgba(0, 200, 170, 0.16); --attend-border: rgba(0, 133, 115, 0.85); --attend-dim: #00695c; --attend-fg: #00c8aa; --attend-ink: #052e28; display: none;" disabled>
+              <button id="time-in-btn" onclick="recordTimeIn()" class="btn-attendance-disabled" style="display: none;" disabled>
                 ⏱ Time In
               </button>
-              <button id="time-out-btn" onclick="recordTimeOut()" class="btn-attendance-disabled" style="--attend-dark: rgba(127, 29, 29, 0.55); --attend-dark-pulse: rgba(153, 27, 27, 0.75); --attend-bright: #ef4444; --attend-bright-pulse: #f87171; --attend-accent: #ef4444; --attend-accent-soft: rgba(239, 68, 68, 0.16); --attend-border: rgba(127, 29, 29, 0.85); --attend-dim: #991b1b; --attend-fg: #ef4444; --attend-ink: #1a0505; display: none;" disabled>
+              <button id="time-out-btn" onclick="recordTimeOut()" class="btn-attendance-disabled" style="display: none;" disabled>
                 ⏱ Time Out
               </button>
 
@@ -457,56 +457,56 @@
             <h3 class="font-display font-700 mb-6"> Today's Summary</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- Time In -->
-              <div style="padding: 15px; background: rgba(0,200,170,0.05); border-radius: 8px; border-left: 3px solid #00c8aa;">
+              <div class="dtr-summary-tile dtr-summary-tile--accent" style="padding: 15px; border-radius: 8px;">
                 <p class="text-slate-400 text-xs mb-2">Time In</p>
-                <p class="text-2xl font-display font-700 text-teal-400" id="today-time-in">—</p>
+                <p class="text-2xl font-display font-700 text-blue-400" id="today-time-in">—</p>
                 <p class="text-xs text-slate-500 mt-2" id="today-time-in-status">Not recorded</p>
               </div>
 
               <!-- Time Out -->
-              <div style="padding: 15px; background: rgba(0,200,170,0.05); border-radius: 8px; border-left: 3px solid #00c8aa;">
+              <div class="dtr-summary-tile dtr-summary-tile--accent" style="padding: 15px; border-radius: 8px;">
                 <p class="text-slate-400 text-xs mb-2">Time Out</p>
-                <p class="text-2xl font-display font-700 text-teal-400" id="today-time-out">—</p>
+                <p class="text-2xl font-display font-700 text-blue-400" id="today-time-out">—</p>
                 <p class="text-xs text-slate-500 mt-2" id="today-time-out-status">Not recorded</p>
               </div>
 
               <!-- Hours Rendered -->
-              <div style="padding: 15px; background: rgba(0,200,170,0.05); border-radius: 8px; border-left: 3px solid #00c8aa;">
+              <div class="dtr-summary-tile dtr-summary-tile--accent" style="padding: 15px; border-radius: 8px;">
                 <p class="text-slate-400 text-xs mb-2">Hours Rendered</p>
-                <p class="text-2xl font-display font-700 text-teal-400" id="today-hours">0</p>
+                <p class="text-2xl font-display font-700 text-blue-400" id="today-hours">0</p>
                 <p class="text-xs text-slate-500 mt-2">today</p>
               </div>
             </div>
 
             <!-- Monthly Stats -->
-            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div class="dtr-monthly-stats" style="margin-top: 20px; padding-top: 20px;">
               <h4 class="text-sm font-semibold text-slate-300 mb-4">This Month</h4>
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Hours Completed -->
-                <div style="padding: 12px; background: rgba(100,116,139,0.05); border-radius: 6px;">
+                <div class="dtr-summary-tile dtr-summary-tile--neutral" style="padding: 12px; border-radius: 6px;">
                   <p class="text-slate-400 text-xs mb-1">Hours Completed</p>
-                  <p class="text-lg font-display font-700 text-teal-400" id="stat-hours-completed">0</p>
+                  <p class="text-lg font-display font-700 text-blue-400" id="stat-hours-completed">0</p>
                   <p class="text-xs text-slate-500" id="stat-hours-required">of 486 required</p>
                 </div>
 
                 <!-- Days Worked -->
-                <div style="padding: 12px; background: rgba(100,116,139,0.05); border-radius: 6px;">
+                <div class="dtr-summary-tile dtr-summary-tile--neutral" style="padding: 12px; border-radius: 6px;">
                   <p class="text-slate-400 text-xs mb-1">Days Worked</p>
-                  <p class="text-lg font-display font-700 text-teal-400" id="stat-days-worked">0</p>
+                  <p class="text-lg font-display font-700 text-blue-400" id="stat-days-worked">0</p>
                   <p class="text-xs text-slate-500">this month</p>
                 </div>
 
                 <!-- Avg Hours/Day -->
-                <div style="padding: 12px; background: rgba(100,116,139,0.05); border-radius: 6px;">
+                <div class="dtr-summary-tile dtr-summary-tile--neutral" style="padding: 12px; border-radius: 6px;">
                   <p class="text-slate-400 text-xs mb-1">Avg Hours/Day</p>
-                  <p class="text-lg font-display font-700 text-teal-400" id="stat-avg-hours">0</p>
+                  <p class="text-lg font-display font-700 text-blue-400" id="stat-avg-hours">0</p>
                   <p class="text-xs text-slate-500">per day</p>
                 </div>
 
                 <!-- Verified Records -->
-                <div style="padding: 12px; background: rgba(100,116,139,0.05); border-radius: 6px;">
+                <div class="dtr-summary-tile dtr-summary-tile--neutral" style="padding: 12px; border-radius: 6px;">
                   <p class="text-slate-400 text-xs mb-1">Verified Records</p>
-                  <p class="text-lg font-display font-700 text-teal-400" id="stat-verified">0</p>
+                  <p class="text-lg font-display font-700 text-blue-400" id="stat-verified">0</p>
                   <p class="text-xs text-slate-500">by supervisor</p>
                 </div>
               </div>
@@ -520,18 +520,18 @@
           <!-- Progress Bar -->
           <div class="glass-card p-6">
             <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
-              <span style="color: #cbd5e1;">OJT Progress</span>
-              <span style="color: #00c8aa; font-weight: 600;" id="progress-percent">0%</span>
+              <span class="ojt-progress-label">OJT Progress</span>
+              <span class="ojt-progress-value" id="progress-percent">0%</span>
             </div>
-            <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden;">
-              <div id="progress-fill" style="height: 100%; background: linear-gradient(90deg, #00c8aa, #00e5c8); width: 0%; transition: width 0.3s ease;"></div>
+            <div class="ojt-progress-track" style="width: 100%; height: 10px; border-radius: 5px; overflow: hidden;">
+              <div id="progress-fill" class="ojt-progress-fill" style="height: 100%; width: 0%; transition: width 0.3s ease;"></div>
             </div>
           </div>
 
           <!-- Month Selector -->
           <div class="glass-card p-6">
             <label for="dtr-month" class="text-sm text-slate-400 block mb-3">Filter by Month:</label>
-            <input type="month" id="dtr-month" data-trackit-cal="month" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" onchange="loadDTRRecords()">
+            <input type="month" id="dtr-month" data-trackit-cal="month" class="w-full glass-card px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" onchange="loadDTRRecords()">
           </div>
         </div>
       </div>
@@ -637,7 +637,7 @@
               <div class="mb-8">
                 <label class="block text-sm font-semibold mb-3">Week Number</label>
                 <div id="week-auto" class="w-full glass-card px-4 py-3 rounded-lg border border-white/10 flex items-center justify-between gap-3">
-                  <span id="week-auto-value" class="text-sm font-semibold text-teal-400">—</span>
+                  <span id="week-auto-value" class="text-sm font-semibold text-blue-400">—</span>
                   <span class="text-xs text-slate-500">Set automatically</span>
                 </div>
                 <p class="text-xs text-slate-500 mt-2" id="week-auto-help">Week 1 starts the day your supervisor is assigned, so the week is stamped for you when you submit - there is nothing to pick.</p>
@@ -650,7 +650,7 @@
                   <label class="block text-sm font-semibold">Narrative Journal Entry</label>
                   <span class="text-xs text-slate-500" id="journal-word-count">0 words</span>
                 </div>
-                <textarea id="journal-narrative" rows="10" placeholder="Describe your experiences, challenges, and learnings this week. Include specific tasks, technologies used, and skills applied..." class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none resize-none"></textarea>
+                <textarea id="journal-narrative" rows="10" placeholder="Describe your experiences, challenges, and learnings this week. Include specific tasks, technologies used, and skills applied..." class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none resize-none"></textarea>
               </div>
 
               <!-- Collapsible sections -->
@@ -740,17 +740,17 @@
             <form id="dutylog-form" onsubmit="submitDutyLog(event)">
               <div class="mb-6">
                 <label for="dutylog-date" class="block text-sm font-semibold mb-3">Date</label>
-                <input type="date" id="dutylog-date" data-trackit-cal="date" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="date" id="dutylog-date" data-trackit-cal="date" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Task Description</label>
-                <textarea id="dutylog-desc" rows="4" placeholder="What did you work on today?" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none resize-none"></textarea>
+                <textarea id="dutylog-desc" rows="4" placeholder="What did you work on today?" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none resize-none"></textarea>
               </div>
 
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Category</label>
-                <select id="dutylog-category" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <select id="dutylog-category" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
                   <option>Technical</option>
                   <option>Administrative</option>
                   <option>Communication</option>
@@ -760,7 +760,7 @@
 
               <div class="mb-8">
                 <label class="block text-sm font-semibold mb-3">Hours Spent</label>
-                <input type="number" id="dutylog-hours" step="0.5" min="0" max="24" placeholder="0.0" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="number" id="dutylog-hours" step="0.5" min="0" max="24" placeholder="0.0" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <button type="submit" class="btn-primary w-full">
@@ -777,7 +777,7 @@
           <div class="space-y-4">
             <div>
               <p class="text-slate-400 text-sm mb-2">Entries</p>
-              <p class="text-3xl font-display font-700 text-teal-400">0</p>
+              <p class="text-3xl font-display font-700 text-blue-400">0</p>
             </div>
             <div class="divider"></div>
             <div>
@@ -878,7 +878,7 @@
           </div>
           <div class="p-3 rounded-lg bg-white/5 border border-white/10">
             <p class="text-xs text-slate-400">Estimated completion</p>
-            <p class="text-sm font-semibold text-teal-400 mt-1">May 30, 2026</p>
+            <p class="text-sm font-semibold text-blue-400 mt-1">May 30, 2026</p>
           </div>
         </div>
       </div>
@@ -889,17 +889,17 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div>
             <p class="text-sm text-slate-400 mb-3">Attendance Rate</p>
-            <p class="text-2xl font-display font-700 text-teal-400" id="metric-attendance">—</p>
+            <p class="text-2xl font-display font-700 text-blue-400" id="metric-attendance">—</p>
             <p class="text-xs text-slate-500 mt-1" id="metric-attendance-detail">Loading...</p>
           </div>
           <div>
             <p class="text-sm text-slate-400 mb-3">Journal Submissions</p>
-            <p class="text-2xl font-display font-700 text-teal-400" id="metric-journals">—</p>
+            <p class="text-2xl font-display font-700 text-blue-400" id="metric-journals">—</p>
             <p class="text-xs text-slate-500 mt-1" id="metric-journals-detail">Loading...</p>
           </div>
           <div>
             <p class="text-sm text-slate-400 mb-3">Avg Hours/Week</p>
-            <p class="text-2xl font-display font-700 text-teal-400" id="metric-hours">—</p>
+            <p class="text-2xl font-display font-700 text-blue-400" id="metric-hours">—</p>
             <p class="text-xs text-slate-500 mt-1" id="metric-hours-detail">Loading...</p>
           </div>
           <div>
@@ -977,7 +977,7 @@
             <form id="profile-form" onsubmit="saveProfile(event)">
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Full Name</label>
-                <input type="text" id="profile-name" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="text" id="profile-name" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-6">
@@ -988,17 +988,17 @@
 
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Student ID</label>
-                <input type="text" id="profile-id" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="text" id="profile-id" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Department</label>
-                <input type="text" id="profile-dept" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="text" id="profile-dept" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Company Name</label>
-                <input type="text" id="profile-company" value="" placeholder="Enter your OJT company name" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="text" id="profile-company" value="" placeholder="Enter your OJT company name" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <button type="submit" class="btn-primary w-full">Save Profile Changes</button>
@@ -1011,17 +1011,17 @@
             <form id="password-form" onsubmit="changePassword(event)">
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Current Password</label>
-                <input type="password" id="current-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="password" id="current-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">New Password</label>
-                <input type="password" id="new-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="password" id="new-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-8">
                 <label class="block text-sm font-semibold mb-3">Confirm Password</label>
-                <input type="password" id="confirm-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="password" id="confirm-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <button type="submit" class="btn-primary w-full">Update Password</button>
@@ -1049,7 +1049,7 @@
               </div>
               <div class="flex justify-between">
                 <span class="text-slate-400">Status</span>
-                <span class="text-teal-400 font-semibold">Active</span>
+                <span class="text-blue-400 font-semibold">Active</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-slate-400">Supervisor</span>
@@ -1130,7 +1130,7 @@
   </script>
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
-  <script src="chart-theme.js?v=1"></script>
+  <script src="chart-theme.js?v=2"></script>
   <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
        which writes .value and listens for the change events it re-dispatches. -->
   <script src="trackit-calendar.js?v=1"></script>
@@ -1140,6 +1140,6 @@
   <!-- Shared appraisal PDF overlay builder (window.AppraisalPDF); must precede
        the dashboard script that calls it from the Documents tab download. -->
   <script src="appraisal-pdf.js?v=1"></script>
-  <script src="ojtdashboard.js?v=12"></script>
+  <script src="ojtdashboard.js?v=13"></script>
 </body>
 </html>

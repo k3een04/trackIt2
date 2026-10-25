@@ -216,7 +216,7 @@ function showRealtimeNotification(title, message) {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     padding: 16px 20px;
     border-radius: 8px;

@@ -1,12 +1,12 @@
 :root {
-  --navy: #0a0f1e;
-  --navy-mid: #111827;
-  --teal: #00c8aa;
-  --teal-dark: #00967d;
-  --gold: #f5c842;
-  --muted: #6b7a99;
-  --glass: rgba(255, 255, 255, 0.04);
-  --border: rgba(255, 255, 255, 0.08);
+  --navy: #0b1120;
+  --navy-mid: #151f32;
+  --teal: #3b82f6;
+  --teal-dark: #2563eb;
+  --gold: #fbbf24;
+  --muted: #94a3b8;
+  --glass: #151f32;
+  --border: #29364b;
 }
 
 * {
@@ -51,7 +51,7 @@ body::before {
 .glass-card {
   background: var(--glass);
   border: 1px solid var(--border);
-  backdrop-filter: blur(12px);
+  backdrop-filter: none;
   border-radius: 12px;
 }
 
@@ -124,8 +124,8 @@ nav {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
-  background: rgba(10, 15, 30, 0.92);
-  backdrop-filter: blur(16px);
+  background: #0f172a;
+  backdrop-filter: none;
   box-shadow: 0 1px 0 var(--border);
   border-bottom: 1px solid var(--border);
   padding: 12px 16px;
@@ -154,7 +154,7 @@ nav img{
   padding: 12px 28px;
   border-radius: 10px;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 0 20px rgba(0, 200, 170, 0.3);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
   cursor: pointer;
   border: none;
   text-decoration: none;
@@ -162,7 +162,7 @@ nav img{
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 32px rgba(0, 200, 170, 0.5);
+  box-shadow: 0 0 32px rgba(59, 130, 246, 0.5);
 }
 
 .btn-ghost {
@@ -185,7 +185,7 @@ nav img{
 .btn-ghost:hover {
   border-color: var(--teal);
   color: var(--teal);
-  background: rgba(0, 200, 170, 0.06);
+  background: rgba(59, 130, 246, 0.06);
 }
 
 /* Icon box */
@@ -193,8 +193,8 @@ nav img{
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background: rgba(0, 200, 170, 0.1);
-  border: 1px solid rgba(0, 200, 170, 0.2);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -224,8 +224,8 @@ nav {
   top: 100px;
   width: 220px;
   height: calc(100vh - 100px);
-  background: rgba(10, 15, 30, 0.5);
-  backdrop-filter: blur(12px);
+  background: #0f172a;
+  backdrop-filter: none;
   border-right: 1px solid var(--border);
   padding: 24px 16px;
   overflow-y: auto;
@@ -255,8 +255,8 @@ nav {
 
 .nav-link:hover {
   color: var(--teal);
-  background: rgba(0, 200, 170, 0.08);
-  border-color: rgba(0, 200, 170, 0.2);
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 /* Active item: a slightly lighter surface plus a slim teal indicator on
@@ -308,9 +308,9 @@ nav {
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid transparent;
-  background: linear-gradient(135deg, #00c8aa, #00a88c);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #ffffff;
-  box-shadow: 0 0 18px rgba(0, 200, 170, 0.35);
+  box-shadow: 0 4px 12px -6px rgba(59, 130, 246, 0.4);
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   font-weight: 600;
   font-size: 0.85rem;
@@ -321,7 +321,7 @@ nav {
 .tab-back-btn:hover {
   transform: translateY(-1px);
   color: #ffffff;
-  box-shadow: 0 0 28px rgba(0, 200, 170, 0.55);
+  box-shadow: 0 6px 16px -8px rgba(59, 130, 246, 0.5);
 }
 
 .tab-back-btn:active {
@@ -337,7 +337,7 @@ nav {
 
 .tab-back-btn.is-disabled:hover {
   color: #cbd5e1;
-  background: rgba(0, 200, 170, 0.12);
+  background: rgba(59, 130, 246, 0.12);
   box-shadow: none;
 }
 
@@ -449,7 +449,7 @@ nav {
   top: 12px;
   width: 1px;
   height: 32px;
-  background: rgba(0, 200, 170, 0.3);
+  background: rgba(59, 130, 246, 0.3);
 }
 
 /* QR Scanner */
@@ -467,7 +467,7 @@ nav {
   height: 300px;
   border: 3px solid var(--teal);
   border-radius: 16px;
-  background: rgba(0, 200, 170, 0.05);
+  background: rgba(59, 130, 246, 0.05);
   overflow: hidden;
 }
 
@@ -478,7 +478,7 @@ nav {
   left: 0;
   right: 0;
   bottom: 0;
-  border: 20px solid rgba(10, 15, 30, 0.8);
+  border: 20px solid #0b1120;
   pointer-events: none;
   box-sizing: border-box;
 }
@@ -582,7 +582,7 @@ nav {
 
 .profile-photo-upload:hover {
   border-color: var(--teal);
-  background: rgba(0, 200, 170, 0.05);
+  background: rgba(59, 130, 246, 0.05);
 }
 
 /* Journal photo upload */
@@ -600,8 +600,8 @@ nav {
   position: sticky;
   top: 76px;
   z-index: 20;
-  background: rgba(10, 15, 30, 0.95);
-  backdrop-filter: blur(12px);
+  background: #0f172a;
+  backdrop-filter: none;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px 20px;
@@ -677,14 +677,14 @@ body.light-mode .journal-sticky-header__title {
 }
 
 .journal-day-tab:hover {
-  background: rgba(0, 200, 170, 0.08);
+  background: rgba(59, 130, 246, 0.08);
   color: var(--teal);
 }
 
 .journal-day-tab[aria-selected="true"] {
-  background: rgba(0, 200, 170, 0.12);
+  background: rgba(59, 130, 246, 0.12);
   color: var(--teal);
-  border-color: rgba(0, 200, 170, 0.3);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .journal-day-tab__dot {
@@ -752,7 +752,7 @@ body.light-mode .journal-sticky-header__title {
   max-height: 90vh;
   overflow-y: auto;
   background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #29364b;
   border-radius: 16px;
   padding: 24px;
 }
@@ -779,7 +779,7 @@ body.light-mode .journal-sticky-header__title {
 
 .journal-photo-upload:hover {
   border-color: var(--teal);
-  background: rgba(0, 200, 170, 0.05);
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .journal-photo-preview {
@@ -792,7 +792,7 @@ body.light-mode .journal-sticky-header__title {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.4);
+  background: #0f172a;
 }
 
 .journal-photo-preview img {
@@ -943,7 +943,7 @@ body.light-mode .journal-sticky-header__title {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(0, 200, 170, 0.45),
+    rgba(59, 130, 246, 0.5),
     transparent
   );
   opacity: 0.5;
@@ -954,7 +954,7 @@ body.light-mode .attendance-card::before {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(0, 169, 143, 0.55),
+    rgba(59, 130, 246, 0.55),
     transparent
   );
 }
@@ -984,8 +984,8 @@ body.light-mode .attendance-card::before {
   line-height: 1.25;
   border-radius: var(--tk-radius-pill);
   border: 1px solid var(--tk-hairline-teal);
-  background: rgba(0, 200, 170, 0.14);
-  color: var(--tk-teal);
+  background: var(--tk-selected);
+  color: #93c5fd;
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -995,7 +995,7 @@ body.light-mode .attendance-card::before {
 }
 
 .attendance-refresh:hover {
-  background: rgba(0, 200, 170, 0.24);
+  background: var(--tk-hover);
   border-color: var(--tk-teal);
   transform: translateY(-1px);
 }
@@ -1005,12 +1005,12 @@ body.light-mode .attendance-card::before {
 }
 
 body.light-mode .attendance-refresh {
-  background: rgba(0, 169, 143, 0.10);
+  background: rgba(59, 130, 246, 0.10);
   color: var(--tk-teal-deep);
 }
 
 body.light-mode .attendance-refresh:hover {
-  background: rgba(0, 169, 143, 0.18);
+  background: rgba(59, 130, 246, 0.18);
   border-color: var(--tk-hairline-teal);
 }
 
@@ -1021,7 +1021,7 @@ body.light-mode .attendance-refresh:hover {
      #status-text. :has() keeps this CSS-only; without support the readout
      simply stays teal, which is still a valid state colour. */
   --att-accent: var(--tk-teal);
-  --att-accent-soft: rgba(0, 200, 170, 0.07);
+  --att-accent-soft: rgba(59, 130, 246, 0.12);
 
   flex: 1 1 auto;
   display: flex;
@@ -1040,18 +1040,18 @@ body.light-mode .attendance-refresh:hover {
 }
 
 .attendance-status:has(#status-text.checking) {
-  --att-accent: #f59e0b;
-  --att-accent-soft: rgba(245, 158, 11, 0.09);
+  --att-accent: #fbbf24;
+  --att-accent-soft: rgba(251, 191, 36, 0.12);
 }
 
 .attendance-status:has(#status-text.out-of-range) {
-  --att-accent: #ef4444;
-  --att-accent-soft: rgba(239, 68, 68, 0.09);
+  --att-accent: #f87171;
+  --att-accent-soft: rgba(248, 113, 113, 0.12);
 }
 
 body.light-mode .attendance-status {
   --att-accent: var(--tk-teal);
-  --att-accent-soft: rgba(0, 169, 143, 0.08);
+  --att-accent-soft: rgba(59, 130, 246, 0.08);
 }
 
 body.light-mode .attendance-status:has(#status-text.checking) {
@@ -1161,8 +1161,8 @@ body.light-mode .attendance-status:has(#status-text.out-of-range) {
   font-size: 12px;
   line-height: 1.5;
   color: #f87171;
-  background: rgba(239, 68, 68, 0.10);
-  border: 1px solid rgba(239, 68, 68, 0.30);
+  background: var(--tk-status-error-bg);
+  border: 1px solid rgba(252, 165, 165, 0.30);
   border-radius: 8px;
 }
 
@@ -1294,7 +1294,7 @@ body.light-mode .attendance-schedule__value {
 .download-modal-card {
   width: min(720px, 96vw);
   background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #29364b;
   border-radius: 16px;
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.6);
   padding: 24px;
@@ -1334,7 +1334,7 @@ body.light-mode .attendance-schedule__value {
   justify-content: space-between;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #29364b;
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -1468,7 +1468,7 @@ body.light-mode .attendance-schedule__value {
     width: 220px;
     height: calc(100vh - 60px);
     top: 60px;
-    background: rgba(10, 15, 30, 0.98);
+    background: #0f172a;
     border-right: 1px solid var(--border);
     padding: 16px;
     overflow-y: auto;
@@ -1798,7 +1798,7 @@ body.light-mode .attendance-schedule__value {
   .analytics-table-wrap::-webkit-scrollbar-thumb,
   .trainee-progress-table::-webkit-scrollbar-thumb,
   .overflow-x-auto::-webkit-scrollbar-thumb {
-    background: rgba(0,200,170,0.4);
+    background: rgba(59,130,246,0.4);
     border-radius: 3px;
   }
 
@@ -1926,7 +1926,7 @@ body.light-mode .attendance-schedule__value {
     width: min(280px, 88vw);
     height: calc(100vh - 60px);
     top: 60px;
-    background: rgba(10, 15, 30, 0.98);
+    background: #0f172a;
   }
 
   .sidebar.open {
@@ -1949,7 +1949,7 @@ select,
 textarea {
   background: var(--glass);
   border: 1px solid var(--border);
-  backdrop-filter: blur(12px);
+  backdrop-filter: none;
   border-radius: 10px;
   color: #e2e8f0;
   padding: 12px 16px;
@@ -1967,18 +1967,18 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(0, 200, 170, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* Select options visibility fix */
 select option {
-  background: var(--navy);
+  background: #151f32;
   color: #e2e8f0;
   padding: 8px 4px;
 }
 
 select option:hover {
-  background: rgba(0, 200, 170, 0.2);
+  background: rgba(59, 130, 246, 0.2);
   color: #fff;
 }
 
@@ -2053,7 +2053,7 @@ select option:hover {
 #menu-toggle:active {
   border-color: var(--teal);
   color: var(--teal);
-  background: rgba(0, 200, 170, 0.1);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 @media (max-width: 768px) {
@@ -2163,7 +2163,7 @@ select option:hover {
   right: -2px;
   width: 18px;
   height: 18px;
-  background: #ef4444;
+  background: #2563eb;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -2234,16 +2234,16 @@ body.light-mode .nav-link {
 }
 
 body.light-mode .nav-link:hover {
-  color: #00a88f;
-  background: rgba(0, 200, 170, 0.07);
+  color: #2563eb;
+  background: rgba(59, 130, 246, 0.07);
   border-color: transparent;
 }
 
 body.light-mode .nav-link.active {
-  color: #008573;
+  color: #1d4ed8;
   background: rgba(13, 148, 136, 0.08);
   border-color: transparent;
-  box-shadow: inset 2px 0 0 #008573;
+  box-shadow: inset 2px 0 0 #1d4ed8;
 }
 
 body.light-mode .page-header p,
@@ -2261,9 +2261,9 @@ body.light-mode .btn-ghost {
 }
 
 body.light-mode .btn-ghost:hover {
-  border-color: #00c8aa;
-  color: #00c8aa;
-  background: rgba(0, 200, 170, 0.08);
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
 }
 
 body.light-mode .progress-circle::before {
@@ -2283,8 +2283,8 @@ body.light-mode .profile-photo-upload {
 }
 
 body.light-mode .profile-photo-upload:hover {
-  background: rgba(0, 200, 170, 0.05);
-  border-color: #00c8aa;
+  background: rgba(59, 130, 246, 0.05);
+  border-color: #3b82f6;
 }
 
 body.light-mode h1,
@@ -2295,11 +2295,11 @@ body.light-mode .font-display {
 }
 
 body.light-mode #user-name {
-  color: #00c8aa;
+  color: #3b82f6;
 }
 
-body.light-mode .text-teal-400 {
-  color: #00967d;
+body.light-mode .text-blue-400 {
+  color: #2563eb;
 }
 
 body.light-mode .text-white {
@@ -2317,7 +2317,7 @@ body.light-mode textarea {
 body.light-mode input:focus,
 body.light-mode select:focus,
 body.light-mode textarea:focus {
-  border-color: #00c8aa;
+  border-color: #3b82f6;
   background: rgba(255, 255, 255, 0.8);
 }
 
@@ -2343,14 +2343,14 @@ body.light-mode table th {
 
 /* QR Expiry Timer visibility */
 #qr-expiry-timer {
-  color: #a78bfa;
+  color: #c4b5fd;
   transition: color 0.4s ease, background-color 0.4s ease, border-color 0.4s ease;
 }
 
 body.light-mode #qr-expiry-timer {
-  color: #7c3aed;
-  background: rgba(124, 58, 237, 0.1);
-  border-color: rgba(124, 58, 237, 0.3);
+  color: #6d28d9;
+  background: rgba(109, 40, 217, 0.1);
+  border-color: rgba(109, 40, 217, 0.3);
 }
 
 /* Theme toggle button animation */
@@ -2375,7 +2375,7 @@ body.light-mode #qr-expiry-timer {
 }
 
 #theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: #1e293b;
 }
 
 /* Light mode button appearance */
@@ -2414,12 +2414,12 @@ body.light-mode #theme-toggle:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 200, 170, 0.3);
+  background: rgba(59, 130, 246, 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 200, 170, 0.5);
+  background: rgba(59, 130, 246, 0.5);
 }
 
 /* Journal Tooltip (removed — entries are shown inline in Previous Journals) */
@@ -2459,8 +2459,8 @@ body.light-mode #theme-toggle:hover {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.98);
-  border: 1px solid rgba(0, 200, 170, 0.3);
+  background: #151f32;
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
 }
@@ -2482,7 +2482,7 @@ body.light-mode #theme-toggle:hover {
 
 .journal-detail-close:hover {
   color: #fff;
-  background: rgba(0, 200, 170, 0.16);
+  background: rgba(59, 130, 246, 0.16);
 }
 
 @media (max-width: 640px) {
@@ -2506,9 +2506,9 @@ body.light-mode #theme-toggle:hover {
 body.light-mode {
   --navy: #e2e8f0;
   --navy-mid: #e2e8f0;
-  --teal: #00a88f;
-  --teal-dark: #008573;
-  --gold: #d97706;
+  --teal: #2563eb;
+  --teal-dark: #1d4ed8;
+  --gold: #b45309;
   --muted: #64748b;
   --glass: rgba(255, 255, 255, 0.7);
   --border: rgba(0, 0, 0, 0.1);
@@ -2559,12 +2559,12 @@ body.light-mode .border-white\/10 {
   border-color: rgba(0, 0, 0, 0.1) !important;
 }
 
-body.light-mode .text-teal-400 {
-  color: #00967d !important;
+body.light-mode .text-blue-400 {
+  color: #2563eb !important;
 }
 
-body.light-mode .border-teal-400\/30 {
-  border-color: rgba(0, 150, 125, 0.3) !important;
+body.light-mode .border-blue-400\/30 {
+  border-color: rgba(59, 130, 246, 0.3) !important;
 }
 
 body.light-mode nav {
@@ -2602,8 +2602,8 @@ body.light-mode .btn-ghost {
 }
 
 body.light-mode .btn-ghost:hover {
-  background: rgba(0, 200, 170, 0.1);
-  color: #00967d;
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
 }
 
 body.light-mode .nav-link {
@@ -2611,14 +2611,14 @@ body.light-mode .nav-link {
 }
 
 body.light-mode .nav-link:hover {
-  color: #00967d;
-  background: rgba(0, 200, 170, 0.1);
+  color: #2563eb;
+  background: rgba(59, 130, 246, 0.1);
 }
 
 body.light-mode .nav-link.active {
-  color: #00967d;
-  background: rgba(0, 200, 170, 0.15);
-  border-color: rgba(0, 200, 170, 0.3);
+  color: #2563eb;
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 body.light-mode .status-present {
@@ -2646,19 +2646,19 @@ body.light-mode .stat-num {
 }
 
 body.light-mode .text-yellow-400 {
-  color: #d97706 !important;
+  color: #b45309 !important;
 }
 
 body.light-mode .tab-back-btn {
   color: #ffffff;
-  background: linear-gradient(135deg, #00c8aa, #00a88c);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   border-color: transparent;
-  box-shadow: 0 0 16px rgba(0, 150, 125, 0.35);
+  box-shadow: 0 4px 12px -6px rgba(59, 130, 246, 0.4);
 }
 
 body.light-mode .tab-back-btn:hover {
   color: #ffffff;
-  box-shadow: 0 0 26px rgba(0, 150, 125, 0.55);
+  box-shadow: 0 6px 16px -8px rgba(59, 130, 246, 0.5);
 }
 
 /* Fix visibility of DTR expiry timer in light mode */
@@ -2713,21 +2713,21 @@ body.light-mode .qr-expiry-timer {
 #status-indicator.in-range .ico-in-range { display: block; }
 #status-indicator.out-of-range .ico-out-of-range { display: block; }
 
-#status-indicator.checking {
-  background: #f59e0b;
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18);
+body:not(.light-mode) #status-indicator.checking {
+  background: #fbbf24;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.18);
   animation: pulse 2s infinite;
 }
 
-#status-indicator.in-range {
-  background: #22c55e;
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+body:not(.light-mode) #status-indicator.in-range {
+  background: #4ade80;
+  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.18);
   animation: none;
 }
 
-#status-indicator.out-of-range {
-  background: #ef4444;
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
+body:not(.light-mode) #status-indicator.out-of-range {
+  background: #f87171;
+  box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.18);
   animation: none;
 }
 
@@ -2771,7 +2771,7 @@ body.light-mode #status-text.out-of-range {
   right: -2px;
   width: 18px;
   height: 18px;
-  background: #ef4444;
+  background: #2563eb;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -2822,8 +2822,8 @@ body.light-mode #status-text.out-of-range {
   transition: background 0.2s;
   align-items: flex-start;
 }
-.notif-item:hover { background: rgba(255,255,255,0.05); }
-.notif-item.unread { background: rgba(0,200,170,0.08); }
+.notif-item:hover { background: #1e293b; }
+.notif-item.unread { background: rgba(59,130,246,0.08); }
 .notif-item.unread .notif-text { color: #fff; }
 .notif-icon {
   width: 36px;
@@ -2878,7 +2878,7 @@ body.light-mode .notif-header {
   border-color: rgba(0,0,0,0.1);
 }
 body.light-mode .notif-item:hover { background: rgba(0,0,0,0.03); }
-body.light-mode .notif-item.unread { background: rgba(0,200,170,0.1); }
+body.light-mode .notif-item.unread { background: rgba(59,130,246,0.1); }
 body.light-mode .notif-text { color: #475569; }
 body.light-mode .notif-time { color: #94a3b8; }
 
@@ -2897,30 +2897,30 @@ body.light-mode .notif-time { color: #94a3b8; }
 
 #overview {
   /* Surfaces */
-  --ov-surface: #101a2e;
-  --ov-surface-2: #16223a;
-  --ov-hairline: rgba(255, 255, 255, 0.09);
-  --ov-hairline-strong: rgba(255, 255, 255, 0.16);
+  --ov-surface: #151f32;
+  --ov-surface-2: #1e293b;
+  --ov-hairline: #29364b;
+  --ov-hairline-strong: #3b4a61;
 
   /* Text */
-  --ov-text: #e8eefb;
-  --ov-text-muted: #93a4c2;
+  --ov-text: #e2e8f0;
+  --ov-text-muted: #94a3b8;
 
   /* Accents */
-  --ov-teal: #2dd4bf;
-  --ov-teal-soft: rgba(45, 212, 191, 0.12);
-  --ov-teal-line: rgba(45, 212, 191, 0.34);
+  --ov-teal: #3b82f6;
+  --ov-teal-soft: rgba(59, 130, 246, 0.12);
+  --ov-teal-line: rgba(59, 130, 246, 0.34);
   --ov-blue: #60a5fa;
   --ov-blue-soft: rgba(96, 165, 250, 0.12);
   --ov-amber: #fbbf24;
   --ov-amber-soft: rgba(251, 191, 36, 0.12);
-  --ov-green: #34d399;
-  --ov-green-soft: rgba(52, 211, 153, 0.12);
+  --ov-green: #4ade80;
+  --ov-green-soft: rgba(74, 222, 128, 0.12);
   --ov-red: #f87171;
   --ov-red-soft: rgba(248, 113, 113, 0.12);
 
   /* Elevation */
-  --ov-shadow: 0 1px 2px rgba(2, 6, 23, 0.4), 0 8px 24px -12px rgba(2, 6, 23, 0.6);
+  --ov-shadow: 0 1px 2px rgba(2, 6, 23, 0.35), 0 8px 24px -12px rgba(2, 6, 23, 0.55);
 
   --ov-radius: 14px;
   --ov-gap: 16px;
@@ -2935,7 +2935,7 @@ body.light-mode #overview {
   --ov-text: #0f172a;
   --ov-text-muted: #5a6b85;
 
-  --ov-teal: #0d9488;
+  --ov-teal: #2563eb;
   --ov-teal-soft: rgba(13, 148, 136, 0.10);
   --ov-teal-line: rgba(13, 148, 136, 0.30);
   --ov-blue: #2563eb;
@@ -4488,4 +4488,86 @@ body.light-mode #overview {
   table.tk-stack > tbody > tr > td:not([data-label]) { justify-content: flex-start; }
   /* A desktop wrap's max-height must not clip a long stacked list */
   .analytics-table-wrap { max-height: none; }
+}
+
+/* ── Dark-mode cobalt re-tint + attendance button tokens ────────────────────
+   Legacy teal accents that render in the dark layer (light stays frozen:
+   trackit-glass.css overrides these same properties in light mode).
+   The --attend-* vars were moved here from inline styles on the buttons; the
+   light block below preserves the previous light rendering byte-for-byte. */
+
+#time-in-btn {
+  --attend-dark: rgba(23, 37, 84, 0.55);
+  --attend-dark-pulse: rgba(29, 78, 216, 0.7);
+  --attend-bright: #3b82f6;
+  --attend-bright-pulse: #60a5fa;
+  --attend-accent: #3b82f6;
+  --attend-accent-soft: rgba(59, 130, 246, 0.16);
+  --attend-border: rgba(37, 99, 235, 0.85);
+  --attend-ink: #ffffff;
+}
+
+#time-out-btn {
+  --attend-dark: rgba(127, 29, 29, 0.55);
+  --attend-dark-pulse: rgba(153, 27, 27, 0.75);
+  --attend-bright: #ef4444;
+  --attend-bright-pulse: #f87171;
+  --attend-accent: #ef4444;
+  --attend-accent-soft: rgba(239, 68, 68, 0.16);
+  --attend-border: rgba(127, 29, 29, 0.85);
+  --attend-ink: #1a0505;
+}
+
+/* Light mode: keep the pre-retint teal/green accents unchanged. The four
+   darker frame vars are already forced by trackit-glass.css !important. */
+body.light-mode #time-in-btn {
+  --attend-dark: rgba(20, 61, 42, 0.85);
+  --attend-dark-pulse: rgba(34, 197, 94, 0.7);
+  --attend-bright: #3b82f6;
+  --attend-bright-pulse: #4ade80;
+  --attend-accent: #3b82f6;
+  --attend-accent-soft: rgba(59, 130, 246, 0.16);
+  --attend-border: rgba(34, 197, 94, 0.85);
+  --attend-ink: #052e16;
+}
+
+body.light-mode #time-out-btn {
+  --attend-dark: rgba(127, 29, 29, 0.55);
+  --attend-dark-pulse: rgba(153, 27, 27, 0.75);
+  --attend-bright: #ef4444;
+  --attend-bright-pulse: #f87171;
+  --attend-accent: #ef4444;
+  --attend-accent-soft: rgba(239, 68, 68, 0.16);
+  --attend-border: rgba(127, 29, 29, 0.85);
+  --attend-ink: #1a0505;
+}
+
+body:not(.light-mode) .journal-day-tab:hover {
+  background: var(--tk-hover, #1e293b);
+  color: var(--tk-text-strong, #e2e8f0);
+}
+
+body:not(.light-mode) .journal-day-tab[aria-selected="true"] {
+  background: var(--tk-selected, #172554);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+body:not(.light-mode) .profile-photo-upload:hover,
+body:not(.light-mode) .journal-photo-upload:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+body:not(.light-mode) select option:hover { background: rgba(59, 130, 246, 0.2); }
+
+body:not(.light-mode) #menu-toggle:active {
+  border-color: #3b82f6;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+body:not(.light-mode) .analytics-table-wrap::-webkit-scrollbar-thumb,
+body:not(.light-mode) .trainee-progress-table::-webkit-scrollbar-thumb,
+body:not(.light-mode) .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.4);
 }

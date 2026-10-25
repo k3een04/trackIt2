@@ -15,14 +15,9 @@ function showNotification(title, message, type = 'info') {
   }
 
   const notificationEl = document.createElement('div');
-  const bgColor = type === 'success' ? 'rgba(34, 197, 94, 0.1)' : type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)';
-  const borderColor = type === 'success' ? 'rgba(34, 197, 94, 0.3)' : type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
-  const textColor = type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6';
-
+  const toastType = type === 'success' || type === 'error' ? type : 'info';
+  notificationEl.className = `trackit-toast trackit-toast-${toastType}`;
   notificationEl.style.cssText = `
-    background: ${bgColor};
-    border: 1px solid ${borderColor};
-    color: ${textColor};
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 10px;
@@ -31,7 +26,7 @@ function showNotification(title, message, type = 'info') {
 
   notificationEl.innerHTML = `
     <p style="margin: 0; font-weight: 600; font-size: 14px;">${title}</p>
-    <p style="margin: 5px 0 0 0; font-size: 12px; color: #cbd5e1;">${message}</p>
+    <p style="margin: 5px 0 0 0; font-size: 12px;">${message}</p>
   `;
 
   notificationContainer.appendChild(notificationEl);
@@ -233,7 +228,7 @@ function renderNotificationList() {
     list.innerHTML = `
       <div class="notif-empty">
         <p>${escapeHtml(notifError)}</p>
-        <button onclick="loadSupervisorNotifications()" class="text-xs text-teal-400 hover:underline mt-2">Retry</button>
+        <button onclick="loadSupervisorNotifications()" class="text-xs text-blue-400 hover:underline mt-2">Retry</button>
       </div>`;
     return;
   }
@@ -455,7 +450,7 @@ async function loadAssignedTrainees() {
     cardsContainer.innerHTML = trainees.map(trainee => `
       <div class="glass-card p-6 trainee-card">
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg">${getInitials(trainee.fullName)}</div>
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-blue-600 flex items-center justify-center text-white font-bold text-lg">${getInitials(trainee.fullName)}</div>
           <div class="flex-1">
             <h4 class="font-semibold text-white">${trainee.fullName}</h4>
             <p class="text-xs text-slate-500">${trainee.studentId || '—'}</p>
@@ -479,7 +474,7 @@ async function loadAssignedTrainees() {
     overviewTrainees.innerHTML = trainees.map(trainee => `
       <div class="trainee-summary-item">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-xs font-bold">${getInitials(trainee.fullName)}</div>
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-600 flex items-center justify-center text-white text-xs font-bold">${getInitials(trainee.fullName)}</div>
           <div class="flex-1">
             <p class="text-sm font-semibold text-white">${trainee.fullName}</p>
             <p class="text-xs text-slate-500">${trainee.department || '—'} • ${trainee.studentId || '—'}</p>
@@ -544,7 +539,7 @@ async function loadPendingActions() {
               <p class="text-xs text-slate-400">${action.trainee} • ${timeDisplay}</p>
               <p class="text-xs text-slate-500 mt-1">${action.date}</p>
             </div>
-            <button onclick="switchTab('${tabName}')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold whitespace-nowrap">${buttonLabel}</button>
+            <button onclick="switchTab('${tabName}')" class="text-blue-400 hover:text-blue-300 text-xs font-semibold whitespace-nowrap">${buttonLabel}</button>
           </div>
         </div>
       `;
@@ -718,15 +713,15 @@ async function viewTraineeFullProfile(traineeId) {
             <div class="space-y-3 text-sm">
               <div class="flex justify-between">
                 <span class="text-slate-400">Days Present:</span>
-                <span class="font-semibold text-teal-400">${totalDaysPresent}</span>
+                <span class="font-semibold text-blue-400">${totalDaysPresent}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-slate-400">Total Hours:</span>
-                <span class="font-semibold text-teal-400">${totalHours}</span>
+                <span class="font-semibold text-blue-400">${totalHours}</span>
               </div>
               <div class="flex justify-between pt-3 border-t border-white/10">
                 <span class="text-slate-400">Attendance Rate:</span>
-                <span class="font-semibold text-teal-400">${attendanceRate}%</span>
+                <span class="font-semibold text-blue-400">${attendanceRate}%</span>
               </div>
             </div>
           </div>
@@ -741,11 +736,11 @@ async function viewTraineeFullProfile(traineeId) {
                   <span class="text-xs font-semibold">${completedHours.toFixed(1)}/${requiredHours} (${progressPercentage}%)</span>
                 </div>
                 <div class="w-full bg-white/10 rounded-full h-2">
-                  <div class="bg-teal-400 h-2 rounded-full" style="width: ${progressPercentage}%;"></div>
+                  <div class="bg-blue-400 h-2 rounded-full" style="width: ${progressPercentage}%;"></div>
                 </div>
               </div>
               <div>
-                <p class="text-xs text-slate-400">Remaining: <span class="text-teal-400 font-semibold">${remainingHours.toFixed(1)} hours</span></p>
+                <p class="text-xs text-slate-400">Remaining: <span class="text-blue-400 font-semibold">${remainingHours.toFixed(1)} hours</span></p>
               </div>
             </div>
           </div>
@@ -786,7 +781,7 @@ async function viewTraineeFullProfile(traineeId) {
           <!-- Notes -->
           <div>
             <p class="text-sm text-slate-400 mb-3">Additional Notes</p>
-            <textarea id="trainee-notes" placeholder="Add private notes about this trainee..." class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" rows="4"></textarea>
+            <textarea id="trainee-notes" placeholder="Add private notes about this trainee..." class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" rows="4"></textarea>
             <button onclick="saveTraineeNotes('${traineeId}')" class="btn-primary w-full mt-4">Save Notes</button>
           </div>
         </div>
@@ -1304,11 +1299,11 @@ async function loadPendingJournals() {
         <div class="journal-item p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition" onclick="selectJournal(this, '${journal._id}')">
           <div class="flex items-start justify-between mb-2">
             <div>
-              <p class="font-semibold text-sm text-teal-400">${journal.week}</p>
+              <p class="font-semibold text-sm text-blue-400">${journal.week}</p>
               <p class="text-xs text-slate-400">${traineeInfo.fullName || 'Unknown Trainee'}</p>
               <p class="text-xs text-slate-500">${date}</p>
             </div>
-            <span class="status-badge" style="background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);">Pending</span>
+            <span class="status-badge status-pending">Pending</span>
           </div>
         </div>
       `;
@@ -1360,11 +1355,11 @@ async function loadSignedJournals() {
         <div class="journal-item p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition" onclick="selectJournal(this, '${journal._id}')">
           <div class="flex items-start justify-between mb-2">
             <div>
-              <p class="font-semibold text-sm text-teal-400">${journal.week}</p>
+              <p class="font-semibold text-sm text-blue-400">${journal.week}</p>
               <p class="text-xs text-slate-400">${traineeInfo.fullName || 'Unknown Trainee'}</p>
               <p class="text-xs text-slate-500">Signed: ${date}</p>
             </div>
-            <span class="status-badge" style="background: rgba(34,197,94,0.2); color: #22c55e; border: 1px solid rgba(34,197,94,0.3);">Signed</span>
+            <span class="status-badge status-completed">Signed</span>
           </div>
         </div>
       `;
@@ -1410,11 +1405,11 @@ async function loadReturnedJournals() {
         <div class="journal-item p-4 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition" onclick="selectJournal(this, '${journal._id}')">
           <div class="flex items-start justify-between mb-2">
             <div>
-              <p class="font-semibold text-sm text-teal-400">${journal.week}</p>
+              <p class="font-semibold text-sm text-blue-400">${journal.week}</p>
               <p class="text-xs text-slate-400">${traineeInfo.fullName || 'Unknown Trainee'}</p>
               <p class="text-xs text-slate-500">Submitted: ${date}</p>
             </div>
-            <span class="status-badge" style="background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);">Returned</span>
+            <span class="status-badge status-returned">Returned</span>
           </div>
           <p class="text-xs text-slate-400 mt-2">Reason: ${journal.supervisorReview || 'No reason provided'}</p>
         </div>
@@ -1453,9 +1448,7 @@ function selectJournal(element, journalId) {
     window.currentJournalForReview = journal;
     
     // Determine status badge styling
-    const statusStyle = isSigned 
-      ? 'background: rgba(34,197,94,0.2); color: #22c55e; border: 1px solid rgba(34,197,94,0.3);'
-      : 'background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);';
+    const statusStyle = isSigned ? 'status-completed' : 'status-pending';
     const statusText = isSigned ? 'Signed' : 'Pending Signature';
     
     viewer.innerHTML = `
@@ -1468,7 +1461,7 @@ function selectJournal(element, journalId) {
             ${isSigned ? `<p class="text-slate-500 text-xs mt-1">Signed: ${new Date(journal.supervisorSignedAt).toLocaleDateString('en-US')}</p>` : ''}
           </div>
           <div class="flex items-start gap-2">
-            <span class="status-badge" style="${statusStyle}">${statusText}</span>
+            <span class="status-badge ${statusStyle}">${statusText}</span>
             <button onclick="closeJournalViewer()" class="p-2 hover:bg-white/10 rounded-lg transition" title="Close">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
@@ -1480,15 +1473,13 @@ function selectJournal(element, journalId) {
             <h4 class="font-semibold mb-3">Identified Theories</h4>
             <div class="space-y-2">
               ${journal.identifiedTheories.map((theory, index) => {
-                const accents = ['#00c8aa', '#38bdf8', '#a78bfa', '#fbbf24', '#f472b6'];
-                const accent = accents[index % accents.length];
                 return `
-                <div style="padding: 10px 14px; background: linear-gradient(135deg, rgba(255,255,255,0.04), ${accent}0f); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                <div class="theory-card" style="padding: 10px 14px; border-radius: 8px;">
                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <span style="font-weight: 600; color: ${accent}; font-size: 12px;">${escapeHtml(theory.course || '')} – ${escapeHtml(theory.courseName || '')}</span>
-                    <span style="font-size: 10px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.07); color: #94a3b8; border: 1px solid rgba(255,255,255,0.08);">${escapeHtml(theory.category || '')}</span>
+                    <span class="theory-card__title" style="font-weight: 600; font-size: 12px;">${escapeHtml(theory.course || '')} – ${escapeHtml(theory.courseName || '')}</span>
+                    <span class="theory-card__tag" style="font-size: 10px; padding: 2px 8px; border-radius: 999px;">${escapeHtml(theory.category || '')}</span>
                   </div>
-                  <p style="margin: 5px 0 0 0; color: #e2e8f0; font-size: 13px; line-height: 1.5; font-style: italic;">${escapeHtml(theory.theory || '')}</p>
+                  <p class="theory-card__text" style="margin: 5px 0 0 0; font-size: 13px; line-height: 1.5; font-style: italic;">${escapeHtml(theory.theory || '')}</p>
                 </div>
                 `;
               }).join('')}
@@ -1497,12 +1488,12 @@ function selectJournal(element, journalId) {
         ` : ''}
 
         ${journal.narrative && journal.narrative.trim() ? `
-          <div class="glass-card p-4 bg-white/5 border-l-4 border-teal-400 mb-6">
+          <div class="glass-card p-4 bg-white/5 border-l-4 border-blue-400 mb-6">
             <p class="text-xs text-slate-400 mb-2">JOURNAL ENTRY</p>
             <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">${journal.narrative}</p>
           </div>
         ` : journal.summary ? `
-          <div class="glass-card p-4 bg-white/5 border-l-4 border-teal-400 mb-6">
+          <div class="glass-card p-4 bg-white/5 border-l-4 border-blue-400 mb-6">
             <p class="text-xs text-slate-400 mb-2">AI-GENERATED SUMMARY</p>
             <p class="text-sm text-slate-200">${journal.summary}</p>
           </div>
@@ -1523,7 +1514,7 @@ function selectJournal(element, journalId) {
         ${!isSigned ? `
           <div class="mb-6">
             <label class="block text-sm font-semibold mb-3">Supervisor Remarks (Optional)</label>
-            <textarea id="journal-remarks" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none" rows="3" placeholder="Add your remarks here..."></textarea>
+            <textarea id="journal-remarks" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" rows="3" placeholder="Add your remarks here..."></textarea>
           </div>
         ` : ''}
 
@@ -1538,7 +1529,7 @@ function selectJournal(element, journalId) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path></svg>
               Return for Revision
             </button>
-            <button onclick="verifyAndSignJournal('${journal._id}')" class="btn-primary flex-1" style="background: linear-gradient(135deg, #00c8aa 0%, #00c8aa 100%);">
+            <button onclick="verifyAndSignJournal('${journal._id}')" class="btn-primary flex-1">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
               Verify & Sign
             </button>
@@ -1744,11 +1735,11 @@ function renderAppraisalCriteria() {
                   <input type="number" data-score="${row.key}" min="0" max="${row.max}" step="any"
                     aria-label="Rating for ${escapeHtml(row.short)} out of ${row.max}"
                     placeholder="—"
-                    class="w-20 px-3 py-2 text-white text-sm text-center rounded-lg border border-white/10 focus:border-teal-400 outline-none" style="background: rgba(15, 23, 42, 0.5);">
+                    class="w-20 px-3 py-2 text-white text-sm text-center rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #0f172a;">
                 </div>
               </div>
               <input type="text" data-remarks="${row.key}" maxlength="300" placeholder="Remarks (optional)"
-                class="mt-3 w-full px-3 py-2 text-white text-xs rounded-lg border border-white/10 focus:border-teal-400 outline-none" style="background: rgba(15, 23, 42, 0.5);">
+                class="mt-3 w-full px-3 py-2 text-white text-xs rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #0f172a;">
             </div>
           `).join('')}
         </div>
@@ -1962,12 +1953,12 @@ async function loadAppraisalHistory(traineeId) {
         ? '<span class="status-badge status-pending">Draft</span>'
         : `<span class="status-badge status-completed">${record.status === 'acknowledged' ? 'Acknowledged' : 'Submitted'}</span>`;
       const action = isDraft
-        ? `<button type="button" onclick="openAppraisalDraft('${record.period}')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold">Continue Draft</button>`
-        : `<button type="button" onclick="downloadAppraisalPDF('${record._id}')" class="text-teal-400 hover:text-teal-300 text-xs font-semibold">Download PDF</button>`;
+        ? `<button type="button" onclick="openAppraisalDraft('${record.period}')" class="text-blue-400 hover:text-blue-300 text-xs font-semibold">Continue Draft</button>`
+        : `<button type="button" onclick="downloadAppraisalPDF('${record._id}')" class="text-blue-400 hover:text-blue-300 text-xs font-semibold">Download PDF</button>`;
       return `
         <tr class="border-b border-white/10">
           <td class="py-3 px-4">${escapeHtml(month)}</td>
-          <td class="py-3 px-4"><span class="font-semibold text-teal-400">${escapeHtml(score)}</span></td>
+          <td class="py-3 px-4"><span class="font-semibold text-blue-400">${escapeHtml(score)}</span></td>
           <td class="py-3 px-4">${escapeHtml(equivalent)}</td>
           <td class="py-3 px-4">${badge}</td>
           <td class="py-3 px-4">${action}</td>
@@ -2534,18 +2525,16 @@ function updateScheduleList(trainees) {
   // Use a simpler approach with event delegation on the container
   listContainer.innerHTML = trainees.map((trainee, index) => {
     const hasSchedule = trainee.schedule && trainee.schedule.startTime;
-    const statusBg = hasSchedule ? 'rgba(34,197,94,0.1)' : 'rgba(100,116,139,0.1)';
     const statusText = hasSchedule ? 'Configured' : 'Not Set';
-    const statusColor = hasSchedule ? '#22c55e' : '#cbd5e1';
 
     return `
-      <div class="schedule-item-${index}" data-index="${index}" style="padding: 12px; background: ${statusBg}; border-radius: 6px; cursor: pointer; transition: all 0.2s; user-select: none; pointer-events: auto;" onmouseenter="this.style.background='rgba(0,200,170,0.15)'" onmouseleave="this.style.background='${statusBg}'" onclick="selectTraineeForSchedule('${trainee._id}')">
+      <div class="schedule-item schedule-item-${index}" data-index="${index}" style="padding: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; user-select: none; pointer-events: auto;" onclick="selectTraineeForSchedule('${trainee._id}')">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <p style="margin: 0; font-weight: 600; font-size: 13px; color: #cbd5e1;">${trainee.fullName}</p>
-          <span style="font-size: 11px; padding: 4px 8px; background: ${statusBg}; border-radius: 4px; color: ${statusColor}; font-weight: 600;">${statusText}</span>
+          <p style="margin: 0; font-weight: 600; font-size: 13px;">${trainee.fullName}</p>
+          <span class="status-badge ${hasSchedule ? 'status-completed' : 'status-neutral'}" style="font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600;">${statusText}</span>
         </div>
         ${hasSchedule ? `
-          <p style="margin: 0; font-size: 12px; color: #94a3b8;">${trainee.schedule.startTime} - ${trainee.schedule.endTime}</p>
+          <p class="schedule-item__time" style="margin: 0; font-size: 12px;">${trainee.schedule.startTime} - ${trainee.schedule.endTime}</p>
         ` : ''}
       </div>
     `;
@@ -2932,11 +2921,9 @@ function renderNotifications(actions, filterType) {
   }
 
   container.innerHTML = filtered.map(action => {
-    let icon, bgColor, color, title, desc, timeDisplay;
+    let icon, title, desc, timeDisplay;
 
     if (action.type === 'dtr') {
-      bgColor = 'rgba(245,158,11,0.2)';
-      color = '#f59e0b';
       icon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect></svg>';
       title = 'DTR Submitted for Verification';
       desc = `${action.trainee} submitted DTR for ${action.date}`;
@@ -2944,8 +2931,6 @@ function renderNotifications(actions, filterType) {
       const diffHrs = Math.floor((new Date() - new Date(action.timestamp)) / 3600000);
       timeDisplay = diffHrs > 24 ? Math.floor(diffHrs / 24) + ' days ago' : (diffHrs > 0 ? diffHrs + ' hours ago' : 'Recently');
     } else if (action.type === 'journal') {
-      bgColor = 'rgba(0,200,170,0.2)';
-      color = '#00c8aa';
       icon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
       title = 'Journal Submitted';
       desc = `${action.trainee} submitted ${action.week} journal`;
@@ -2956,7 +2941,7 @@ function renderNotifications(actions, filterType) {
 
     return `
       <div class="notification-item unread" data-type="${action.type}">
-        <div class="notification-icon" style="background: ${bgColor}; color: ${color};">
+        <div class="notification-icon ${action.type}">
           ${icon}
         </div>
         <div class="flex-1">
@@ -2969,12 +2954,6 @@ function renderNotifications(actions, filterType) {
     `;
   }).join('');
 
-  // Update theme colors if in light mode
-  if (document.body.classList.contains('light-mode')) {
-    container.querySelectorAll('.title-text').forEach(el => el.style.color = '#0f172a');
-    container.querySelectorAll('.desc-text').forEach(el => el.style.color = '#475569');
-    container.querySelectorAll('.time-text').forEach(el => el.style.color = '#64748b');
-  }
 }
 
 function filterSupervisorNotifications(type) {

@@ -45,7 +45,7 @@ body.light-mode input.tk-cal-field {
 /* ── 2. POPOVER SHELL ────────────────────────────────────────────────────── */
 
 .tk-cal-pop {
-  --tk-cal-surface: rgba(19, 29, 54, 0.94);
+  --tk-cal-surface: #151f32;
   --tk-cal-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   --tk-cal-dx: 5px;
   --tk-cal-dy: 0px;
@@ -58,11 +58,11 @@ body.light-mode input.tk-cal-field {
   border: 1px solid var(--tk-hairline-strong);
   border-radius: var(--tk-radius);
   background: var(--tk-cal-surface);
-  backdrop-filter: blur(var(--tk-blur-strong));
-  -webkit-backdrop-filter: blur(var(--tk-blur-strong));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   box-shadow:
     var(--tk-shadow-3),
-    inset 0 1px 0 rgba(0, 200, 170, 0.08);
+    inset 0 1px 0 rgba(59, 130, 246, 0.08);
   color: var(--tk-text);
   font-size: 13px;
   line-height: 1.4;
@@ -273,7 +273,7 @@ body.light-mode .tk-cal-pop {
 }
 
 .tk-cal-day:hover:not(:disabled) {
-  background: rgba(0, 200, 170, 0.16);
+  background: rgba(59, 130, 246, 0.16);
   color: var(--tk-text-strong);
 }
 
@@ -298,11 +298,11 @@ body.light-mode .tk-cal-pop {
   background: var(--tk-teal);
   color: #04121b;
   font-weight: 700;
-  box-shadow: 0 2px 9px -3px rgba(0, 200, 170, 0.75);
+  box-shadow: 0 2px 9px -3px rgba(59, 130, 246, 0.75);
 }
 
 .tk-cal-day.is-today.is-selected {
-  box-shadow: 0 2px 9px -3px rgba(0, 200, 170, 0.75);
+  box-shadow: 0 2px 9px -3px rgba(59, 130, 246, 0.75);
   color: #04121b;
 }
 
@@ -340,7 +340,7 @@ body.light-mode .tk-cal-pop {
 .tk-cal-day.is-range-end {
   width: 100%;
   border-radius: 0;
-  background: rgba(0, 200, 170, 0.14);
+  background: rgba(59, 130, 246, 0.14);
   color: var(--tk-text);
 }
 
@@ -416,7 +416,7 @@ body.light-mode .tk-cal-pop {
 /* ── 8. LIGHT MODE ───────────────────────────────────────────────────────── */
 
 body.light-mode .tk-cal-day:hover:not(:disabled) {
-  background: rgba(0, 169, 143, 0.14);
+  background: rgba(59, 130, 246, 0.14);
   color: var(--tk-text-strong);
 }
 
@@ -430,7 +430,7 @@ body.light-mode .tk-cal-day.is-booked { color: var(--tk-text-muted); }
 body.light-mode .tk-cal-day.is-in-range,
 body.light-mode .tk-cal-day.is-range-start,
 body.light-mode .tk-cal-day.is-range-end {
-  background: rgba(0, 169, 143, 0.14);
+  background: rgba(59, 130, 246, 0.14);
 }
 
 body.light-mode .tk-cal-opt { background: var(--tk-surface-2); }
@@ -485,4 +485,29 @@ body.light-mode .tk-cal-opt.is-current {
 
   .tk-cal-view.is-active { animation: none !important; }
   .tk-cal-pop { transform: none !important; }
+}
+
+/* ── Dark-mode cobalt re-tint (light rendering untouched) ──────────────────
+   The legacy teal rgba glows above also render in the dark layer where the
+   token palette is cobalt; scope the repaint to dark only. */
+
+body:not(.light-mode) .tk-cal-pop {
+  box-shadow:
+    var(--tk-shadow-3),
+    inset 0 1px 0 rgba(59, 130, 246, 0.08);
+}
+
+body:not(.light-mode) .tk-cal-day:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.16);
+}
+
+body:not(.light-mode) .tk-cal-day.is-selected,
+body:not(.light-mode) .tk-cal-day.is-selected:hover,
+body:not(.light-mode) .tk-cal-day.is-today.is-selected {
+  box-shadow: 0 2px 9px -3px rgba(59, 130, 246, 0.75);
+}
+
+body:not(.light-mode) .tk-cal-day.is-range-start,
+body:not(.light-mode) .tk-cal-day.is-range-end {
+  background: rgba(59, 130, 246, 0.14);
 }

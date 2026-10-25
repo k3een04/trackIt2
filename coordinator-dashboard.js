@@ -15,14 +15,9 @@ function showNotification(title, message, type = 'info') {
   }
 
   const notificationEl = document.createElement('div');
-  const bgColor = type === 'success' ? 'rgba(34, 197, 94, 0.1)' : type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)';
-  const borderColor = type === 'success' ? 'rgba(34, 197, 94, 0.3)' : type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)';
-  const textColor = type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6';
-
+  const toastType = type === 'success' || type === 'error' ? type : 'info';
+  notificationEl.className = `trackit-toast trackit-toast-${toastType}`;
   notificationEl.style.cssText = `
-    background: ${bgColor};
-    border: 1px solid ${borderColor};
-    color: ${textColor};
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 10px;
@@ -31,7 +26,7 @@ function showNotification(title, message, type = 'info') {
 
   notificationEl.innerHTML = `
     <p style="margin: 0; font-weight: 600; font-size: 14px;">${title}</p>
-    <p style="margin: 5px 0 0 0; font-size: 12px; color: #cbd5e1;">${message}</p>
+    <p style="margin: 5px 0 0 0; font-size: 12px;">${message}</p>
   `;
 
   notificationContainer.appendChild(notificationEl);
@@ -282,7 +277,7 @@ function renderNotificationList() {
     list.innerHTML = `
       <div class="notif-empty">
         <p>${escapeHtml(notifError)}</p>
-        <button onclick="loadCoordinatorNotifications()" class="text-xs text-teal-400 hover:underline mt-2">Retry</button>
+        <button onclick="loadCoordinatorNotifications()" class="text-xs text-blue-400 hover:underline mt-2">Retry</button>
       </div>`;
     return;
   }
@@ -1075,27 +1070,21 @@ function renderWeeklyAttendanceChart() {
   const chartData = {
     labels,
     datasets: [
-      {
+      window.TrackITCharts.styleDataset({
         label: 'Present',
         data: presentData,
         key: 'present',
-        backgroundColor: 'rgba(34, 197, 94, 0.8)',
-        borderColor: 'rgba(34, 197, 94, 1)',
-      },
-      {
+      }, { accent: window.TrackITCharts.accent.green, fill: 'flat' }),
+      window.TrackITCharts.styleDataset({
         label: 'Late',
         data: lateData,
         key: 'late',
-        backgroundColor: 'rgba(251, 191, 36, 0.8)',
-        borderColor: 'rgba(251, 191, 36, 1)',
-      },
-      {
+      }, { accent: window.TrackITCharts.accent.gold, fill: 'flat' }),
+      window.TrackITCharts.styleDataset({
         label: 'Absent',
         data: absentData,
         key: 'absent',
-        backgroundColor: 'rgba(239, 68, 68, 0.8)',
-        borderColor: 'rgba(239, 68, 68, 1)',
-      },
+      }, { accent: window.TrackITCharts.accent.red, fill: 'flat' }),
     ],
     dayDetails,
   };
@@ -1781,7 +1770,7 @@ function traineeStatusChip(trainee) {
 // Build one trainee row — shared by the Trainees tab and the "All Trainees" modal
 function buildTraineeRowHtml(trainee) {
   const supervisorName = trainee.supervisorId
-    ? `<span class="text-teal-400 font-semibold">${escapeHtml(trainee.supervisorId.fullName)}</span><br><span class="text-xs text-slate-500">${escapeHtml(trainee.supervisorId.companyName || '')}</span>`
+    ? `<span class="text-blue-400 font-semibold">${escapeHtml(trainee.supervisorId.fullName)}</span><br><span class="text-xs text-slate-500">${escapeHtml(trainee.supervisorId.companyName || '')}</span>`
     : '<span class="text-yellow-400/70 text-xs">Unassigned</span>';
 
   const completedHours = trainee.completedHours || 0;
@@ -2367,7 +2356,7 @@ function renderJournalList(status) {
         </div>
         <p class="text-xs text-slate-400">${status === 'approved' ? 'Approved' : status === 'returned' ? 'Updated' : 'Submitted'}: ${displayDate}</p>
         ${identifiedTheories.length > 0
-          ? `<p class="text-xs text-teal-300 mt-1">💡 ${identifiedTheories.length} theory${identifiedTheories.length === 1 ? '' : 's'} identified</p>`
+          ? `<p class="text-xs text-blue-300 mt-1">💡 ${identifiedTheories.length} theory${identifiedTheories.length === 1 ? '' : 's'} identified</p>`
           : ''
         }
       </div>
@@ -2455,7 +2444,7 @@ function selectJournal(element, journalId, status = currentJournalFilter) {
           ${concepts.length > 0
             ? concepts.map(concept => `
               <label class="flex items-center gap-2">
-                <input type="checkbox" checked disabled class="w-4 h-4 accent-teal-400">
+                <input type="checkbox" checked disabled class="w-4 h-4 accent-blue-400">
                 <span class="text-sm">${escapeHtml(concept)}</span>
               </label>
             `).join('')
@@ -2479,15 +2468,13 @@ function selectJournal(element, journalId, status = currentJournalFilter) {
         <div class="space-y-2">
           ${identifiedTheories.length > 0
             ? identifiedTheories.map((theory, index) => {
-                const accents = ['#00c8aa', '#38bdf8', '#a78bfa', '#fbbf24', '#f472b6'];
-                const accent = accents[index % accents.length];
                 return `
-                <div style="padding: 10px 14px; background: linear-gradient(135deg, rgba(255,255,255,0.04), ${accent}0f); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                <div class="theory-card" style="padding: 10px 14px; border-radius: 8px;">
                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <span style="font-weight: 600; color: ${accent}; font-size: 12px;">${escapeHtml(theory.course || '')} – ${escapeHtml(theory.courseName || '')}</span>
-                    <span style="font-size: 10px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.07); color: #94a3b8; border: 1px solid rgba(255,255,255,0.08);">${escapeHtml(theory.category || '')}</span>
+                    <span class="theory-card__title" style="font-weight: 600; font-size: 12px;">${escapeHtml(theory.course || '')} – ${escapeHtml(theory.courseName || '')}</span>
+                    <span class="theory-card__tag" style="font-size: 10px; padding: 2px 8px; border-radius: 999px;">${escapeHtml(theory.category || '')}</span>
                   </div>
-                  <p style="margin: 5px 0 0 0; color: #e2e8f0; font-size: 13px; line-height: 1.5; font-style: italic;">${escapeHtml(theory.theory || '')}</p>
+                  <p class="theory-card__text" style="margin: 5px 0 0 0; font-size: 13px; line-height: 1.5; font-style: italic;">${escapeHtml(theory.theory || '')}</p>
                 </div>
                 `;
               }).join('')
@@ -2672,7 +2659,7 @@ function lastTimeInCell(isoString) {
 function daysSinceAttendanceCell(days) {
   if (days === null || days === undefined) return '<span class="text-xs text-slate-500">—</span>';
   const label = `${days} day${days === 1 ? '' : 's'}`;
-  if (days === 0) return '<span class="text-xs text-teal-400">Today</span>';
+  if (days === 0) return '<span class="text-xs text-blue-400">Today</span>';
   if (days >= 3) return `<span class="text-xs text-red-400 font-semibold">${label}</span>`;
   return `<span class="text-slate-300">${label}</span>`;
 }
@@ -2783,21 +2770,13 @@ function renderJournalStatusChart(statusData, windowDays = 90) {
     ],
   };
 
+  const statusTokens = () => window.TrackITCharts.tokens();
   const dataset = {
     data: data.values,
-    backgroundColor: [
-      'rgba(245, 158, 11, 0.8)',
-      'rgba(239, 68, 68, 0.8)',
-      'rgba(0, 200, 170, 0.8)',
-      'rgba(34, 197, 94, 0.8)',
-    ],
-    borderColor: [
-      'rgba(245, 158, 11, 1)',
-      'rgba(239, 68, 68, 1)',
-      'rgba(0, 200, 170, 1)',
-      'rgba(34, 197, 94, 1)',
-    ],
+    backgroundColor: ['warning', 'negative', 'info', 'positive'].map((key) => TrackITCharts.alpha(statusTokens()[key], 0.8)),
+    borderColor: ['warning', 'negative', 'info', 'positive'].map((key) => TrackITCharts.alpha(statusTokens()[key], 1)),
     borderWidth: 2,
+    trackitPalette: ['warning', 'negative', 'info', 'positive'],
   };
 
   if (window.analyticsCharts?.journalStatusChart) {
@@ -2836,20 +2815,14 @@ function renderDepartmentChart() {
   const deptCtx = document.getElementById('deptChart');
   if (!deptCtx || window.deptChartInit) return;
 
-  const deptColors = [
-    'rgba(0, 200, 170, 0.8)',
-    'rgba(245, 158, 11, 0.8)',
-    'rgba(34, 197, 94, 0.8)',
-    'rgba(148, 163, 184, 0.8)',
-    'rgba(59, 130, 246, 0.8)'
-  ];
-  const deptBorders = [
-    'rgba(0, 200, 170, 1)',
-    'rgba(245, 158, 11, 1)',
-    'rgba(34, 197, 94, 1)',
-    'rgba(148, 163, 184, 1)',
-    'rgba(59, 130, 246, 1)'
-  ];
+  const deptKeyList = ['teal', 'warning', 'positive', 'secondary', 'supportingBlue'];
+  const deptTheme = () => window.TrackITCharts.tokens();
+  const deptColors = deptKeyList.map((key) =>
+    TrackITCharts.alpha(deptTheme()[key], 0.8)
+  );
+  const deptBorders = deptKeyList.map((key) =>
+    TrackITCharts.alpha(deptTheme()[key], 1)
+  );
 
   const deptLabels = (window.deptData || []).map(d => d._id || 'Unknown');
   const deptValues = (window.deptData || []).map(d => d.count);
@@ -2862,7 +2835,8 @@ function renderDepartmentChart() {
         data: deptValues.length > 0 ? deptValues : [1],
         backgroundColor: deptLabels.length > 0 ? deptColors.slice(0, deptLabels.length) : ['rgba(100,100,100,0.3)'],
         borderColor: deptLabels.length > 0 ? deptBorders.slice(0, deptLabels.length) : ['rgba(100,100,100,0.5)'],
-        borderWidth: 2
+        borderWidth: 2,
+        trackitPalette: ['teal', 'warning', 'positive', 'secondary', 'supportingBlue']
       }]
     },
     options: {
@@ -2926,6 +2900,7 @@ function renderAttendancePanel(attendance) {
         'rgba(148, 163, 184, 1)',
       ],
       borderWidth: 2,
+      trackitPalette: ['positive', 'warning', 'negative', 'info'],
     };
     const statusLabels = ['Present', 'Late', 'Absent', 'Excused'];
 
@@ -3167,6 +3142,8 @@ function renderPerformancePanel(performance) {
   const canvas = document.getElementById('performanceChart');
   if (canvas) {
     const labels = ['Excellent', 'Good', 'Satisfactory', 'Needs Improvement', 'Unrated'];
+    const perfKeyList = ['positive', 'teal', 'warning', 'negative', 'secondary'];
+    const perfTheme = () => window.TrackITCharts.tokens();
     const dataset = {
       data: [
         distribution.excellent || 0,
@@ -3175,21 +3152,10 @@ function renderPerformancePanel(performance) {
         distribution.needsImprovement || 0,
         distribution.unrated || 0,
       ],
-      backgroundColor: [
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(0, 200, 170, 0.8)',
-        'rgba(245, 158, 11, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(148, 163, 184, 0.5)',
-      ],
-      borderColor: [
-        'rgba(34, 197, 94, 1)',
-        'rgba(0, 200, 170, 1)',
-        'rgba(245, 158, 11, 1)',
-        'rgba(239, 68, 68, 1)',
-        'rgba(148, 163, 184, 0.8)',
-      ],
+      backgroundColor: perfKeyList.map((key) => TrackITCharts.alpha(perfTheme()[key], 0.8)),
+      borderColor: perfKeyList.map((key) => TrackITCharts.alpha(perfTheme()[key], 1)),
       borderWidth: 2,
+      trackitPalette: ['positive', 'teal', 'warning', 'negative', 'secondary'],
     };
 
     if (window.analyticsCharts?.performanceChart) {
@@ -3238,7 +3204,7 @@ function renderPerformancePanel(performance) {
             <p class="text-sm font-semibold text-white">${escapeHtml(performer.name)}</p>
             <p class="text-xs text-slate-500">${escapeHtml(performer.company)} • ${analyticsHours(performer.completedHours)} completed</p>
           </div>
-          <span class="text-sm font-semibold text-teal-400">${rating} / 5</span>
+          <span class="text-sm font-semibold text-blue-400">${rating} / 5</span>
         </div>
         <div class="progress-track">
           <div class="${progressFillClass(percent)}" style="width: ${percent}%"></div>
@@ -3354,7 +3320,7 @@ function renderAttentionList(attention) {
   container.innerHTML = items.map(item => {
     const meta = levelMeta[item.level] || levelMeta.info;
     const action = item.action
-      ? `<button onclick="switchTab('${item.action}')" class="text-xs text-teal-400 hover:underline mt-1">Open ${item.action === 'journal-review' ? 'Journal Review' : 'Trainees'}</button>`
+      ? `<button onclick="switchTab('${item.action}')" class="text-xs text-blue-400 hover:underline mt-1">Open ${item.action === 'journal-review' ? 'Journal Review' : 'Trainees'}</button>`
       : '';
     return `
       <div class="attention-item ${meta.cls}">
@@ -4177,10 +4143,10 @@ function highlightGlobalSearchResult(index) {
   const items = resultsEl.querySelectorAll('.search-result-item');
   items.forEach((item, i) => {
     if (i === index) {
-      item.classList.add('bg-teal-500/10');
+      item.classList.add('bg-blue-500/10');
       globalSearchSelectedIndex = index;
     } else {
-      item.classList.remove('bg-teal-500/10');
+      item.classList.remove('bg-blue-500/10');
     }
   });
 }

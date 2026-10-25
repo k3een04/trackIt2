@@ -8,7 +8,7 @@
 
    This is a SOLID layered-surface system (not glassmorphism): opaque navy
    steps in dark mode, deliberate white / off-white steps in light mode.
-   Blur is reserved for nav rails and overlays only. Teal (#00C8AA) is an
+   Blur is reserved for nav rails and overlays only. Cobalt (#3B82F6) is an
    accent for states and indicators, never a surface fill.
 
    Structure:
@@ -21,34 +21,36 @@
                                     12. Micro-interactions + responsive
    =========================================================================== */
 
-/* ── 1. DESIGN TOKENS (dark) ─────────────────────────────────────────────── */
+/* ── 1. DESIGN TOKENS (dark — Midnight Slate + Cobalt) ──────────────────── */
 
 :root {
-  /* Brand - identical to the values already used across the app */
-  --tk-teal: #00c8aa;
-  --tk-teal-strong: #00a98f;
-  --tk-teal-deep: #008573;
+  /* Brand - cobalt primary; light mode overrides these to its own palette */
+  --tk-teal: #3b82f6;
+  --tk-teal-strong: #2563eb;
+  --tk-teal-deep: #1d4ed8;
 
   /* Level 1 — page / Level 2 — primary / Level 3 — secondary / Level 4 — elevated */
-  --tk-bg: #0a0f1e;
-  --tk-surface-1: #101830;   /* primary containers: cards, panels          */
-  --tk-surface-2: #16203c;   /* secondary: nested subsections, widgets     */
-  --tk-surface-3: #1d2a4a;   /* elevated: rows, chips, hover lift          */
-  --tk-surface-nav: #0c1326;     /* nav + sidebar rails (solid)            */
-  --tk-surface-overlay: #131d36;/* modals & dropdowns (solid)              */
+  --tk-bg: #0b1120;
+  --tk-surface-1: #151f32;   /* primary containers: cards, panels          */
+  --tk-surface-2: #1e293b;   /* secondary: nested subsections, widgets     */
+  --tk-surface-3: #243147;   /* elevated: rows, chips, hover lift          */
+  --tk-surface-nav: #0f172a;     /* nav + sidebar rails (solid)            */
+  --tk-surface-overlay: #151f32;/* modals & dropdowns (solid)              */
+  --tk-hover: #1e293b;
+  --tk-selected: #172554;
 
-  /* Hairlines: very thin, very translucent */
-  --tk-hairline: rgba(148, 163, 184, 0.14);
-  --tk-hairline-strong: rgba(148, 163, 184, 0.24);
-  --tk-hairline-teal: rgba(0, 200, 170, 0.32);
+  /* Hairlines: solid slate separators (spec-pinned values) */
+  --tk-hairline: #29364b;
+  --tk-hairline-strong: #3b4a61;
+  --tk-hairline-teal: #3b82f6;
 
   /* Elevation: soft, controlled, low-contrast */
-  --tk-blur: 18px;
-  --tk-blur-strong: 26px;
-  --tk-shadow-1: 0 1px 2px rgba(2, 6, 23, 0.45);
-  --tk-shadow-2: 0 10px 26px -14px rgba(2, 6, 23, 0.65);
-  --tk-shadow-3: 0 22px 48px -18px rgba(2, 6, 23, 0.7);
-  --tk-glow-teal: 0 0 0 1px rgba(0, 200, 170, 0.22), 0 6px 22px -10px rgba(0, 200, 170, 0.45);
+  --tk-blur: 14px;
+  --tk-blur-strong: 18px;
+  --tk-shadow-1: 0 1px 2px rgba(2, 6, 23, 0.35);
+  --tk-shadow-2: 0 10px 26px -14px rgba(2, 6, 23, 0.55);
+  --tk-shadow-3: 0 22px 48px -18px rgba(2, 6, 23, 0.6);
+  --tk-glow-teal: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 0 0 2px rgba(96, 165, 250, 0.25);
 
   /* Geometry: professional, technical — never toy-like */
   --tk-radius: 14px;
@@ -63,15 +65,43 @@
   --tk-gap-grid: 16px;
 
   /* Type */
-  --tk-text: #dbe4f3;
-  --tk-text-strong: #ffffff;
-  --tk-text-muted: #93a1bd;
-  --tk-text-faint: #67748f;
+  --tk-text: #e2e8f0;
+  --tk-text-strong: #f1f5f9;
+  --tk-text-muted: #94a3b8;
+  --tk-text-faint: #94a3b8;
 
   /* Motion */
   --tk-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --tk-dur: 180ms;
   --tk-dur-fast: 140ms;
+
+  /* Semantic status (dark) */
+  --tk-status-success-bg: #143d2a;
+  --tk-status-success-text: #86efac;
+  --tk-status-pending-bg: #422d0a;
+  --tk-status-pending-text: #fcd34d;
+  --tk-status-error-bg: #451a1a;
+  --tk-status-error-text: #fca5a5;
+  --tk-status-info-bg: #172554;
+  --tk-status-info-text: #93c5fd;
+  --tk-status-progress-bg: #312e81;
+  --tk-status-progress-text: #c4b5fd;
+  --tk-status-neutral-bg: #29364b;
+  --tk-status-neutral-text: #cbd5e1;
+
+  --tk-chart-surface: #151f32;
+  --tk-chart-grid: #29364b;
+  --tk-input-border: #3b4a61;
+
+  /* Legacy aliases - dashboards load before this file, these win */
+  --navy: #0b1120;
+  --navy-mid: #151f32;
+  --teal: #3b82f6;
+  --teal-dark: #2563eb;
+  --gold: #fbbf24;
+  --muted: #94a3b8;
+  --glass: #151f32;
+  --border: #29364b;
 }
 
 /* ── 2. LIGHT-MODE TOKENS ────────────────────────────────────────────────── */
@@ -79,49 +109,75 @@
    surfaces, cool off-white secondary steps, neutral hairlines. */
 
 body.light-mode {
-  --tk-teal: #00a98f;
-  --tk-teal-strong: #00a98f;
-  --tk-teal-deep: #008573;
+  --tk-teal: #2457c5;
+  --tk-teal-strong: #1d46a3;
+  --tk-teal-deep: #193b8a;
 
-  --tk-bg: #f5f7fa;
-  --tk-surface-1: #ffffff;   /* primary containers */
-  --tk-surface-2: #eef2f7;   /* secondary: subsections, widgets */
-  --tk-surface-3: #e3e9f2;   /* elevated rows / chips */
+  --tk-bg: #f3f6fb;
+  --tk-surface-1: #ffffff;
+  --tk-surface-2: #f8fafd;
+  --tk-surface-3: #eaf0f8;
   --tk-surface-nav: #ffffff;
   --tk-surface-overlay: #ffffff;
+  --tk-hover: #eaf0f8;
+  --tk-selected: #e5edff;
 
-  --tk-hairline: rgba(15, 23, 42, 0.09);
-  --tk-hairline-strong: rgba(15, 23, 42, 0.16);
-  --tk-hairline-teal: rgba(0, 169, 143, 0.34);
+  --tk-hairline: #d8e0ed;
+  --tk-hairline-strong: #b8c5d8;
+  --tk-hairline-teal: #afc5f5;
+  --tk-subtle-divider: #e6ebf3;
+  --tk-chart-grid: #e2e8f0;
+  --tk-input-border: #cbd5e1;
 
-  --tk-shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --tk-shadow-2: 0 10px 26px -14px rgba(15, 23, 42, 0.18);
-  --tk-shadow-3: 0 22px 48px -20px rgba(15, 23, 42, 0.25);
-  --tk-glow-teal: 0 0 0 1px rgba(0, 169, 143, 0.2), 0 6px 20px -10px rgba(0, 169, 143, 0.35);
+  --tk-shadow-1: 0 1px 2px rgba(23, 37, 84, 0.06);
+  --tk-shadow-2: 0 10px 26px -14px rgba(23, 37, 84, 0.18);
+  --tk-shadow-3: 0 22px 48px -20px rgba(23, 37, 84, 0.25);
+  --tk-glow-teal: 0 0 0 1px rgba(36, 87, 197, 0.2), 0 6px 20px -10px rgba(36, 87, 197, 0.35);
 
-  --tk-text: #33415c;
-  --tk-text-strong: #0b1220;
-  --tk-text-muted: #5a6b85;
-  --tk-text-faint: #8494ac;
+  --tk-text: #263449;
+  --tk-text-strong: #172554;
+  --tk-text-muted: #475569;
+  --tk-text-faint: #64748b;
+
+  --tk-status-success-bg: #dcfce7;
+  --tk-status-success-text: #166534;
+  --tk-status-pending-bg: #fef3c7;
+  --tk-status-pending-text: #92400e;
+  --tk-status-error-bg: #fee2e2;
+  --tk-status-error-text: #991b1b;
+  --tk-status-info-bg: #dbeafe;
+  --tk-status-info-text: #1d4ed8;
+  --tk-status-neutral-bg: #e2e8f0;
+  --tk-status-neutral-text: #334155;
+
+  --navy: #f3f6fb;
+  --navy-mid: #ffffff;
+  --teal: #2457c5;
+  --teal-dark: #1d46a3;
+  --gold: #b45309;
+  --muted: #64748b;
+  --glass: #ffffff;
+  --border: #d8e0ed;
+  color: #263449;
 }
 
 /* ── 3. PAGE ATMOSPHERE ─────────────────────────────────────────────────── */
 /* Flat L1 backgrounds. One very restrained top sheen only — no neon wash. */
 
 body {
-  background-color: #0a0f1e;
-  background-image: linear-gradient(180deg, rgba(148, 163, 184, 0.05), transparent 320px);
+  background-color: var(--tk-bg);
+  background-image: none;
   background-attachment: fixed;
 }
 
 body.light-mode {
-  background-color: #f5f7fa;
+  background-color: #f3f6fb;
   background-image: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0) 300px);
 }
 
 /* The legacy noise overlay sits above the background; keep it barely visible
    in dark mode and effectively off in light mode. */
-body::before { opacity: 0.35; }
+body::before { opacity: 0.25; }
 body.light-mode::before { opacity: 0.12; }
 
 /* Blur tokens must resolve (Safari prefix) even though card bodies are solid. */
@@ -152,7 +208,7 @@ body .trainee-progress-item,
 body .download-item {
   position: relative;
   background: var(--tk-surface-1);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 120px);
+  background-image: none;
   border: 1px solid var(--tk-hairline);
   border-radius: var(--tk-radius);
   box-shadow: var(--tk-shadow-1);
@@ -287,12 +343,12 @@ body .tab-back-btn {
   gap: 8px;
   padding: 8px 14px;
   border-radius: var(--tk-radius-pill);
-  border: 1px solid var(--tk-hairline-teal);
-  background: rgba(0, 200, 170, 0.16);
+  border: 1px solid var(--tk-hairline-strong);
+  background: var(--tk-surface-2);
   color: var(--tk-text-strong);
   box-shadow: var(--tk-shadow-1);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -304,8 +360,8 @@ body .tab-back-btn {
 
 @media (hover: hover) {
   body .tab-back-btn:hover {
-    background: rgba(0, 200, 170, 0.26);
-    border-color: rgba(0, 200, 170, 0.45);
+    background: var(--tk-surface-3);
+    border-color: var(--tk-hairline-strong);
     box-shadow: var(--tk-shadow-2);
     transform: translateY(-1px);
   }
@@ -336,8 +392,8 @@ body .tab-back-btn:disabled {
 }
 
 body.light-mode .tab-back-btn {
-  background: rgba(0, 169, 143, 0.12);
-  border-color: rgba(0, 169, 143, 0.3);
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
   color: #0c1626;
 }
 
@@ -439,6 +495,13 @@ body .trainee-progress-table tbody td:first-child {
 body .trainee-progress-table thead th:first-child { background: var(--tk-surface-2); }
 body .trainee-progress-table tbody td:first-child { background: var(--tk-surface-1); }
 
+/* Table headers sit on the nav rail surface so dense data reads clearly;
+   body rows stay transparent over their parent card. */
+body table thead th {
+  background: var(--tk-surface-nav);
+  color: var(--tk-text-muted);
+}
+
 @media (max-width: 1280px) {
   body .top-performers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -484,7 +547,7 @@ body .analytics-mini::before {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(0, 200, 170, 0.45),
+    rgba(59, 130, 246, 0.5),
     transparent
   );
   opacity: 0.5;
@@ -495,7 +558,7 @@ body.light-mode .analytics-mini::before {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(0, 169, 143, 0.55),
+    rgba(59, 130, 246, 0.55),
     transparent
   );
 }
@@ -519,16 +582,16 @@ body .kpi-note { color: var(--tk-text-faint); }
 
 /* Icon wells: glass chip, not a solid teal block. */
 body .icon-box {
-  background: rgba(0, 200, 170, 0.10);
-  border: 1px solid rgba(0, 200, 170, 0.22);
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.28);
   border-radius: var(--tk-radius-sm);
-  color: var(--tk-teal);
+  color: #93c5fd;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 body.light-mode .icon-box {
-  background: rgba(0, 169, 143, 0.10);
-  border-color: rgba(0, 169, 143, 0.24);
+  background: rgba(59, 130, 246, 0.10);
+  border-color: rgba(59, 130, 246, 0.24);
 }
 
 /* Progress bars sit on an inset track. */
@@ -653,6 +716,21 @@ body textarea {
 body input::placeholder,
 body textarea::placeholder { color: var(--tk-text-faint); }
 
+/* Dark inputs sit on the nav-step so they read as dark wells inside cards. */
+body:not(.light-mode) input,
+body:not(.light-mode) select,
+body:not(.light-mode) textarea {
+  background: var(--tk-surface-nav);
+  border-color: var(--tk-input-border);
+}
+
+body:not(.light-mode) input:focus,
+body:not(.light-mode) select:focus,
+body:not(.light-mode) textarea:focus {
+  border-color: #60a5fa;
+  box-shadow: var(--tk-glow-teal);
+}
+
 body input:hover,
 body select:hover,
 body textarea:hover {
@@ -676,8 +754,8 @@ body a:focus-visible {
   outline-offset: 2px;
 }
 
-body select option {
-  background: #111827;
+body:not(.light-mode) select option {
+  background: #0f172a;
   color: var(--tk-text);
 }
 
@@ -708,14 +786,14 @@ body .tab-btn:hover {
 
 body .filter-tab.active,
 body .tab-btn.active {
-  color: var(--tk-teal);
-  background: rgba(0, 200, 170, 0.12);
+  color: #93c5fd;
+  background: var(--tk-selected);
   border-color: var(--tk-hairline-teal);
 }
 
 body.light-mode .filter-tab.active,
 body.light-mode .tab-btn.active {
-  background: rgba(0, 169, 143, 0.12);
+  background: rgba(59, 130, 246, 0.12);
 }
 
 /* Ghost + primary buttons share one shape language. */
@@ -735,30 +813,37 @@ body .btn-ghost {
 }
 
 body .btn-ghost:hover {
-  color: var(--tk-teal);
-  border-color: var(--tk-hairline-teal);
-  background: rgba(0, 200, 170, 0.08);
+  color: #93c5fd;
+  border-color: var(--tk-hairline-strong);
+  background: var(--tk-surface-3);
   transform: translateY(-1px);
 }
 
-body.light-mode .btn-ghost:hover { background: rgba(0, 169, 143, 0.08); }
+body.light-mode .btn-ghost:hover { background: rgba(59, 130, 246, 0.08); }
 
 body .btn-primary {
   border-radius: var(--tk-radius-sm);
+  /* Solid cobalt (not a gradient) keeps white label text at 5.2:1 contrast. */
+  background-color: var(--tk-teal-strong) !important;
+  background-image: none !important;
+  color: #ffffff;
   box-shadow: var(--tk-shadow-1);
   transition:
+    background-color var(--tk-dur) var(--tk-ease),
     transform var(--tk-dur) var(--tk-ease),
-    box-shadow var(--tk-dur) var(--tk-ease),
-    filter var(--tk-dur) var(--tk-ease);
+    box-shadow var(--tk-dur) var(--tk-ease);
 }
 
 body .btn-primary:hover {
   transform: translateY(-1px);
-  filter: brightness(1.05);
+  background-color: var(--tk-teal-deep) !important;
   box-shadow: var(--tk-shadow-2);
 }
 
-body .btn-primary:active { transform: translateY(0); }
+body .btn-primary:active {
+  transform: translateY(0);
+  background-color: var(--tk-teal-deep) !important;
+}
 
 /* ── 9. STATUS BADGES ───────────────────────────────────────────────────── */
 /* Restrained tinted glass. Each state keeps its established hue. */
@@ -784,34 +869,51 @@ body .status-present,
 body .status-verified,
 body .status-approved,
 body .status-on-track,
-body .status-completed {
-  background: rgba(34, 197, 94, 0.12);
-  color: #4ade80;
-  border-color: rgba(34, 197, 94, 0.28);
+body .status-completed,
+body .status-reviewed {
+  background: var(--tk-status-success-bg);
+  color: var(--tk-status-success-text);
+  border-color: rgba(134, 239, 172, 0.28);
 }
 
 body .status-inactive,
-body .status-absent,
-body .status-holiday {
-  background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
+body .status-holiday,
+body .status-neutral {
+  background: var(--tk-status-neutral-bg);
+  color: var(--tk-status-neutral-text);
   border-color: rgba(148, 163, 184, 0.28);
 }
 
+body .status-late,
 body .status-pending,
 body .status-behind,
-body .status-returned,
 body .status-warning {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.28);
+  background: var(--tk-status-pending-bg);
+  color: var(--tk-status-pending-text);
+  border-color: rgba(252, 211, 77, 0.28);
 }
 
+body .status-excused,
+body .status-information,
 body .status-submitted,
 body .status-accredited {
-  background: rgba(0, 200, 170, 0.12);
-  color: var(--tk-teal);
-  border-color: rgba(0, 200, 170, 0.28);
+  background: var(--tk-status-info-bg);
+  color: var(--tk-status-info-text);
+  border-color: rgba(147, 197, 253, 0.28);
+}
+
+body .status-absent,
+body .status-error,
+body .status-returned {
+  background: var(--tk-status-error-bg);
+  color: var(--tk-status-error-text);
+  border-color: rgba(252, 165, 165, 0.28);
+}
+
+body .status-in-progress {
+  background: var(--tk-status-progress-bg);
+  color: var(--tk-status-progress-text);
+  border-color: rgba(196, 181, 253, 0.28);
 }
 
 body.light-mode .status-active,
@@ -822,6 +924,110 @@ body.light-mode .status-on-track {
   background: rgba(22, 163, 74, 0.10);
   color: #15803d;
   border-color: rgba(22, 163, 74, 0.26);
+}
+
+body .attendance-completion {
+  background: var(--tk-status-success-bg);
+  border: 1px solid rgba(134, 239, 172, 0.3);
+}
+
+body .attendance-completion__title {
+  color: var(--tk-status-success-text);
+}
+
+body .attendance-completion__text {
+  color: var(--tk-text-muted);
+}
+
+body .dtr-summary-tile--accent {
+  background: rgba(59, 130, 246, 0.05);
+  border-left: 3px solid var(--tk-teal);
+}
+
+body .dtr-summary-tile--neutral {
+  background: rgba(100, 116, 139, 0.05);
+}
+
+body .dtr-monthly-stats {
+  border-top: 1px solid var(--tk-hairline);
+}
+
+body .ojt-progress-label {
+  color: var(--tk-text-muted);
+}
+
+body .ojt-progress-value {
+  color: var(--tk-teal);
+  font-weight: 600;
+}
+
+body .ojt-progress-track {
+  background: var(--tk-surface-3);
+}
+
+body .ojt-progress-fill {
+  background: linear-gradient(90deg, var(--tk-teal), var(--tk-teal-strong));
+}
+
+body .schedule-item {
+  background: var(--tk-surface-2);
+  color: var(--tk-text);
+}
+
+body .schedule-item:hover {
+  background: var(--tk-surface-3);
+}
+
+body .schedule-item__time {
+  color: var(--tk-text-muted);
+}
+
+body .theory-card {
+  background: var(--tk-surface-2);
+  border: 1px solid var(--tk-hairline);
+}
+
+body .theory-card__title {
+  color: var(--tk-teal);
+}
+
+body .theory-card__tag {
+  color: var(--tk-text-muted);
+  background: var(--tk-surface-3);
+  border: 1px solid var(--tk-hairline);
+}
+
+body .theory-card__text {
+  color: var(--tk-text);
+}
+
+body .trackit-toast {
+  background: var(--tk-surface-1);
+  color: var(--tk-text);
+  border: 1px solid var(--tk-hairline-strong);
+}
+
+body .trackit-toast-success {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+body .trackit-toast-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+body .trackit-toast-info {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+body .trackit-toast p:last-child {
+  color: inherit;
+  opacity: 0.9;
 }
 
 /* ── 10. NOTIFICATIONS ──────────────────────────────────────────────────── */
@@ -857,33 +1063,39 @@ body .notif-item {
   transition: background-color var(--tk-dur) var(--tk-ease);
 }
 
-/* Unread rows get a very faint teal wash - an indicator, not a highlight. */
+/* Unread rows: same surface + cobalt left indicator; no bright blue wash. */
 body .notif-item.unread,
 body .notification-item.unread {
-  background: rgba(0, 200, 170, 0.07);
-  box-shadow: inset 2px 0 0 var(--tk-teal);
+  background: var(--tk-surface-1);
+  box-shadow: inset 2px 0 0 #3b82f6;
 }
 
 body.light-mode .notif-item.unread,
 body.light-mode .notification-item.unread {
-  background: rgba(0, 169, 143, 0.08);
+  background: var(--tk-selected);
 }
 
-body .notif-item:hover { background: var(--tk-surface-2); }
-body .notif-item.unread:hover { background: rgba(0, 200, 170, 0.12); }
+body .notif-item:hover { background: var(--tk-hover); }
+body .notif-item.unread:hover { background: var(--tk-hover); }
 
 body .notif-text { color: var(--tk-text); }
 body .notif-item.unread .notif-text { color: var(--tk-text-strong); font-weight: 500; }
 body .notif-time { color: var(--tk-text-faint); }
 body .notif-empty { color: var(--tk-text-muted); }
 
-/* Bell badge: small solid teal dot count, the one always-on brand element. */
+/* Bell badge: cobalt count chip with white text (light keeps its existing badge styling). */
 body .notif-badge,
 body .unread-dot {
   background: var(--tk-teal);
   color: #06231f;
   border-radius: var(--tk-radius-pill);
-  box-shadow: 0 0 0 2px rgba(10, 15, 30, 0.7);
+  box-shadow: 0 0 0 2px rgba(11, 17, 32, 0.7);
+}
+
+body:not(.light-mode) .notif-badge,
+body:not(.light-mode) .unread-dot {
+  background: #2563eb;
+  color: #ffffff;
 }
 
 /* Notification type wells keep their hues as flat L3 chips. */
@@ -894,6 +1106,61 @@ body .notification-icon {
   background: var(--tk-surface-3);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+}
+
+/* Dark semantic notification wells (informational / success / warning / error). */
+body:not(.light-mode) .notif-icon.journal,
+body:not(.light-mode) .notif-icon.registration,
+body:not(.light-mode) .notif-icon.system,
+body:not(.light-mode) .notif-icon.info,
+body:not(.light-mode) .notif-icon.information,
+body:not(.light-mode) .notification-icon.journal,
+body:not(.light-mode) .notification-icon.registration,
+body:not(.light-mode) .notification-icon.system,
+body:not(.light-mode) .notification-icon.info,
+body:not(.light-mode) .notification-icon.information {
+  background: var(--tk-status-info-bg);
+  border-color: rgba(147, 197, 253, 0.28);
+  color: #60a5fa;
+}
+
+body:not(.light-mode) .notif-icon.attendance,
+body:not(.light-mode) .notif-icon.activity,
+body:not(.light-mode) .notif-icon.success,
+body:not(.light-mode) .notification-icon.attendance,
+body:not(.light-mode) .notification-icon.activity,
+body:not(.light-mode) .notification-icon.success {
+  background: var(--tk-status-success-bg);
+  border-color: rgba(134, 239, 172, 0.28);
+  color: #4ade80;
+}
+
+body:not(.light-mode) .notif-icon.inactivity,
+body:not(.light-mode) .notif-icon.warning,
+body:not(.light-mode) .notification-icon.inactivity,
+body:not(.light-mode) .notification-icon.warning {
+  background: var(--tk-status-pending-bg);
+  border-color: rgba(252, 211, 77, 0.28);
+  color: #fbbf24;
+}
+
+body:not(.light-mode) .notif-icon.dtr,
+body:not(.light-mode) .notif-icon.error,
+body:not(.light-mode) .notification-icon.dtr,
+body:not(.light-mode) .notification-icon.error {
+  background: var(--tk-status-error-bg);
+  border-color: rgba(252, 165, 165, 0.28);
+  color: #f87171;
+}
+
+body.light-mode .notification-icon.dtr {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+body.light-mode .notification-icon.journal {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 /* ── 11. SIDEBAR & NAVIGATION ───────────────────────────────────────────── */
@@ -990,17 +1257,17 @@ body .nav-link {
 
 body .nav-link svg { flex-shrink: 0; }
 
-/* Hover: neutral lift. Active: teal left indicator + tinted surface. */
+/* Hover: neutral lift. Active: cobalt indicator + selected surface. */
 body .nav-link:hover {
   color: var(--tk-text-strong);
-  background: var(--tk-surface-2);
+  background: var(--tk-hover);
   background-image: none;
   border-color: var(--tk-hairline);
 }
 
 body .nav-link.active {
-  color: var(--tk-teal);
-  background: rgba(0, 200, 170, 0.12);
+  color: #93c5fd;
+  background: var(--tk-selected);
   background-image: none;
   border-color: var(--tk-hairline-teal);
   box-shadow: inset 2px 0 0 var(--tk-teal);
@@ -1012,8 +1279,8 @@ body.light-mode .nav-link:hover {
 }
 
 body.light-mode .nav-link.active {
-  background: rgba(0, 169, 143, 0.10);
-  border-color: rgba(0, 169, 143, 0.28);
+  background: rgba(59, 130, 246, 0.10);
+  border-color: rgba(59, 130, 246, 0.28);
 }
 
 /* Theme toggle reads as a glass chip, not a bare button. */
@@ -1214,9 +1481,508 @@ body.light-mode .status-warning {
 
 body.light-mode .status-submitted,
 body.light-mode .status-accredited {
-  background: rgba(0, 169, 143, 0.10);
-  color: #0f766e;
-  border-color: rgba(0, 169, 143, 0.26);
+  background: rgba(59, 130, 246, 0.10);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.26);
+}
+
+body.light-mode .glass-card,
+body.light-mode .glass-panel,
+body.light-mode .analytics-mini,
+body.light-mode .analytics-kpi,
+body.light-mode .journal-detail-card,
+body.light-mode .report-section,
+body.light-mode .analytics-narrative,
+body.light-mode .analytics-stat-list,
+body.light-mode .notification-item,
+body.light-mode .journal-item,
+body.light-mode .trainee-progress-item,
+body.light-mode .download-item {
+  background: var(--tk-surface-1);
+  background-image: none;
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .glass-card .glass-card,
+body.light-mode .glass-card .p-4.rounded-lg,
+body.light-mode .glass-card .p-4[class*="rounded"],
+body.light-mode .analytics-mini .analytics-mini,
+body.light-mode .analytics-stat-row,
+body.light-mode .journal-detail-card .report-meta,
+body.light-mode .narrative-item,
+body.light-mode .attention-item {
+  background: var(--tk-surface-2);
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .page-header h1,
+body.light-mode h1,
+body.light-mode h2,
+body.light-mode h3 {
+  color: var(--tk-text-strong);
+}
+
+body.light-mode .page-header p,
+body.light-mode .kpi-label,
+body.light-mode .analytics-mini-label,
+body.light-mode .kpi-note,
+body.light-mode .analytics-stat-row,
+body.light-mode .notif-text,
+body.light-mode .notif-time,
+body.light-mode .journal-sticky-header__progress,
+body.light-mode .journal-sticky-header__autosave {
+  color: var(--tk-text-muted);
+}
+
+body.light-mode nav,
+body.light-mode .sidebar {
+  background: var(--tk-surface-nav);
+  background-image: none;
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .nav-link {
+  color: var(--tk-text-muted);
+}
+
+body.light-mode .nav-link:hover {
+  color: var(--tk-text-strong);
+  background: var(--tk-hover);
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .nav-link.active {
+  color: var(--tk-teal);
+  background: var(--tk-selected);
+  border-color: var(--tk-hairline-teal);
+  box-shadow: inset 2px 0 0 var(--tk-teal);
+}
+
+body.light-mode .btn-primary {
+  background: var(--tk-teal) !important;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(36, 87, 197, 0.2);
+}
+
+body.light-mode .btn-primary:hover {
+  background: var(--tk-teal-strong) !important;
+  box-shadow: 0 8px 18px rgba(36, 87, 197, 0.25);
+}
+
+body.light-mode .btn-primary:active {
+  background: var(--tk-teal-deep) !important;
+}
+
+body.light-mode .btn-ghost {
+  color: var(--tk-text);
+  background: var(--tk-surface-1);
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .btn-ghost:hover {
+  color: var(--tk-teal);
+  background: var(--tk-hover);
+  border-color: var(--tk-hairline-teal);
+}
+
+body.light-mode .tab-btn,
+body.light-mode .filter-tab {
+  color: var(--tk-text-muted);
+  background: var(--tk-surface-1);
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .tab-btn.active,
+body.light-mode .filter-tab.active {
+  color: var(--tk-teal);
+  background: var(--tk-selected);
+  border-color: var(--tk-hairline-teal);
+}
+
+body.light-mode .tab-back-btn {
+  color: #ffffff;
+  background: var(--tk-teal);
+  border-color: var(--tk-teal);
+  box-shadow: 0 4px 12px rgba(36, 87, 197, 0.2);
+}
+
+body.light-mode .tab-back-btn:hover {
+  background: var(--tk-teal-strong);
+  border-color: var(--tk-teal-strong);
+  box-shadow: 0 8px 18px rgba(36, 87, 197, 0.25);
+}
+
+body.light-mode .icon-box,
+body.light-mode .section-head__icon {
+  color: var(--tk-teal) !important;
+  background: var(--tk-selected) !important;
+  border-color: var(--tk-hairline-teal) !important;
+}
+
+body.light-mode .analytics-kpi::before,
+body.light-mode .analytics-mini::before,
+body.light-mode .attendance-card::before {
+  background: linear-gradient(90deg, transparent, rgba(36, 87, 197, 0.55), transparent);
+}
+
+body.light-mode .kpi-value,
+body.light-mode .analytics-mini-value,
+body.light-mode .stat-num {
+  color: var(--tk-text-strong);
+  background: linear-gradient(135deg, #172554 0%, #2457c5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+body.light-mode .analytics-stat-row,
+body.light-mode .report-table tbody td,
+body.light-mode .analytics-table-wrap tbody td,
+body.light-mode .glass-card table tbody td {
+  color: var(--tk-text);
+}
+
+body.light-mode .analytics-table-wrap thead th,
+body.light-mode .report-table thead th,
+body.light-mode .glass-card table thead th {
+  color: var(--tk-text-muted);
+  background: var(--tk-surface-2);
+  border-color: var(--tk-hairline-strong);
+}
+
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea {
+  color: var(--tk-text) !important;
+  background: var(--tk-surface-1) !important;
+  border-color: var(--tk-input-border);
+}
+
+body.light-mode input::placeholder,
+body.light-mode textarea::placeholder {
+  color: var(--tk-text-faint) !important;
+}
+
+body.light-mode select option {
+  color: var(--tk-text);
+  background: var(--tk-surface-1);
+}
+
+body.light-mode :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: var(--tk-teal);
+}
+
+body.light-mode .notif-popup,
+body.light-mode .download-modal-card,
+body.light-mode .journal-detail-modal > div,
+body.light-mode .report-modal-card,
+body.light-mode .journal-review-card {
+  color: var(--tk-text);
+  background: var(--tk-surface-overlay);
+  border-color: var(--tk-hairline-strong);
+}
+
+body.light-mode .notif-header,
+body.light-mode .notif-item,
+body.light-mode .journal-sticky-header {
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .journal-sticky-header {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+body.light-mode .notif-item.unread,
+body.light-mode .notification-item.unread {
+  background: var(--tk-selected);
+  box-shadow: inset 2px 0 0 var(--tk-teal);
+}
+
+body.light-mode .notif-item:hover,
+body.light-mode .notification-item:hover,
+body.light-mode .journal-item:hover,
+body.light-mode .trainee-progress-item:hover {
+  background: var(--tk-hover);
+  border-color: var(--tk-hairline-strong);
+}
+
+body.light-mode .journal-item.selected {
+  background: var(--tk-selected);
+  border-color: var(--tk-hairline-teal);
+}
+
+body.light-mode .chart-frame {
+  background: var(--tk-surface-2);
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .status-active,
+body.light-mode .status-present,
+body.light-mode .status-verified,
+body.light-mode .status-approved,
+body.light-mode .status-on-track,
+body.light-mode .status-completed,
+body.light-mode .status-reviewed {
+  background: var(--tk-status-success-bg);
+  color: var(--tk-status-success-text);
+  border-color: #86efac;
+}
+
+body.light-mode .status-late,
+body.light-mode .status-pending,
+body.light-mode .status-behind,
+body.light-mode .status-warning {
+  background: var(--tk-status-pending-bg);
+  color: var(--tk-status-pending-text);
+  border-color: #fcd34d;
+}
+
+body.light-mode .status-absent,
+body.light-mode .status-error,
+body.light-mode .status-returned {
+  background: var(--tk-status-error-bg);
+  color: var(--tk-status-error-text);
+  border-color: #fca5a5;
+}
+
+body.light-mode .status-excused,
+body.light-mode .status-information,
+body.light-mode .status-submitted,
+body.light-mode .status-accredited {
+  background: var(--tk-status-info-bg);
+  color: var(--tk-status-info-text);
+  border-color: #93c5fd;
+}
+
+body.light-mode .status-inactive,
+body.light-mode .status-holiday,
+body.light-mode .status-neutral {
+  background: var(--tk-status-neutral-bg);
+  color: var(--tk-status-neutral-text);
+  border-color: #cbd5e1;
+}
+
+body.light-mode .text-blue-400,
+body.light-mode .text-blue-400,
+body.light-mode .border-blue-400\/30 {
+  color: var(--tk-teal) !important;
+}
+
+body.light-mode .text-yellow-400 {
+  color: #92400e !important;
+}
+
+body.light-mode .text-red-400 {
+  color: #991b1b !important;
+}
+
+body.light-mode .text-green-400 {
+  color: #166534 !important;
+}
+
+body.light-mode .journal-day-tab {
+  color: var(--tk-text-muted);
+}
+
+body.light-mode .journal-day-tab:hover,
+body.light-mode .journal-day-tab[aria-selected="true"] {
+  color: var(--tk-teal);
+  background: var(--tk-selected);
+  border-color: var(--tk-hairline-teal);
+}
+
+body.light-mode .journal-section,
+body.light-mode .journal-section__summary {
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .journal-section__summary {
+  color: var(--tk-text);
+}
+
+body.light-mode .attendance-completion {
+  background: var(--tk-status-success-bg);
+  border-color: #86efac;
+}
+
+body.light-mode .attendance-completion__title {
+  color: var(--tk-status-success-text);
+}
+
+body.light-mode .attendance-completion__text {
+  color: var(--tk-text-muted);
+}
+
+body.light-mode .dtr-summary-tile--accent {
+  background: var(--tk-selected);
+  border-left-color: var(--tk-teal);
+}
+
+body.light-mode .dtr-summary-tile--neutral {
+  background: var(--tk-surface-2);
+}
+
+body.light-mode .dtr-monthly-stats {
+  border-top-color: var(--tk-hairline);
+}
+
+body.light-mode .ojt-progress-label {
+  color: var(--tk-text-muted);
+}
+
+body.light-mode .ojt-progress-value {
+  color: var(--tk-teal);
+}
+
+body.light-mode .ojt-progress-track {
+  background: var(--tk-surface-3);
+}
+
+body.light-mode .ojt-progress-fill {
+  background: linear-gradient(90deg, var(--tk-teal), var(--tk-teal-strong));
+}
+
+body.light-mode .btn-attendance-disabled {
+  color: #ffffff !important;
+}
+
+body.light-mode #time-in-btn {
+  --attend-dark: #166534 !important;
+  --attend-dark-pulse: #15803d !important;
+  --attend-border: #166534 !important;
+  --attend-accent-soft: rgba(21, 128, 61, 0.16) !important;
+}
+
+body.light-mode #time-out-btn {
+  --attend-dark: #991b1b !important;
+  --attend-dark-pulse: #b91c1c !important;
+  --attend-border: #991b1b !important;
+  --attend-accent-soft: rgba(185, 28, 28, 0.16) !important;
+}
+
+body.light-mode .attendance-refresh {
+  color: var(--tk-teal);
+  background: var(--tk-selected);
+  border-color: var(--tk-hairline-teal);
+}
+
+body.light-mode .attendance-refresh:hover {
+  background: var(--tk-hover);
+  border-color: var(--tk-teal);
+}
+
+body.light-mode .attendance-schedule {
+  border-color: var(--tk-hairline-teal);
+}
+
+body.light-mode .attendance-schedule__label svg,
+body.light-mode .attendance-schedule__value {
+  color: var(--tk-teal);
+}
+
+body.light-mode .attendance-alert {
+  color: #991b1b;
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+body.light-mode .qr-frame {
+  border-color: var(--tk-teal);
+  background: var(--tk-selected);
+}
+
+body.light-mode .qr-frame::before {
+  border-color: rgba(255, 255, 255, 0.92);
+}
+
+body.light-mode .trackit-toast {
+  color: var(--tk-text);
+  background: var(--tk-surface-1);
+  border-color: var(--tk-hairline-strong);
+}
+
+body.light-mode .trackit-toast-success {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+body.light-mode .trackit-toast-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+body.light-mode .trackit-toast-info {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+body.light-mode .trackit-toast p:last-child {
+  color: inherit;
+  opacity: 0.9;
+}
+
+body.light-mode #global-search-results,
+body.light-mode #global-search-loading {
+  background: var(--tk-surface-1) !important;
+  border-color: var(--tk-hairline-strong) !important;
+}
+
+body.light-mode #all-trainees-modal > div > .glass-card,
+body.light-mode #report-modal > div > .report-modal-card,
+body.light-mode #trainee-profile-modal .tp-modal,
+body.light-mode #assign-supervisor-modal > div > .glass-card {
+  background: var(--tk-surface-1) !important;
+  border-color: var(--tk-hairline-strong) !important;
+}
+
+body.light-mode #mobile-search-panel,
+body.light-mode #mobile-search-panel > div:first-child {
+  background: var(--tk-bg) !important;
+}
+
+body.light-mode #mobile-search-panel input {
+  background: var(--tk-surface-1) !important;
+  color: var(--tk-text) !important;
+}
+
+body.light-mode .theory-card {
+  background: var(--tk-surface-2);
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .theory-card__title {
+  color: var(--tk-teal);
+}
+
+body.light-mode .theory-card__tag {
+  color: var(--tk-text-muted);
+  background: var(--tk-surface-3);
+  border-color: var(--tk-hairline);
+}
+
+body.light-mode .theory-card__text {
+  color: var(--tk-text);
+}
+
+body.light-mode .schedule-item {
+  background: var(--tk-surface-2);
+  color: var(--tk-text);
+}
+
+body.light-mode .schedule-item:hover {
+  background: var(--tk-hover);
+}
+
+body.light-mode .schedule-item__time {
+  color: var(--tk-text-muted);
+}
+
+body.light-mode .schedule-info-note {
+  color: #1d4ed8 !important;
+  background: #dbeafe !important;
+  border-color: #93c5fd !important;
 }
 
 /* Stacked "card row" presentation for the narrowest screens, opt-in via

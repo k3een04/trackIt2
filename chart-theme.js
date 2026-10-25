@@ -32,49 +32,62 @@
   // ──────────────────────────────────────────────────────────────────────────
   var FALLBACK = {
     dark: {
-      teal: '#00c8aa',
-      tealDark: '#00967d',
-      gold: '#f5c842',
-      muted: '#6b7a99',
-      surface: '#111827',
-      border: 'rgba(255,255,255,0.08)',
+      teal: '#60a5fa',
+      tealDark: '#2563eb',
+      gold: '#fbbf24',
+      muted: '#94a3b8',
+      surface: '#151f32',
+      border: '#29364b',
       text: '#e2e8f0',
-      tick: 'rgba(203,213,225,0.62)',
-      tickStrong: 'rgba(203,213,225,0.9)',
-      grid: 'rgba(255,255,255,0.06)',
-      legend: 'rgba(203,213,225,0.85)',
-      tooltipBg: 'rgba(17,24,39,0.96)',
-      tooltipBorder: 'rgba(255,255,255,0.1)',
+      tick: '#cbd5e1',
+      tickStrong: '#e2e8f0',
+      grid: '#29364b',
+      legend: '#cbd5e1',
+      tooltipBg: 'rgba(21,31,50,0.96)',
+      tooltipBorder: '#3b4a61',
       tooltipText: '#e2e8f0',
-      tooltipTitle: '#ffffff',
+      tooltipTitle: '#f1f5f9',
+      secondary: '#94a3b8',
+      supportingBlue: '#3b82f6',
+      positive: '#4ade80',
+      warning: '#fbbf24',
+      negative: '#f87171',
+      info: '#60a5fa',
     },
     light: {
-      teal: '#00a88f',
-      tealDark: '#008573',
-      gold: '#d97706',
+      teal: '#2457c5',
+      tealDark: '#1d46a3',
+      gold: '#b45309',
       muted: '#64748b',
       surface: '#ffffff',
-      border: 'rgba(0,0,0,0.1)',
-      text: '#1e293b',
+      border: '#d8e0ed',
+      text: '#263449',
       tick: '#475569',
-      tickStrong: '#1e293b',
-      grid: 'rgba(15,23,42,0.08)',
+      tickStrong: '#172554',
+      grid: '#e2e8f0',
       legend: '#334155',
-      tooltipBg: 'rgba(255,255,255,0.98)',
-      tooltipBorder: 'rgba(15,23,42,0.12)',
-      tooltipText: '#1e293b',
-      tooltipTitle: '#0f172a',
+      tooltipBg: '#ffffff',
+      tooltipBorder: '#b8c5d8',
+      tooltipText: '#263449',
+      tooltipTitle: '#172554',
+      secondary: '#64748b',
+      supportingBlue: '#60a5fa',
+      positive: '#15803d',
+      warning: '#b45309',
+      negative: '#b91c1c',
+      info: '#60a5fa',
     },
   };
 
   // Non-theme accents already in use across the dashboards. Kept verbatim so no
   // chart changes hue.
   var ACCENT = {
-    teal: '#00c8aa',
+    teal: '#3b82f6',
     green: '#22c55e',
+    red: '#ef4444',
     blue: '#3b82f6',
-    purple: '#a855f7',
-    gold: '#f5c842',
+    purple: '#3b82f6',
+    gold: '#fbbf24',
     slate: '#94a3b8',
   };
 
@@ -99,18 +112,34 @@
     Object.keys(base).forEach(function (key) { out[key] = base[key]; });
 
     // Prefer whatever the stylesheet currently defines.
-    var teal = readCssVar('--teal');
-    var tealDark = readCssVar('--teal-dark');
+    var teal = readCssVar('--tk-teal') || readCssVar('--teal');
+    var tealDark = readCssVar('--tk-teal-strong') || readCssVar('--teal-dark');
     var gold = readCssVar('--gold');
-    var muted = readCssVar('--muted');
-    var surface = readCssVar('--navy-mid');
-    var border = readCssVar('--border');
+    var muted = readCssVar('--tk-text-muted') || readCssVar('--muted');
+    var surface = readCssVar('--tk-surface-1') || readCssVar('--navy-mid');
+    var border = readCssVar('--tk-hairline') || readCssVar('--border');
+    var tick = readCssVar('--tk-text-muted');
+    var tickStrong = readCssVar('--tk-text-strong');
+    var grid = readCssVar('--tk-chart-grid') || readCssVar('--tk-subtle-divider') || readCssVar('--tk-surface-3');
+    var legend = readCssVar('--tk-text');
+    var tooltipBg = readCssVar('--tk-surface-1');
+    var tooltipBorder = readCssVar('--tk-hairline-strong');
+    var tooltipText = readCssVar('--tk-text');
+    var tooltipTitle = readCssVar('--tk-text-strong');
     if (teal) out.teal = teal;
     if (tealDark) out.tealDark = tealDark;
     if (gold) out.gold = gold;
     if (muted) out.muted = muted;
     if (surface) out.surface = surface;
     if (border) out.border = border;
+    if (tick) out.tick = tick;
+    if (tickStrong) out.tickStrong = tickStrong;
+    if (grid) out.grid = grid;
+    if (legend) out.legend = legend;
+    if (tooltipBg) out.tooltipBg = tooltipBg;
+    if (tooltipBorder) out.tooltipBorder = tooltipBorder;
+    if (tooltipText) out.tooltipText = tooltipText;
+    if (tooltipTitle) out.tooltipTitle = tooltipTitle;
 
     out.isLight = light;
     return out;
@@ -277,7 +306,14 @@
   };
 
   function drawValueLabels(chart) {
-      var cfg = chart.options && chart.options.plugins && chart.options.plugins.trackitValueLabels;
+      // Read the plugin config from the RAW options (chart.config.options), not
+      // chart.options: the latter is Chart.js's resolver proxy, and reading a
+      // function option (our value formatter) through it makes Chart.js invoke
+      // the function with a resolver context - which either throws
+      // "Cannot convert object to primitive value" or recurses
+      // ("Recursion detected: formatter->formatter") on every frame.
+      var rawOptions = (chart.config && chart.config.options) || chart.options || {};
+      var cfg = rawOptions.plugins && rawOptions.plugins.trackitValueLabels;
       if (!cfg || cfg.enabled === false) return;
       if (chart[HOVER_KEY] === undefined) return;
 
@@ -630,10 +666,21 @@
      * `fill: 'flat'` opts out of the vertical gradient (used by the single
      * weekly series, which reads cleaner as a solid bar).
      */
+  function resolveAccent(accent, theme) {
+    if (!accent || accent === theme.teal) return theme.teal;
+    if (accent === ACCENT.teal) return theme.teal;
+    if (accent === ACCENT.blue) return theme.supportingBlue || accent;
+    if (accent === ACCENT.slate) return theme.secondary || accent;
+    if (accent === ACCENT.green) return theme.positive || accent;
+    if (accent === ACCENT.red) return theme.negative || accent;
+    if (accent === ACCENT.gold) return theme.warning || accent;
+    return accent;
+  }
+
   function styleDataset(dataset, options) {
     var opts = options || {};
     var theme = tokens();
-    var accent = opts.accent || theme.teal;
+    var accent = resolveAccent(opts.accent, theme);
 
     dataset.backgroundColor = opts.fill === 'flat'
       ? flatFill(accent)
@@ -654,6 +701,9 @@
     dataset.maxBarThickness = opts.maxBarThickness || 38;
     dataset.trackitValueLabels = opts.showValues !== false;
     dataset.trackitAccent = accent;
+    dataset.trackitAccentToken = !opts.accent || opts.accent === ACCENT.teal
+      ? 'teal'
+      : (opts.accent === ACCENT.blue ? 'blue' : (opts.accent === ACCENT.slate ? 'slate' : (opts.accent === ACCENT.green ? 'green' : (opts.accent === ACCENT.red ? 'negative' : (opts.accent === ACCENT.gold ? 'gold' : null)))));
     dataset.trackitFlat = opts.fill === 'flat';
     return dataset;
   }
@@ -668,6 +718,28 @@
   function repaint(chart) {
     var theme = tokens();
     var options = chart.options;
+
+    if (chart.data && chart.data.datasets) {
+      chart.data.datasets.forEach(function (dataset) {
+        if (!dataset.trackitAccentToken) return;
+        var accent = theme[dataset.trackitAccentToken] || theme.teal;
+        dataset.trackitAccent = accent;
+        dataset.backgroundColor = dataset.trackitFlat
+          ? flatFill(accent)
+          : barFill(accent, theme, false);
+        dataset.hoverBackgroundColor = alpha(accent, 1);
+        dataset.borderColor = alpha(accent, 1);
+      });
+
+      chart.data.datasets.forEach(function (dataset) {
+        if (!dataset.trackitPalette) return;
+        var colors = dataset.trackitPalette.map(function (token) {
+          return theme[token] || token;
+        });
+        dataset.backgroundColor = colors.map(function (color) { return alpha(color, 0.8); });
+        dataset.borderColor = colors.map(function (color) { return alpha(color, 1); });
+      });
+    }
 
     if (options.scales) {
       Object.keys(options.scales).forEach(function (key) {
@@ -715,6 +787,27 @@
   function register(chart) {
     if (!chart) return chart;
     if (registry.indexOf(chart) === -1) registry.push(chart);
+
+    // Never write a read-back sub-object (e.g. `options.plugins = options.plugins`)
+    // into chart.options: chart.options is a resolver proxy in Chart.js 3, and
+    // storing a sub-proxy back into its own scope makes every later write into
+    // that subtree recurse through the set trap until the stack overflows. Only
+    // plain leaf writes are safe here.
+    try {
+      var theme = tokens();
+      var options = chart.options || {};
+      if (!options.plugins) options.plugins = {};
+      if (!options.plugins.tooltip) options.plugins.tooltip = {};
+      options.plugins.tooltip.backgroundColor = theme.tooltipBg;
+      options.plugins.tooltip.titleColor = theme.tooltipTitle;
+      options.plugins.tooltip.bodyColor = theme.tooltipText;
+      options.plugins.tooltip.borderColor = theme.tooltipBorder;
+      if (options.plugins.legend && options.plugins.legend.labels) {
+        options.plugins.legend.labels.color = theme.legend;
+      }
+    } catch (error) {
+      if (window.console) console.warn('[TrackITCharts] register styling skipped:', error.message);
+    }
 
     var originalDestroy = chart.destroy;
     chart.destroy = function () {

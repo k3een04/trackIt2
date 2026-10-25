@@ -10,17 +10,17 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=13">
+    <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=14">
   <!-- Shared TrackIT date/month picker (the same one used on the OJT and
        supervisor dashboards). Enhances any [data-trackit-cal] input. -->
-  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=1">
+  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=3">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
-  <link rel="stylesheet" href="visuals/trackit-glass.css?v=1">
+  <link rel="stylesheet" href="visuals/trackit-glass.css?v=2">
   <!-- Verification workflow (confirmation, loading and text-entry dialogs).
        Self-contained .vm-* rules so it stays identical on every dashboard. -->
-  <link rel="stylesheet" href="visuals/verification-modal.css?v=4">
+  <link rel="stylesheet" href="visuals/verification-modal.css?v=5">
 </head>
 <body>
   <script>
@@ -45,17 +45,17 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between min-w-0">
       <a href="coordinator-dashboard.html" class="flex items-center gap-2.5 flex-shrink-0">
         <img src="Trackitlogo.png" alt="TrackIT Logo" class="nav-logo-img w-8 h-8 md:w-9 md:h-9 object-contain">
-        <span class="font-display font-800 text-lg md:text-xl text-white tracking-tight" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-teal-400">IT</span></span>
+        <span class="font-display font-800 text-lg md:text-xl text-white tracking-tight" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-blue-400">IT</span></span>
       </a>
 
       <div class="flex items-center gap-3 md:gap-4 flex-wrap">
-        <span class="hidden md:inline text-sm text-slate-400">Welcome,  <span id="user-name" class="text-teal-400">Coordinator</span></span>
+        <span class="hidden md:inline text-sm text-slate-400">Welcome,  <span id="user-name" class="text-blue-400">Coordinator</span></span>
 
         <!-- Global Search -->
         <div id="global-search-container" class="hidden md:flex items-center flex-shrink-0" style="width: 280px;">
           <div class="relative w-full">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="global-search-input" placeholder="Search trainees..." class="w-full pl-10 pr-4 py-2 text-sm bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/20 focus:bg-white/10 transition-colors duration-200" aria-label="Search trainees" autocomplete="off" spellcheck="false" style="width: 280px !important;">
+            <input type="text" id="global-search-input" placeholder="Search trainees..." class="w-full pl-10 pr-4 py-2 text-sm bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 focus:bg-white/10 transition-colors duration-200" aria-label="Search trainees" autocomplete="off" spellcheck="false" style="width: 280px !important;">
           </div>
         </div>
 
@@ -81,7 +81,7 @@
           <div class="notif-header">
             <h3>Notifications</h3>
             <div class="flex items-center gap-3 flex-wrap">
-              <button onclick="clearAllNotifications()" class="text-xs text-teal-400 hover:text-teal-300">Mark all read</button>
+              <button onclick="clearAllNotifications()" class="text-xs text-blue-400 hover:text-blue-300">Mark all read</button>
               <button onclick="deleteAllNotifications()" class="text-xs text-red-400 hover:text-red-300" title="Permanently delete all notifications">Clear all</button>
             </div>
           </div>
@@ -104,10 +104,10 @@
     </nav>
 
   <!-- Global Search Results (body level so nav's backdrop-filter can't become the containing block) -->
-  <div id="global-search-results" class="hidden fixed glass-card overflow-hidden" style="background: rgba(15, 23, 42, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; max-height: 400px; overflow-y: auto; width: 280px;"></div>
-  <div id="global-search-loading" class="hidden fixed glass-card px-4 py-3 text-center text-xs text-slate-500" style="background: rgba(15, 23, 42, 0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; width: 280px;">
+  <div id="global-search-results" class="hidden fixed glass-card overflow-hidden" style="background: #151f32; border: 1px solid #29364b; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; max-height: 400px; overflow-y: auto; width: 280px;"></div>
+  <div id="global-search-loading" class="hidden fixed glass-card px-4 py-3 text-center text-xs text-slate-500" style="background: #151f32; border: 1px solid #29364b; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; width: 280px;">
     <div class="flex items-center justify-center gap-2">
-      <svg class="animate-spin text-teal-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path></svg>
+      <svg class="animate-spin text-blue-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path></svg>
       <span>Searching...</span>
     </div>
   </div>
@@ -117,14 +117,14 @@
 
   <!-- Mobile Search Overlay -->
   <div id="mobile-search-overlay" class="sidebar-overlay" onclick="closeMobileSearch()" aria-hidden="true"></div>
-  <div id="mobile-search-panel" class="hidden fixed inset-0 z-[90] flex flex-col md:hidden" style="background: rgba(10, 15, 30, 0.98); backdrop-filter: blur(12px);">
-    <div class="flex items-center gap-3 p-4 border-b border-white/10 sticky top-0" style="background: rgba(10, 15, 30, 0.98); backdrop-filter: blur(12px); z-index: 10;">
+  <div id="mobile-search-panel" class="hidden fixed inset-0 z-[90] flex flex-col md:hidden" style="background: #0f172a; backdrop-filter: none;">
+    <div class="flex items-center gap-3 p-4 border-b border-white/10 sticky top-0" style="background: #0f172a; backdrop-filter: none; z-index: 10;">
       <button onclick="closeMobileSearch()" class="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" aria-label="Close search" title="Close">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
       <div class="relative flex-1">
         <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="mobile-search-input" placeholder="Search trainees..." class="w-full pl-10 pr-4 py-3 text-base bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-400/20 focus:bg-white/10" aria-label="Search trainees" autocomplete="off" spellcheck="false">
+        <input type="text" id="mobile-search-input" placeholder="Search trainees..." class="w-full pl-10 pr-4 py-3 text-base bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 focus:bg-white/10" aria-label="Search trainees" autocomplete="off" spellcheck="false">
       </div>
     </div>
     <div id="mobile-search-results" class="flex-1 overflow-y-auto p-4" style="-webkit-overflow-scrolling: touch;"></div>
@@ -448,7 +448,7 @@
       <!-- ALL STUDENTS MODAL (paginated, 10 students per page) -->
       <div id="all-trainees-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
         <div class="min-h-full flex items-start justify-center p-4">
-          <div class="glass-card w-full max-w-5xl my-8" style="background: rgba(15, 23, 42, 0.97);">
+          <div class="glass-card w-full max-w-5xl my-8" style="background: #151f32;">
             <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
               <div>
                 <h3 class="font-display font-700 text-lg">All Trainees</h3>
@@ -538,7 +538,7 @@
       <div class="flex items-center justify-between flex-wrap gap-3 mb-6">
         <p class="text-xs text-slate-500">
           Centralized view of attendance, DTR, journals, performance appraisals, and trainee records.
-          <span id="analytics-generated-at" class="text-teal-400">Loading analytics…</span>
+          <span id="analytics-generated-at" class="text-blue-400">Loading analytics…</span>
         </p>
         <button onclick="loadAnalyticsData()" class="btn-ghost text-xs">Refresh Analytics</button>
       </div>
@@ -581,17 +581,17 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="glass-card p-6">
           <p class="kpi-label mb-3">Attendance Rate (Last 30 Days)</p>
-          <div id="analytics-attendance-rate" class="text-3xl font-display font-700 text-teal-400 mb-2">—</div>
+          <div id="analytics-attendance-rate" class="text-3xl font-display font-700 text-blue-400 mb-2">—</div>
           <p id="analytics-attendance-rate-note" class="text-xs text-slate-500">Present and late vs all records</p>
         </div>
         <div class="glass-card p-6">
           <p class="kpi-label mb-3">Most Applied Theory</p>
-          <div id="analytics-top-concept" class="text-lg font-semibold text-teal-400 mb-2">—</div>
+          <div id="analytics-top-concept" class="text-lg font-semibold text-blue-400 mb-2">—</div>
           <p id="analytics-top-concept-note" class="text-xs text-slate-500">—</p>
         </div>
         <div class="glass-card p-6">
           <p class="kpi-label mb-3">Top Company</p>
-          <div id="analytics-top-company" class="text-lg font-semibold text-teal-400 mb-2">—</div>
+          <div id="analytics-top-company" class="text-lg font-semibold text-blue-400 mb-2">—</div>
           <p id="analytics-top-company-note" class="text-xs text-slate-500">—</p>
         </div>
       </div>
@@ -745,7 +745,7 @@
           <div class="analytics-stat-list appraisal-summary-list">
             <div class="analytics-stat-row">
               <span>Average Performance</span>
-              <span id="analytics-performance-avg" class="font-semibold text-teal-400">—</span>
+              <span id="analytics-performance-avg" class="font-semibold text-blue-400">—</span>
             </div>
             <div class="analytics-stat-row">
               <span>Average Rating</span>
@@ -941,7 +941,7 @@
     <!-- REPORT PREVIEW MODAL -->
     <div id="report-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
       <div class="min-h-full flex items-start justify-center p-4">
-        <div class="glass-card report-modal-card w-full max-w-4xl my-8" style="background: rgba(15, 23, 42, 0.97);">
+        <div class="glass-card report-modal-card w-full max-w-4xl my-8" style="background: #151f32;">
           <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
             <div>
               <h3 id="report-modal-title" class="font-display font-700 text-lg">Report</h3>
@@ -977,7 +977,7 @@
             <form id="coordinator-profile-form" onsubmit="saveCoordinatorProfile(event)">
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Full Name</label>
-                <input type="text" id="coord-name" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="text" id="coord-name" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-6">
@@ -987,7 +987,7 @@
 
               <div class="mb-8">
                 <label class="block text-sm font-semibold mb-3">Department</label>
-                <input type="text" id="coord-dept" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="text" id="coord-dept" value="" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <button type="submit" class="btn-primary w-full">Save Profile Changes</button>
@@ -1000,17 +1000,17 @@
             <form id="coord-password-form" onsubmit="changeCoordinatorPassword(event)">
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">Current Password</label>
-                <input type="password" id="coord-current-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="password" id="coord-current-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-6">
                 <label class="block text-sm font-semibold mb-3">New Password</label>
-                <input type="password" id="coord-new-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="password" id="coord-new-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <div class="mb-8">
                 <label class="block text-sm font-semibold mb-3">Confirm Password</label>
-                <input type="password" id="coord-confirm-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+                <input type="password" id="coord-confirm-pass" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
               </div>
 
               <button type="submit" class="btn-primary w-full">Update Password</button>
@@ -1022,19 +1022,19 @@
             <h3 class="font-display font-700 mb-6">Notification Preferences</h3>
             <div class="space-y-4">
               <label class="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked class="w-4 h-4 accent-teal-400">
+                <input type="checkbox" checked class="w-4 h-4 accent-blue-400">
                 <span class="text-sm">Journal Submissions</span>
               </label>
               <label class="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked class="w-4 h-4 accent-teal-400">
+                <input type="checkbox" checked class="w-4 h-4 accent-blue-400">
                 <span class="text-sm">New Trainee Registrations</span>
               </label>
               <label class="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked class="w-4 h-4 accent-teal-400">
+                <input type="checkbox" checked class="w-4 h-4 accent-blue-400">
                 <span class="text-sm">Attendance Alerts</span>
               </label>
               <label class="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" class="w-4 h-4 accent-teal-400">
+                <input type="checkbox" class="w-4 h-4 accent-blue-400">
                 <span class="text-sm">System Updates</span>
               </label>
             </div>
@@ -1057,7 +1057,7 @@
               </div>
               <div class="flex justify-between">
                 <span class="text-slate-400">Status</span>
-                <span class="text-teal-400 font-semibold">Active</span>
+                <span class="text-blue-400 font-semibold">Active</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-slate-400">Trainees Managed</span>
@@ -1080,7 +1080,7 @@
 
   <!-- Trainee Profile Modal (comprehensive OJT monitoring view) -->
   <div id="trainee-profile-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
-    <div class="glass-card tp-modal" role="dialog" aria-modal="true" aria-labelledby="trainee-profile-name" style="background: rgba(15, 23, 42, 0.97); border: 1px solid rgba(255,255,255,0.1);">
+    <div class="glass-card tp-modal" role="dialog" aria-modal="true" aria-labelledby="trainee-profile-name" style="background: #151f32; border: 1px solid #29364b;">
       <button onclick="closeTraineeProfileModal()" class="tp-modal__close" aria-label="Close profile" title="Close">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
@@ -1169,7 +1169,7 @@
               <div>
                 <div class="flex justify-between text-sm mb-1">
                   <span class="text-slate-300">Verified Hours</span>
-                  <span id="trainee-profile-hours" class="font-semibold text-teal-400">—</span>
+                  <span id="trainee-profile-hours" class="font-semibold text-blue-400">—</span>
                 </div>
                 <div class="progress-track" style="height: 8px;">
                   <span id="trainee-profile-progress-fill" class="progress-fill" style="width: 0%"></span>
@@ -1363,17 +1363,17 @@
 
   <!-- Assign Supervisor Modal -->
   <div id="assign-supervisor-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
-    <div class="glass-card p-8 w-full max-w-md relative" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1);">
+    <div class="glass-card p-8 w-full max-w-md relative" style="background: #151f32; border: 1px solid #29364b;">
       <button onclick="closeAssignModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
       <h3 class="font-display font-700 text-xl mb-2">Assign Supervisor</h3>
-      <p class="text-slate-400 text-sm mb-6">Assigning supervisor to: <span id="assign-trainee-name" class="text-teal-400 font-semibold"></span></p>
+      <p class="text-slate-400 text-sm mb-6">Assigning supervisor to: <span id="assign-trainee-name" class="text-blue-400 font-semibold"></span></p>
       <input type="hidden" id="assign-trainee-id">
       
       <div class="mb-6">
         <label class="block text-sm font-semibold mb-3">Select Supervisor</label>
-        <select id="supervisor-select" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-teal-400 outline-none">
+        <select id="supervisor-select" class="w-full glass-card px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none">
           <option value="">Loading supervisors...</option>
         </select>
       </div>
@@ -1397,13 +1397,13 @@
 
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
-  <script src="chart-theme.js?v=1"></script>
+  <script src="chart-theme.js?v=2"></script>
   <!-- Enhances the profile modal's [data-trackit-cal] date fields with the
        shared TrackIT calendar. Must precede the dashboard script. -->
   <script src="trackit-calendar.js?v=1"></script>
   <!-- Defines window.VerificationModal; must precede the dashboard script that
        opens it from the notification, journal and session actions. -->
   <script src="verification-modal.js?v=5"></script>
-  <script src="coordinator-dashboard.js?v=12"></script>
+  <script src="coordinator-dashboard.js?v=13"></script>
 </body>
 </html>

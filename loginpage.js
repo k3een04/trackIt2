@@ -216,7 +216,7 @@ function setLoginVerifyMessage(message, isSuccess = false) {
   }
 
   el.className = 'mb-4 p-3.5 rounded-xl text-sm border ' + (isSuccess
-    ? 'bg-teal-500/10 border-teal-500/30 text-teal-300'
+    ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
     : 'bg-red-500/10 border-red-500/30 text-red-300');
   el.textContent = message;
 }
@@ -337,7 +337,7 @@ function forgotSetMessage(elId, message, isSuccess = false) {
   }
 
   el.className = 'mt-4 p-3.5 rounded-xl text-sm border ' + (isSuccess
-    ? 'bg-teal-500/10 border-teal-500/30 text-teal-300'
+    ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
     : 'bg-red-500/10 border-red-500/30 text-red-300');
   el.textContent = message;
 }

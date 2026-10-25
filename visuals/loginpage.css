@@ -1,13 +1,13 @@
 
     :root {
-  --navy: #0a0f1e;
-  --navy-mid: #111827;
-  --teal: #00c8aa;
-  --teal-dark: #00967d;
-  --gold: #f5c842;
-  --muted: #6b7a99;
+  --navy: #0b1120;
+  --navy-mid: #151f32;
+  --teal: #3b82f6;
+  --teal-dark: #2563eb;
+  --gold: #fbbf24;
+  --muted: #94a3b8;
   --glass: rgba(17, 24, 39, 0.75);
-  --border: rgba(255, 255, 255, 0.08);
+  --border: #29364b;
 }
 
 * { 
@@ -49,14 +49,14 @@ body::before {
   pointer-events: none;
   z-index: 1;
 }
-.orb-1 { 
+.orb-1 { display: none; 
   width: 500px; 
   height: 500px; 
-  background: radial-gradient(circle, rgba(0,200,170,0.15) 0%, transparent 70%); 
+  background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); 
   top: -100px; 
   right: -120px; 
 }
-.orb-2 { 
+.orb-2 { display: none; 
   width: 400px; 
   height: 400px; 
   background: radial-gradient(circle, rgba(245,200,66,0.08) 0%, transparent 70%); 
@@ -68,14 +68,14 @@ body::before {
 .glass-card {
   background: var(--glass);
   border: 1px solid var(--border);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(0, 200, 170, 0.04);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(59, 130, 246, 0.04);
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #00c8aa 0%, #00e5c8 40%, #f5c842 100%);
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 55%, #2563eb 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -98,9 +98,9 @@ nav {
   left: 0; 
   right: 0;
   z-index: 100;
-  background: rgba(10, 15, 30, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #0f172a;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-bottom: 1px solid var(--border);
 }
 
@@ -111,8 +111,8 @@ nav {
   gap: 6px;
   padding: 4px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(0,200,170,0.3);
-  background: rgba(0,200,170,0.08);
+  border: 1px solid rgba(59,130,246,0.3);
+  background: rgba(59,130,246,0.08);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -145,7 +145,7 @@ nav {
   padding: 13px 28px;
   border-radius: 12px;
   transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-  box-shadow: 0 4px 20px rgba(0,200,170,0.3);
+  box-shadow: 0 4px 20px rgba(59,130,246,0.3);
   cursor: pointer;
   border: none;
   text-decoration: none;
@@ -153,7 +153,7 @@ nav {
 }
 .btn-primary:hover { 
   transform: translateY(-2px); 
-  box-shadow: 0 6px 28px rgba(0,200,170,0.45); 
+  box-shadow: 0 6px 28px rgba(59,130,246,0.45); 
 }
 .btn-primary:active {
   transform: translateY(0);
@@ -168,8 +168,8 @@ nav {
 .input-field {
   width: 100%;
   padding: 11px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f172a;
+  border: 1px solid #3b4a61;
   border-radius: 10px;
   color: #f1f5f9;
   font-family: 'DM Sans', sans-serif;
@@ -181,9 +181,9 @@ nav {
 }
 .input-field:focus {
   outline: none;
-  border-color: #00c8aa;
+  border-color: #3b82f6;
   background: rgba(255, 255, 255, 0.07);
-  box-shadow: 0 0 0 3px rgba(0, 200, 170, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 /* Checkbox custom */
@@ -212,7 +212,7 @@ nav {
   font-weight: 600;
 }
 .link-text:hover {
-  color: #00e5c8;
+  color: #93c5fd;
 }
 
 /* Animation */
