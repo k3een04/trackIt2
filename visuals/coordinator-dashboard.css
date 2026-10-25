@@ -3251,6 +3251,10 @@ body.light-mode .cell__name--link:hover { color: var(--teal-dark); }
 
 .cell--muted .text-blue-400 { font-weight: 600; }
 
+/* Supervisor value: name over company, kept as one block so the mobile card's
+   flex row treats it as a single value instead of splitting on the <br>. */
+.cell__sup { display: block; }
+
 .hours-cell { min-width: 108px; }
 
 .hours-cell__value {
@@ -4588,6 +4592,81 @@ body.light-mode .tp-strong { color: #0f172a; }
   table.tk-stack > tbody > tr > td:not([data-label])::before { content: none; }
   table.tk-stack > tbody > tr > td[data-label=""],
   table.tk-stack > tbody > tr > td:not([data-label]) { justify-content: flex-start; }
+
+  /* ── Trainee cards: four-field summary ──────────────────────────────────
+     A trainee row carries eight columns. On a phone that made every card
+     ~8 rows tall, so the card keeps only Student ID, Department, Section and
+     Supervisor as label/value rows; Company and Hours are dropped (they stay
+     in the desktop table and in the trainee profile modal), the name cell
+     becomes the card header and the actions become a compact footer.
+     Marked in buildTraineeRowHtml(), which feeds both the Trainees tab and
+     the All Trainees modal, so the two stay identical. */
+  table.tk-stack > tbody > tr > td.cell--stack-hide { display: none; }
+
+  /* `td.cell` is deliberately repeated: three classes beat both
+     `.data-table tbody tr:last-child .cell { border-bottom: none }` (which
+     dropped the divider under the final card's header) and
+     `body.light-mode .data-table .cell { border-bottom-color: ... }` (which
+     recoloured it in light mode), so every card keeps the same divider. */
+  table.tk-stack > tbody > tr > td.cell.cell--stack-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px 8px;
+    padding: 8px 0 9px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  table.tk-stack > tbody > tr > td.cell--stack-head::before { content: none; }
+  /* The name is a <button>, so reset the block layout .cell__name gives it. */
+  table.tk-stack > tbody > tr > td.cell--stack-head .cell__name {
+    margin-bottom: 0;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  /* Supervisor is the only two-line value, so give it room to wrap at word
+     boundaries next to its label instead of collapsing to a sliver. */
+  table.tk-stack > tbody > tr > td.cell--muted .cell__sup {
+    min-width: 0;
+    max-width: 64%;
+    text-align: right;
+  }
+
+  table.tk-stack > tbody > tr > td.cell--stack-actions {
+    display: block;
+    padding: 10px 0 2px;
+    border-top: 1px solid var(--border);
+    text-align: left;
+  }
+  table.tk-stack > tbody > tr > td.cell--stack-actions::before { content: none; }
+  table.tk-stack > tbody > tr > td.cell--stack-actions .cell-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    /* The desktop rule centres its items, which would leave the two buttons at
+       different heights once "Assign Supervisor" wraps to a second line on a
+       320px phone. Stretching keeps the pair visually equal. */
+    align-items: stretch;
+  }
+  /* Equal-width tap targets. Text may wrap rather than overflow the card. */
+  table.tk-stack > tbody > tr > td.cell--stack-actions .link-btn {
+    justify-content: center;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.75rem;
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   /* A desktop wrap's max-height must not clip a long stacked list */
   .analytics-table-wrap { max-height: none; }
 }

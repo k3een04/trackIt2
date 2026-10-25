@@ -1771,9 +1771,15 @@ function traineeStatusChip(trainee) {
 
 // Build one trainee row — shared by the Trainees tab and the "All Trainees" modal
 function buildTraineeRowHtml(trainee) {
+  // The supervisor value is one unit (name + company) rather than loose inline
+  // text: the stacked mobile card makes the cell a flex row, where a bare <br>
+  // is not a line break but a zero-width flex item, so name and company were
+  // squeezed into two side-by-side columns. Wrapping the pair in a block keeps
+  // them together on mobile; on desktop the block holds the same inline flow
+  // the cell used to hold directly, so nothing moves.
   const supervisorName = trainee.supervisorId
-    ? `<span class="text-blue-400 font-semibold">${escapeHtml(trainee.supervisorId.fullName)}</span><br><span class="text-xs text-slate-500">${escapeHtml(trainee.supervisorId.companyName || '')}</span>`
-    : '<span class="text-yellow-400/70 text-xs">Unassigned</span>';
+    ? `<span class="cell__sup"><span class="text-blue-400 font-semibold">${escapeHtml(trainee.supervisorId.fullName)}</span><br><span class="text-xs text-slate-500">${escapeHtml(trainee.supervisorId.companyName || '')}</span></span>`
+    : '<span class="cell__sup"><span class="text-yellow-400/70 text-xs">Unassigned</span></span>';
 
   const completedHours = trainee.completedHours || 0;
   const requiredHours = trainee.requiredHours || 486;
@@ -1784,7 +1790,7 @@ function buildTraineeRowHtml(trainee) {
 
   return `
     <tr data-trainee-id="${trainee._id}">
-      <td class="cell cell--trainee">
+      <td class="cell cell--trainee cell--stack-head">
         <button type="button" class="link-btn cell__name cell__name--link"
           onclick="openTraineeProfileModal('${jsStringArg(trainee._id)}')"
           title="Open the full OJT progress profile for ${jsStringArg(trainee.fullName)}"
@@ -1794,9 +1800,9 @@ function buildTraineeRowHtml(trainee) {
       <td class="cell">${escapeHtml(trainee.studentId) || '—'}</td>
       <td class="cell">${escapeHtml(trainee.department) || '—'}</td>
       <td class="cell">${escapeHtml(trainee.section) || '—'}</td>
-      <td class="cell">${escapeHtml(trainee.companyName) || '—'}</td>
+      <td class="cell cell--stack-hide">${escapeHtml(trainee.companyName) || '—'}</td>
       <td class="cell cell--muted">${supervisorName}</td>
-      <td class="cell">
+      <td class="cell cell--stack-hide">
         <div class="hours-cell">
           <div class="hours-cell__value">${completedHours.toFixed(1)}/${requiredHours} hrs</div>
           <div class="hours-cell__left">${remainingHours.toFixed(1)} hrs left</div>
@@ -1805,7 +1811,7 @@ function buildTraineeRowHtml(trainee) {
           </div>
         </div>
       </td>
-      <td class="cell">
+      <td class="cell cell--stack-actions">
         <div class="cell-actions">
           <button type="button" onclick="openTraineeProfileModal('${jsStringArg(trainee._id)}')"
             class="link-btn" title="View OJT progress, journals and DTR records">View</button>
