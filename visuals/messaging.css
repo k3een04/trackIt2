@@ -467,6 +467,58 @@ body.light-mode .tk-msg-role--supervisor {
   opacity: 0.65;
 }
 
+/* ── Typing indicator ────────────────────────────────────────────────────── */
+
+.tk-msg-typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 2px 2px 4px;
+  color: var(--tk-text-muted);
+  font-size: 0.68rem;
+}
+
+.tk-msg-typing__bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 11px;
+  border: 1px solid var(--tk-hairline);
+  border-radius: 14px 14px 14px 4px;
+  background: var(--tk-surface-2);
+}
+
+.tk-msg-typing__bubble span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--tk-text-muted);
+  animation: tk-msg-typing-bounce 1.2s infinite ease-in-out;
+}
+
+.tk-msg-typing__bubble span:nth-child(2) { animation-delay: 0.15s; }
+.tk-msg-typing__bubble span:nth-child(3) { animation-delay: 0.3s; }
+
+.tk-msg-typing__label { white-space: nowrap; }
+
+.tk-msg-thread__sub--typing,
+.tk-msg-contact__preview--typing {
+  color: var(--tk-teal);
+  font-weight: 600;
+}
+
+@keyframes tk-msg-typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
 .tk-msg-empty {
   display: flex;
   flex: 1;
@@ -596,4 +648,8 @@ body.light-mode .tk-msg-role--supervisor {
 
 @media (prefers-reduced-motion: reduce) {
   .tk-msg-panel.is-open { animation: none; }
+  .tk-msg-typing__bubble span {
+    animation: none;
+    opacity: 0.6;
+  }
 }

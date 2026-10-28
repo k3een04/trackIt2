@@ -48,6 +48,7 @@
     sending: false,
     status: '',
     forceScroll: false,
+    otherTyping: false,
     // '' until the list renders; 'error' when the request failed. Used so a
     // successful retry repaints over the error state even with 0 contacts.
     contactsView: '',
@@ -75,6 +76,11 @@
 
   let contactsTimer = null;
   let badgeTimer = null;
+  let typingTimer = null;
+  let typingStopTimer = null;
+  let typingSentAt = 0;
+  let typingAnnouncedFor = null;
+  let typingCheckInFlight = false;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -178,6 +184,105 @@
     }
   }
 
+  // ── Typing indicator ─────────────────────────────────────────────────────
+  //
+  // Typing is ephemeral on the server (5 s TTL). We announce at most once every
+  // 2.5 s while the field has text, send an explicit stop after 3 s without a
+  // keystroke, and poll the other person's state only while their thread is on
+  // screen. Polling keeps this working without Socket.IO.
+
+  function typingIndicatorHtml() {
+    return (
+      '<div class="tk-msg-typing" role="status" aria-live="polite">' +
+      '<span class="tk-msg-typing__bubble" aria-hidden="true"><span></span><span></span><span></span></span>' +
+      '<span class="tk-msg-typing__label">typing…</span>' +
+      '</div>'
+    );
+  }
+
+  /**
+   * Mirror the typing flag onto the contact list so the preview row shows
+   * "typing…" too, without waiting for the slower 6 s contacts refresh.
+   */
+  function setContactTyping(contactId, typing) {
+    if (!contactId) return;
+    let changed = false;
+    state.contacts = state.contacts.map((contact) => {
+      if (String(contact.id) !== String(contactId)) return contact;
+      if (Boolean(contact.typing) === Boolean(typing)) return contact;
+      changed = true;
+      return { ...contact, typing: Boolean(typing) };
+    });
+    if (changed) renderContacts();
+  }
+
+  function setOtherTyping(value) {
+    const next = Boolean(value);
+    if (state.otherTyping === next) return;
+    state.otherTyping = next;
+    setContactTyping(state.activeId, next);
+    if (state.activeContact) setThreadHeader(state.activeContact);
+    if (state.view === 'thread') {
+      const stick = isNearBottom();
+      renderThread();
+      if (stick) scrollToBottom();
+    }
+  }
+
+  function stopTyping() {
+    if (typingStopTimer) {
+      clearTimeout(typingStopTimer);
+      typingStopTimer = null;
+    }
+    const contactId = typingAnnouncedFor;
+    typingAnnouncedFor = null;
+    typingSentAt = 0;
+    if (!contactId) return;
+
+    api(`/messages/${encodeURIComponent(contactId)}/typing`, {
+      method: 'POST',
+      body: JSON.stringify({ typing: false }),
+    });
+  }
+
+  function noteTyping() {
+    if (!state.open || state.view !== 'thread' || !state.activeId) return;
+
+    const text = els.input ? els.input.value : '';
+    if (!text.trim()) {
+      stopTyping();
+      return;
+    }
+
+    const contactId = state.activeId;
+    const now = Date.now();
+    if (typingAnnouncedFor !== contactId || now - typingSentAt >= 2500) {
+      typingAnnouncedFor = contactId;
+      typingSentAt = now;
+      api(`/messages/${encodeURIComponent(contactId)}/typing`, {
+        method: 'POST',
+        body: JSON.stringify({ typing: true }),
+      });
+    }
+
+    if (typingStopTimer) clearTimeout(typingStopTimer);
+    typingStopTimer = setTimeout(stopTyping, 3000);
+  }
+
+  async function checkTyping() {
+    if (!state.open || state.view !== 'thread' || !state.activeId || document.hidden) return;
+    if (typingCheckInFlight) return;
+
+    const contactId = state.activeId;
+    typingCheckInFlight = true;
+    const result = await api(`/messages/${encodeURIComponent(contactId)}/typing`);
+    typingCheckInFlight = false;
+
+    if (!result || !result.success) return;
+    if (state.activeId !== contactId || !state.open || state.view !== 'thread') return;
+    setOtherTyping(Boolean(result.typing));
+  }
+
   async function api(path, options = {}) {
     try {
       const response = await fetch(`${API_BASE}${path}`, {
@@ -247,6 +352,7 @@
           contact.lastMessageAt || '',
           contact.lastMessage || '',
           contact.profilePictureDataUrl ? '1' : '0',
+          contact.typing ? '1' : '0',
         ].join('|')
       )
       .join('§');
@@ -335,9 +441,11 @@
             : contact.role === 'coordinator'
               ? ' tk-msg-avatar--coordinator'
               : '';
-        const preview = contact.lastMessage
-          ? `${contact.lastMessageMine ? 'You: ' : ''}${contact.lastMessage}`
-          : contact.companyName || contact.department || 'Start a conversation';
+        const preview = contact.typing
+          ? 'typing…'
+          : contact.lastMessage
+            ? `${contact.lastMessageMine ? 'You: ' : ''}${contact.lastMessage}`
+            : contact.companyName || contact.department || 'Start a conversation';
         const unread = contact.unread
           ? `<span class="tk-msg-contact__unread">${contact.unread > 99 ? '99+' : contact.unread}</span>`
           : '';
@@ -353,7 +461,7 @@
           '<span class="tk-msg-contact__meta">' +
           `<span class="tk-msg-role${roleClass}">${escapeHtml(contact.roleLabel)}</span>` +
           '</span>' +
-          `<span class="tk-msg-contact__preview">${escapeHtml(preview)}</span>` +
+          `<span class="tk-msg-contact__preview${contact.typing ? ' tk-msg-contact__preview--typing' : ''}">${escapeHtml(preview)}</span>` +
           '</span>' +
           unread +
           '</button>'
@@ -411,10 +519,11 @@
     if (!contact) return;
     if (els.threadName) els.threadName.textContent = contact.fullName || 'Conversation';
     if (els.threadSub) {
-      const bits = [contact.roleLabel, contact.companyName || contact.department]
-        .filter(Boolean)
-        .join(' · ');
-      els.threadSub.textContent = bits;
+      const bits = state.otherTyping
+        ? ['typing…']
+        : [contact.roleLabel, contact.companyName || contact.department].filter(Boolean);
+      els.threadSub.textContent = bits.join(' · ');
+      els.threadSub.classList.toggle('tk-msg-thread__sub--typing', state.otherTyping);
     }
     if (els.threadAvatar) {
       els.threadAvatar.innerHTML = avatarInner(contact);
@@ -444,7 +553,8 @@
         '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>' +
         '<strong>No messages yet</strong>' +
         '<span>Say hello to start the conversation.</span>' +
-        '</div>';
+        '</div>' +
+        (state.otherTyping ? typingIndicatorHtml() : '');
       return;
     }
 
@@ -464,6 +574,7 @@
           '</div>'
       );
     }
+    if (state.otherTyping) parts.push(typingIndicatorHtml());
     els.thread.innerHTML = parts.join('');
 
     if (stickToBottom) {
@@ -489,6 +600,8 @@
     }
 
     state.messages = Array.isArray(result.data) ? result.data : [];
+    state.otherTyping = Boolean(result.typing);
+    setContactTyping(state.activeId, state.otherTyping);
     if (result.contact) {
       state.activeContact = { ...state.activeContact, ...result.contact, unread: 0 };
       setThreadHeader(state.activeContact);
@@ -516,14 +629,19 @@
 
     const next = Array.isArray(result.data) ? result.data : [];
     const current = state.messages;
+    const nextTyping = Boolean(result.typing);
     const changed =
       next.length !== current.length ||
       (next.length > 0 &&
         current.length > 0 &&
         next[next.length - 1].id !== current[current.length - 1].id);
-    if (!changed) return;
+    if (!changed) {
+      setOtherTyping(nextTyping);
+      return;
+    }
 
     state.messages = next;
+    state.otherTyping = nextTyping;
     if (result.contact) {
       state.activeContact = { ...state.activeContact, ...result.contact, unread: 0 };
       setThreadHeader(state.activeContact);
@@ -538,6 +656,9 @@
 
   function showList() {
     state.view = 'list';
+    stopTyping();
+    state.otherTyping = false;
+    setContactTyping(state.activeId, false);
     if (els.listView) els.listView.hidden = false;
     if (els.threadView) els.threadView.hidden = true;
     // Switching views used to focus the search box, which made the panel's
@@ -556,10 +677,12 @@
 
   function selectContact(contact) {
     if (!contact) return;
+    stopTyping();
     state.activeId = contact.id;
     state.activeContact = contact;
     state.activeLastMessageAt = null;
     state.messages = [];
+    state.otherTyping = false;
     state.forceScroll = true;
     setStatus('');
     setThreadHeader(contact);
@@ -586,6 +709,9 @@
 
   function closePanel() {
     if (!state.open || !els.panel) return;
+    stopTyping();
+    setContactTyping(state.activeId, false);
+    state.otherTyping = false;
     state.open = false;
     els.panel.classList.remove('is-open');
     els.panel.setAttribute('aria-hidden', 'true');
@@ -670,12 +796,20 @@
       if (document.hidden) return;
       refreshContacts({ silent: true });
     }, 6000);
+    typingTimer = setInterval(() => {
+      if (document.hidden) return;
+      checkTyping();
+    }, 2500);
   }
 
   function stopPanelPolling() {
     if (contactsTimer) {
       clearInterval(contactsTimer);
       contactsTimer = null;
+    }
+    if (typingTimer) {
+      clearInterval(typingTimer);
+      typingTimer = null;
     }
   }
 
@@ -701,6 +835,7 @@
     const body = els.input.value.trim();
     if (!body) return;
 
+    stopTyping();
     state.sending = true;
     if (els.send) els.send.disabled = true;
     setStatus('');
@@ -856,7 +991,20 @@
       sendMessage();
     });
 
-    els.input.addEventListener('input', autoGrowInput);
+    els.input.addEventListener('input', () => {
+      autoGrowInput();
+      noteTyping();
+    });
+
+    els.input.addEventListener('blur', stopTyping);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopTyping();
+      } else if (state.open && state.view === 'thread') {
+        checkTyping();
+      }
+    });
 
     els.input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {

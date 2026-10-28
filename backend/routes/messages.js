@@ -29,6 +29,35 @@ const MAX_BODY_LENGTH = 2000;
 const CONTACT_LIMIT = 1000;
 const THREAD_LIMIT = 200;
 
+/**
+ * Ephemeral typing state for the polling-based messenger. Nothing is stored in
+ * Mongo: an entry simply expires a few seconds after the last keystroke, so a
+ * closed tab or lost request can never leave someone "typing" forever.
+ */
+const TYPING_TTL_MS = 5000;
+const typingState = new Map();
+
+function typingKey(typerId, recipientId) {
+  return `${String(typerId)}:${String(recipientId)}`;
+}
+
+function setTyping(typerId, recipientId, typing) {
+  const key = typingKey(typerId, recipientId);
+  if (typing) typingState.set(key, Date.now() + TYPING_TTL_MS);
+  else typingState.delete(key);
+}
+
+function isTyping(typerId, recipientId) {
+  const key = typingKey(typerId, recipientId);
+  const expiresAt = typingState.get(key);
+  if (!expiresAt) return false;
+  if (expiresAt <= Date.now()) {
+    typingState.delete(key);
+    return false;
+  }
+  return true;
+}
+
 function contactShape(doc) {
   if (!doc) return null;
   return {
@@ -202,6 +231,7 @@ router.get('/contacts', authenticateToken, async (req, res) => {
         return {
           ...contactShape(contact),
           unread: unreadBySender.get(id) || 0,
+          typing: isTyping(contact._id, viewerId),
           lastMessage: last ? last.body : '',
           lastMessageMine: last ? String(last.senderId) === String(viewerId) : false,
           lastMessageAt: last ? last.createdAt : null,
@@ -259,6 +289,62 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/messages/:userId/typing
+ * Cheap poll for the thread header: is this person currently typing to me?
+ */
+router.get('/:userId/typing', authenticateToken, async (req, res) => {
+  try {
+    const recipient = await resolveRecipient(req.user, req.params.userId);
+    if (!recipient) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not allowed to message this user',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      typing: isTyping(recipient._id, req.user.id),
+    });
+  } catch (error) {
+    console.error('[Messages] Error checking typing state:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Could not check typing state',
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/messages/:userId/typing
+ * Body: { typing: true | false }. Ephemeral; expires after TYPING_TTL_MS.
+ */
+router.post('/:userId/typing', authenticateToken, async (req, res) => {
+  try {
+    const recipient = await resolveRecipient(req.user, req.params.userId);
+    if (!recipient) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not allowed to message this user',
+      });
+    }
+
+    const typing = !(req.body && req.body.typing === false);
+    setTyping(req.user.id, recipient._id, typing);
+
+    res.status(200).json({ success: true, typing });
+  } catch (error) {
+    console.error('[Messages] Error updating typing state:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Could not update typing state',
+      error: error.message,
+    });
+  }
+});
+
+/**
  * GET /api/messages/:userId
  * Full conversation with one person, oldest first. Opening it marks every
  * message they sent as read.
@@ -296,6 +382,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
     res.status(200).json({
       success: true,
       contact: contactShape(recipient),
+      typing: isTyping(recipient._id, req.user.id),
       data: docs.map((doc) => messageShape(doc, req.user.id)),
     });
   } catch (error) {
@@ -345,6 +432,9 @@ router.post('/:userId', authenticateToken, async (req, res) => {
       recipientRole: recipient.role,
       body,
     });
+
+    // Sending ends the "typing…" state immediately for the recipient.
+    setTyping(req.user.id, recipient._id, false);
 
     const shaped = messageShape(doc.toObject(), req.user.id);
 
