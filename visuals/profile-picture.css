@@ -60,6 +60,14 @@
   background: #1e293b;
 }
 
+/* Mobile keeps the navbar uncluttered: the utility icons and menu are enough,
+   and the picture is still available in Settings. */
+@media (max-width: 767.98px) {
+  .nav-user-avatar {
+    display: none !important;
+  }
+}
+
 /* ── Settings card ───────────────────────────────────────────────────────── */
 
 .profile-picture-card__body {
