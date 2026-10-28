@@ -2799,6 +2799,7 @@ async function saveProfile(event) {
 
     // Update the nav username
     document.getElementById('user-name').textContent = name.split(' ')[0];
+    if (window.TrackITProfilePicture) window.TrackITProfilePicture.refresh();
 
     alert('Profile updated successfully!');
   } else {
@@ -4114,20 +4115,7 @@ function logout() {
   });
 }
 
-// Profile photo upload
-function setupProfilePhotoUpload() {
-  const uploadDiv = document.querySelector('.profile-photo-upload');
-  const fileInput = document.getElementById('profile-photo');
-
-  if (uploadDiv && fileInput) {
-    uploadDiv.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        alert('Profile photo updated successfully!');
-      }
-    });
-  }
-}
+// Profile photo upload is handled by the shared profile-picture.js module.
 
 // ────────────────────────────────────────────────────────────────────────────
 // QR SCANNING & DTR FUNCTIONS
@@ -5315,8 +5303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     progressLink.addEventListener('click', initChart);
   }
 
-  // Setup profile photo upload
-  setupProfilePhotoUpload();
+  // Setup journal photo upload
   setupJournalPhotoUpload();
 
   // Start DTR polling to detect time in/out changes and auto-refresh

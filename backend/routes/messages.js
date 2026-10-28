@@ -22,6 +22,7 @@ const CONTACT_FIELDS = [
   'coordinatorDepartment',
   'companyDepartment',
   'companyPosition',
+  'profilePictureDataUrl',
 ].join(' ');
 
 const MAX_BODY_LENGTH = 2000;
@@ -41,6 +42,7 @@ function contactShape(doc) {
     department:
       doc.department || doc.coordinatorDepartment || doc.companyDepartment || '',
     email: doc.email || '',
+    profilePictureDataUrl: doc.profilePictureDataUrl || '',
   };
 }
 

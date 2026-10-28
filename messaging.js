@@ -99,6 +99,15 @@
     return (first + second).toUpperCase();
   }
 
+  /** Avatar contents: the contact's picture when set, otherwise initials. */
+  function avatarInner(contact) {
+    const picture = contact && contact.profilePictureDataUrl;
+    if (picture) {
+      return `<img class="avatar-img" src="${escapeHtml(picture)}" alt="">`;
+    }
+    return escapeHtml(initials(contact && contact.fullName));
+  }
+
   function asDate(value) {
     const date = value ? new Date(value) : null;
     return date && !Number.isNaN(date.getTime()) ? date : null;
@@ -237,6 +246,7 @@
           contact.unread,
           contact.lastMessageAt || '',
           contact.lastMessage || '',
+          contact.profilePictureDataUrl ? '1' : '0',
         ].join('|')
       )
       .join('§');
@@ -334,7 +344,7 @@
 
         return (
           `<button type="button" class="tk-msg-contact${active}" data-contact-id="${escapeHtml(contact.id)}">` +
-          `<span class="tk-msg-avatar${avatarRole}">${escapeHtml(initials(contact.fullName))}</span>` +
+          `<span class="tk-msg-avatar${avatarRole}">${avatarInner(contact)}</span>` +
           '<span class="tk-msg-contact__main">' +
           '<span class="tk-msg-contact__top">' +
           `<span class="tk-msg-contact__name">${escapeHtml(contact.fullName)}</span>` +
@@ -407,7 +417,7 @@
       els.threadSub.textContent = bits;
     }
     if (els.threadAvatar) {
-      els.threadAvatar.textContent = initials(contact.fullName);
+      els.threadAvatar.innerHTML = avatarInner(contact);
       els.threadAvatar.className =
         'tk-msg-avatar tk-msg-avatar--lg' +
         (contact.role === 'supervisor'

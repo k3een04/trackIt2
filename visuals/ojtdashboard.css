@@ -567,24 +567,6 @@ nav {
   background: var(--border);
 }
 
-/* Profile photo upload */
-.profile-photo-upload {
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  padding: 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.profile-photo-upload:hover {
-  border-color: var(--teal);
-  background: rgba(59, 130, 246, 0.05);
-}
-
 /* Journal photo upload */
 .journal-photo-upload {
   border: 2px dashed var(--border);
@@ -2285,15 +2267,6 @@ body.light-mode .qr-frame::before {
 
 body.light-mode .divider {
   background: rgba(0, 0, 0, 0.08);
-}
-
-body.light-mode .profile-photo-upload {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-body.light-mode .profile-photo-upload:hover {
-  background: rgba(59, 130, 246, 0.05);
-  border-color: #3b82f6;
 }
 
 body.light-mode h1,
@@ -4557,7 +4530,6 @@ body:not(.light-mode) .journal-day-tab[aria-selected="true"] {
   border-color: rgba(59, 130, 246, 0.35);
 }
 
-body:not(.light-mode) .profile-photo-upload:hover,
 body:not(.light-mode) .journal-photo-upload:hover {
   background: rgba(59, 130, 246, 0.05);
 }

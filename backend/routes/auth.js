@@ -399,6 +399,7 @@ router.post('/login', loginLimiter, loginAccountLimiter, async (req, res) => {
         section: user.section,
         companyName: user.companyName,
         companyPosition: user.companyPosition,
+        profilePictureDataUrl: user.profilePictureDataUrl || '',
       },
     });
   } catch (error) {

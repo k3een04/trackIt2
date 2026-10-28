@@ -163,6 +163,10 @@ app.get('/visuals/verification-modal.css', (req, res) => {
 app.get('/visuals/messaging.css', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'visuals', 'messaging.css'));
 });
+// Profile picture badge + Settings uploader shared by all three dashboards.
+app.get('/visuals/profile-picture.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'profile-picture.css'));
+});
 app.get('/landingpage.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'landingpage.js'));
 });
@@ -190,6 +194,10 @@ app.get('/verification-modal.js', (req, res) => {
 // Shared sidebar messenger; loaded by all three dashboards.
 app.get('/messaging.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'messaging.js'));
+});
+// Shared profile picture uploader + navbar avatar.
+app.get('/profile-picture.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'profile-picture.js'));
 });
 app.get('/coordinator-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'coordinator-dashboard.js'));

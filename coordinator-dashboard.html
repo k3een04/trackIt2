@@ -23,6 +23,8 @@
   <link rel="stylesheet" href="visuals/verification-modal.css?v=5">
   <!-- Sidebar messenger: launcher at the bottom of the rail + popup chat. -->
   <link rel="stylesheet" href="visuals/messaging.css?v=4">
+  <!-- Profile picture badge + Settings uploader shared by all dashboards. -->
+  <link rel="stylesheet" href="visuals/profile-picture.css?v=1">
 </head>
 <body>
   <script>
@@ -51,6 +53,7 @@
       </a>
 
       <div class="flex items-center gap-3 md:gap-4 flex-wrap">
+        <button type="button" id="nav-user-avatar" class="nav-user-avatar" data-user-avatar onclick="switchTab('settings')" title="Open settings" aria-label="Open your profile settings">C</button>
         <span class="hidden md:inline text-sm text-slate-400">Welcome,  <span id="user-name" class="text-blue-400">Coordinator</span></span>
 
         <!-- Global Search -->
@@ -1081,6 +1084,26 @@
 
         <!-- Account Summary -->
         <div>
+          <div class="glass-card p-6 profile-picture-card mb-6" data-profile-picture-card>
+            <h3 class="font-display font-700 mb-4">Profile Picture</h3>
+            <div class="profile-picture-card__body">
+              <button type="button" class="profile-picture-card__preview" data-profile-picture-preview aria-label="Upload profile picture">
+                <span data-profile-picture-initials aria-hidden="true">—</span>
+                <img data-profile-picture-image alt="Your profile picture" hidden>
+              </button>
+              <div class="profile-picture-card__meta">
+                <p class="text-xs text-slate-400">This picture replaces your initials on your avatar across TrackIT.</p>
+                <p class="text-xs text-slate-500 mt-1">PNG, JPG or WebP · square images look best.</p>
+                <div class="profile-picture-card__actions">
+                  <button type="button" class="btn-ghost" data-profile-picture-upload>Upload photo</button>
+                  <button type="button" class="btn-ghost" data-profile-picture-remove hidden>Remove</button>
+                </div>
+                <p class="profile-picture-card__status" data-profile-picture-status role="status" hidden></p>
+              </div>
+            </div>
+            <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" data-profile-picture-input>
+          </div>
+
           <div class="glass-card p-6">
             <h3 class="font-display font-700 mb-4">Account Summary</h3>
             <div class="space-y-3 text-sm">
@@ -1508,7 +1531,9 @@
        opens it from the notification, journal and session actions. -->
   <script src="verification-modal.js?v=5"></script>
   <!-- Sidebar messenger (shared by all three dashboards). -->
-  <script src="messaging.js?v=4"></script>
-  <script src="coordinator-dashboard.js?v=20"></script>
+  <script src="messaging.js?v=5"></script>
+  <!-- Shared profile picture uploader + navbar avatar. -->
+  <script src="profile-picture.js?v=1"></script>
+  <script src="coordinator-dashboard.js?v=21"></script>
 </body>
 </html>

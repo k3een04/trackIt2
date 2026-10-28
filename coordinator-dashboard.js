@@ -933,7 +933,7 @@ function snapshotRowHtml(row) {
     <tr>
       <td class="cell cell--trainee">
         <span class="snap-trainee">
-          <span class="snap-avatar" aria-hidden="true">${escapeHtml(traineeInitials(name))}</span>
+          <span class="snap-avatar" aria-hidden="true">${traineeAvatarInner(row, name)}</span>
           <span class="snap-trainee__meta">
             <span class="cell__name">${escapeHtml(name)}</span>
             ${inactiveChip}
@@ -3175,11 +3175,9 @@ function resetActivityStatusCard() {
 
 function activityDetailRow(trainee) {
   const name = activityTraineeName(trainee) || 'Unnamed trainee';
-  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2)
-    .map(part => part.charAt(0)).join('').toUpperCase();
   return `
     <button type="button" class="activity-row" onclick="openActivityTraineeProfile('${jsStringArg(trainee.id)}')">
-      <span class="activity-row__avatar" aria-hidden="true">${escapeHtml(initials || '?')}</span>
+      <span class="activity-row__avatar" aria-hidden="true">${traineeAvatarInner(trainee, name)}</span>
       <span class="activity-row__main">
         <span class="activity-row__name">${escapeHtml(name)}</span>
         <span class="activity-row__meta">${escapeHtml(activityTraineeIdentity(trainee))}</span>
@@ -4529,7 +4527,6 @@ function renderGlobalSearchResults(results, platform = 'desktop', state = 'resul
   }
 
   const html = results.map((trainee, index) => {
-    const initials = getInitials(trainee.fullName);
     const status = getTraineeDisplayStatus(trainee);
     const statusClass = getStatusClassName(status);
     const courseSection = `${trainee.department || ''} ${trainee.section ? '• ' + trainee.section : ''}`.trim();
@@ -4538,7 +4535,7 @@ function renderGlobalSearchResults(results, platform = 'desktop', state = 'resul
     if (platform === 'desktop') {
       return `
         <button type="button" class="search-result-item w-full text-left" tabindex="-1" data-index="${index}" data-trainee-id="${trainee._id}" onclick="selectGlobalSearchResult('${trainee._id}')" onmouseenter="highlightGlobalSearchResult(${index})" onfocus="highlightGlobalSearchResult(${index})">
-          <span class="search-result-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+          <span class="search-result-avatar" aria-hidden="true">${traineeAvatarInner(trainee)}</span>
           <div class="search-result-info">
             <span class="search-result-name">${escapeHtml(trainee.fullName || 'Unknown Trainee')}</span>
             <div class="search-result-meta">
@@ -4554,7 +4551,7 @@ function renderGlobalSearchResults(results, platform = 'desktop', state = 'resul
       return `
         <div class="mobile-search-result" data-index="${index}" data-trainee-id="${trainee._id}" onclick="selectGlobalSearchResult('${trainee._id}')" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')selectGlobalSearchResult('${trainee._id}')">
           <div class="mobile-search-result-header">
-            <span class="mobile-search-result-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+            <span class="mobile-search-result-avatar" aria-hidden="true">${traineeAvatarInner(trainee)}</span>
             <span class="mobile-search-result-name">${escapeHtml(trainee.fullName || 'Unknown Trainee')}</span>
             <span class="mobile-search-result-status ${statusClass}">${escapeHtml(status)}</span>
           </div>
@@ -4729,6 +4726,26 @@ function getInitials(name) {
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
+/**
+ * Profile picture for a trainee row. Compact analytics rows only carry an id,
+ * so fall back to the trainee cache loaded for the Trainees tab.
+ */
+function traineePictureDataUrl(trainee) {
+  if (!trainee) return '';
+  if (trainee.profilePictureDataUrl) return trainee.profilePictureDataUrl;
+  const id = trainee.id || trainee._id;
+  if (!id) return '';
+  const cached = traineesCache.find(item => String(item._id) === String(id));
+  return (cached && cached.profilePictureDataUrl) || '';
+}
+
+/** Avatar contents: the picture when set, otherwise the trainee's initials. */
+function traineeAvatarInner(trainee, name) {
+  const picture = traineePictureDataUrl(trainee);
+  if (picture) return `<img class="avatar-img" src="${escapeHtml(picture)}" alt="">`;
+  return escapeHtml(getInitials(name || trainee?.fullName || trainee?.name || ''));
+}
+
 /** Get display status for trainee */
 function getTraineeDisplayStatus(trainee) {
   if (trainee.activityStatus === 'INACTIVE' || trainee.isActive === false) return 'Inactive';
@@ -4790,8 +4807,8 @@ function paintCachedTraineeProfile(traineeId) {
   if (!modal) return;
 
   // Populate header
-  const initials = getInitials(trainee.fullName);
-  document.getElementById('trainee-profile-avatar').textContent = initials;
+  const avatarEl = document.getElementById('trainee-profile-avatar');
+  if (avatarEl) avatarEl.innerHTML = traineeAvatarInner(trainee);
   document.getElementById('trainee-profile-name').textContent = trainee.fullName || 'Unknown Trainee';
 
   const courseSection = `${trainee.department || ''} ${trainee.section ? '• ' + trainee.section : ''}`.trim();
@@ -5078,7 +5095,7 @@ function renderProfileHeaderFrom(trainee) {
 
   const name = trainee.fullName || 'Unknown Trainee';
   const avatar = el('trainee-profile-avatar');
-  if (avatar) avatar.textContent = getInitials(name);
+  if (avatar) avatar.innerHTML = traineeAvatarInner(trainee, name);
   const nameEl = el('trainee-profile-name');
   if (nameEl) nameEl.textContent = name;
 

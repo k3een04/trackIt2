@@ -200,6 +200,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       sparse: true,
     },
+    /**
+     * Square profile picture stored as a resized image data URL. The browser
+     * downscales before upload (see profile-picture.js), so this stays small
+     * enough to travel inside the normal user payloads that render avatars.
+     */
+    profilePictureDataUrl: {
+      type: String,
+      sparse: true,
+    },
 
     // Two-factor authentication with an authenticator app.
     // Students and coordinators must confirm a 6-digit app code after signup.

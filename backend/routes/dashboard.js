@@ -105,7 +105,15 @@ router.get('/profile', authenticateToken, async (req, res) => {
 // @access  Private
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    const { fullName, studentId, department, companyName, companyPosition, signatureDataUrl } = req.body;
+    const {
+      fullName,
+      studentId,
+      department,
+      companyName,
+      companyPosition,
+      signatureDataUrl,
+      profilePictureDataUrl,
+    } = req.body;
 
     const updateData = {};
     if (fullName) updateData.fullName = fullName;
@@ -130,6 +138,31 @@ router.put('/profile', authenticateToken, async (req, res) => {
       }
 
       updateData.signatureDataUrl = signatureDataUrl;
+    }
+
+    // `null` or '' removes the picture; any other value must be a small,
+    // resized image data URL produced by the Settings uploader.
+    if (profilePictureDataUrl !== undefined) {
+      if (profilePictureDataUrl === null || profilePictureDataUrl === '') {
+        updateData.profilePictureDataUrl = null;
+      } else {
+        if (typeof profilePictureDataUrl !== 'string' ||
+            !/^data:image\/(png|jpe?g|webp);base64,/i.test(profilePictureDataUrl)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Profile picture must be a PNG, JPG or WebP image',
+          });
+        }
+
+        if (profilePictureDataUrl.length > 900_000) {
+          return res.status(400).json({
+            success: false,
+            message: 'Profile picture is too large. Please choose a smaller image.',
+          });
+        }
+
+        updateData.profilePictureDataUrl = profilePictureDataUrl;
+      }
     }
 
     const user = await User.findByIdAndUpdate(req.user.id, updateData, {

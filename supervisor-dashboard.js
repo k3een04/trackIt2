@@ -450,7 +450,7 @@ async function loadAssignedTrainees() {
     cardsContainer.innerHTML = trainees.map(trainee => `
       <div class="glass-card p-6 trainee-card">
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-blue-600 flex items-center justify-center text-white font-bold text-lg">${getInitials(trainee.fullName)}</div>
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-blue-600 flex items-center justify-center text-white font-bold text-lg overflow-hidden">${trainee.profilePictureDataUrl ? `<img class="avatar-img" src="${escapeHtml(trainee.profilePictureDataUrl)}" alt="">` : getInitials(trainee.fullName)}</div>
           <div class="flex-1">
             <h4 class="font-semibold text-white">${trainee.fullName}</h4>
             <p class="text-xs text-slate-500">${trainee.studentId || '—'}</p>
@@ -474,7 +474,7 @@ async function loadAssignedTrainees() {
     overviewTrainees.innerHTML = trainees.map(trainee => `
       <div class="trainee-summary-item">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-600 flex items-center justify-center text-white text-xs font-bold">${getInitials(trainee.fullName)}</div>
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden">${trainee.profilePictureDataUrl ? `<img class="avatar-img" src="${escapeHtml(trainee.profilePictureDataUrl)}" alt="">` : getInitials(trainee.fullName)}</div>
           <div class="flex-1">
             <p class="text-sm font-semibold text-white">${trainee.fullName}</p>
             <p class="text-xs text-slate-500">${trainee.department || '—'} • ${trainee.studentId || '—'}</p>
@@ -2286,6 +2286,7 @@ function saveSupervisorProfile(event) {
     if (positionInput) positionInput.value = updatedUser.companyPosition || companyPosition;
 
     updateSignaturePreview();
+    if (window.TrackITProfilePicture) window.TrackITProfilePicture.refresh();
     showNotification('Profile updated', 'Your changes have been saved.', 'success');
   });
 }
