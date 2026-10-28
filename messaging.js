@@ -76,11 +76,11 @@
 
   let contactsTimer = null;
   let badgeTimer = null;
-  let typingTimer = null;
   let typingStopTimer = null;
   let typingSentAt = 0;
   let typingAnnouncedFor = null;
-  let typingCheckInFlight = false;
+  let updatesTimer = null;
+  let updatesInFlight = false;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -256,7 +256,10 @@
 
     const contactId = state.activeId;
     const now = Date.now();
-    if (typingAnnouncedFor !== contactId || now - typingSentAt >= 2500) {
+    // Re-announce at least every 1.2s while keys are going down. The server
+    // keeps the flag alive for 5s, so this keeps the indicator continuously
+    // fresh on the recipient's side without a write per keystroke.
+    if (typingAnnouncedFor !== contactId || now - typingSentAt >= 1200) {
       typingAnnouncedFor = contactId;
       typingSentAt = now;
       api(`/messages/${encodeURIComponent(contactId)}/typing`, {
@@ -267,20 +270,6 @@
 
     if (typingStopTimer) clearTimeout(typingStopTimer);
     typingStopTimer = setTimeout(stopTyping, 3000);
-  }
-
-  async function checkTyping() {
-    if (!state.open || state.view !== 'thread' || !state.activeId || document.hidden) return;
-    if (typingCheckInFlight) return;
-
-    const contactId = state.activeId;
-    typingCheckInFlight = true;
-    const result = await api(`/messages/${encodeURIComponent(contactId)}/typing`);
-    typingCheckInFlight = false;
-
-    if (!result || !result.success) return;
-    if (state.activeId !== contactId || !state.open || state.view !== 'thread') return;
-    setOtherTyping(Boolean(result.typing));
   }
 
   async function api(path, options = {}) {
@@ -666,6 +655,8 @@
     // panel anchored at 0,0 instead.
     if (els.panel) els.panel.scrollLeft = 0;
     renderContacts();
+    // No thread on screen — the fast delta poll has nothing to watch.
+    stopThreadPolling();
   }
 
   function showThread() {
@@ -673,6 +664,7 @@
     if (els.listView) els.listView.hidden = true;
     if (els.threadView) els.threadView.hidden = false;
     if (els.panel) els.panel.scrollLeft = 0;
+    startThreadPolling();
   }
 
   function selectContact(contact) {
@@ -720,6 +712,7 @@
       launcher.setAttribute('aria-expanded', 'false');
     });
     stopPanelPolling();
+    stopThreadPolling();
     refreshUnread();
   }
 
@@ -792,14 +785,12 @@
 
   function startPanelPolling() {
     stopPanelPolling();
+    // Inbox list: previews, unread counts, ordering. 3s is plenty here — the
+    // open conversation has its own much faster delta poll below.
     contactsTimer = setInterval(() => {
       if (document.hidden) return;
       refreshContacts({ silent: true });
-    }, 6000);
-    typingTimer = setInterval(() => {
-      if (document.hidden) return;
-      checkTyping();
-    }, 2500);
+    }, 3000);
   }
 
   function stopPanelPolling() {
@@ -807,9 +798,91 @@
       clearInterval(contactsTimer);
       contactsTimer = null;
     }
-    if (typingTimer) {
-      clearInterval(typingTimer);
-      typingTimer = null;
+  }
+
+  /**
+   * Delta poll for the open conversation, replacing two slower loops (the 6s
+   * contacts poll noticing a changed preview, plus a separate typing poll).
+   * Every ~900ms the client asks only for messages newer than the newest one
+   * it already has, and the same response carries the typing flag — one cheap
+   * indexed query per tick instead of re-downloading the whole thread. This
+   * is what makes delivery feel instant without a push channel.
+   */
+  function startThreadPolling() {
+    stopThreadPolling();
+    updatesTimer = setInterval(() => {
+      if (document.hidden) return;
+      pollUpdates();
+    }, 900);
+    pollUpdates();
+  }
+
+  function stopThreadPolling() {
+    if (updatesTimer) {
+      clearInterval(updatesTimer);
+      updatesTimer = null;
+    }
+    updatesInFlight = false;
+  }
+
+  async function pollUpdates() {
+    if (!state.open || state.view !== 'thread' || !state.activeId || document.hidden) return;
+    if (state.sending || updatesInFlight) return;
+
+    const contactId = state.activeId;
+    const after = state.messages.length
+      ? state.messages[state.messages.length - 1].id
+      : '';
+
+    updatesInFlight = true;
+    try {
+      const query = after ? `?after=${encodeURIComponent(after)}` : '';
+      const result = await api(`/messages/${encodeURIComponent(contactId)}/updates${query}`);
+      if (!result || !result.success) return;
+      if (state.activeId !== contactId || state.view !== 'thread') return;
+
+      const incoming = Array.isArray(result.data) ? result.data : [];
+
+      // A full batch means the delta window (60) overflowed — the client was
+      // away for a while. Re-download the whole thread once and carry on.
+      if (incoming.length >= 60) {
+        await refreshThreadSilently();
+        return;
+      }
+
+      if (incoming.length) {
+        for (const message of incoming) {
+          if (!state.messages.some((existing) => existing.id === message.id)) {
+            state.messages.push(message);
+          }
+        }
+        const newest = state.messages[state.messages.length - 1];
+        state.activeLastMessageAt = newest ? newest.createdAt : null;
+
+        // Mirror the arrival into the inbox row so the preview and ordering
+        // keep up even between contacts polls. The server marked the batch as
+        // read, so the row's unread count clears too.
+        const contact = state.contacts.find((item) => item.id === contactId);
+        if (contact) {
+          contact.unread = 0;
+          contact.lastMessage = newest ? newest.body : contact.lastMessage;
+          contact.lastMessageAt = state.activeLastMessageAt;
+          contact.lastMessageMine = false;
+          state.contactsSignature = contactsSignature();
+          renderContacts();
+        }
+
+        renderThread();
+        refreshUnread();
+      }
+
+      // The same response carries the typing flag, so the indicator now
+      // updates every tick instead of on its own slower poll. It also clears
+      // the moment a message actually lands (the server clears typing on
+      // send), so "typing…" never lingers under a fresh message.
+      setOtherTyping(Boolean(result.typing));
+    } finally {
+      updatesInFlight = false;
     }
   }
 
@@ -1002,7 +1075,9 @@
       if (document.hidden) {
         stopTyping();
       } else if (state.open && state.view === 'thread') {
-        checkTyping();
+        // Returning to the tab: catch up immediately instead of waiting for
+        // the next tick of the interval.
+        pollUpdates();
       }
     });
 
