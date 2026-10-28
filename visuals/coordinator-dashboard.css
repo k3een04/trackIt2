@@ -29,8 +29,7 @@ body.theme-fade .main-content {
   animation: themeFade 0.35s ease;
 }
 
-@keyframes themeFade {
-  from {
+@keyframes themeFade {from {
     opacity: 0.4;
   }
   to {
@@ -93,16 +92,14 @@ body::before {
   height: clamp(250px, 30vh, 300px);
 }
 
-@media (max-width: 1024px) {
-  .chart-frame--bars,
+@media (max-width: 1024px) {.chart-frame--bars,
   .chart-frame--bars.chart-frame--h,
   .chart-frame--bars.chart-frame--tall {
     height: clamp(240px, 36vh, 320px);
   }
 }
 
-@media (max-width: 640px) {
-  .chart-frame,
+@media (max-width: 640px) {.chart-frame,
   .chart-frame--bars,
   .chart-frame--bars.chart-frame--h,
   .chart-frame--bars.chart-frame--tall {
@@ -114,8 +111,7 @@ body::before {
   }
 }
 
-@media (max-width: 480px) {
-  .chart-frame,
+@media (max-width: 480px) {.chart-frame,
   .chart-frame--bars,
   .chart-frame--bars.chart-frame--h,
   .chart-frame--bars.chart-frame--tall {
@@ -136,7 +132,7 @@ body::before {
   max-width: 100%;
 }
 
-nav img{
+nav img {
   width: 60px;
 }
 
@@ -152,8 +148,7 @@ nav {
   padding: 12px 16px;
 }
 
-@media (min-width: 768px) {
-  nav {
+@media (min-width: 768px) {nav {
     padding: 16px 24px;
   }
 }
@@ -358,8 +353,7 @@ nav {
   animation: tabEnterBack 0.35s ease;
 }
 
-@keyframes tabEnter {
-  from {
+@keyframes tabEnter {from {
     opacity: 0;
     transform: translateX(12px);
   }
@@ -369,8 +363,7 @@ nav {
   }
 }
 
-@keyframes tabEnterBack {
-  from {
+@keyframes tabEnterBack {from {
     opacity: 0;
     transform: translateX(-12px);
   }
@@ -390,8 +383,7 @@ nav {
   display: block;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+@keyframes fadeIn {from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -1257,8 +1249,8 @@ select option:hover {
     gap: 2px;
   }
 
+  /* The bell is deliberately absent: it keeps its 44px touch target here. */
   nav #theme-toggle,
-  nav #notif-btn,
   nav #menu-toggle,
   nav #mobile-search-btn {
     min-height: 34px;
@@ -1289,6 +1281,19 @@ select option:hover {
   }
 }
 
+/* The markup hides both phone-only controls at md (`md:hidden`), but the
+   `max-width: 768px` blocks above force them back to inline-flex — and at
+   exactly 768px that media query still matches while Tailwind's md: utilities
+   have already switched the desktop search on. Result was three search/menu
+   controls and a nav that overflowed its row. #navbar raises specificity so
+   the md boundary wins regardless of rule order. */
+@media (min-width: 768px) {
+  #navbar #mobile-search-btn,
+  #navbar #menu-toggle {
+    display: none;
+  }
+}
+
 /* Sidebar overlay (mobile) */
 .sidebar-overlay {
   display: none;
@@ -1306,8 +1311,7 @@ select option:hover {
   opacity: 1;
 }
 
-@media (max-width: 768px) {
-  .sidebar-overlay.visible {
+@media (max-width: 768px) {.sidebar-overlay.visible {
     display: block;
   }
 }
@@ -1331,8 +1335,7 @@ select option:hover {
   background: rgba(59,130,246,0.1);
 }
 
-@media (max-width: 768px) {
-  #menu-toggle {
+@media (max-width: 768px) {#menu-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1740,8 +1743,7 @@ body.light-mode .tab-back-btn:hover {
 
 .activity-chart-note[hidden] { display: none; }
 
-@media (max-width: 640px) {
-  .activity-chart-frame {
+@media (max-width: 640px) {.activity-chart-frame {
     height: clamp(180px, 30vh, 220px);
   }
 }
@@ -1758,12 +1760,10 @@ body.light-mode .tab-back-btn:hover {
   background: var(--tk-surface-1, var(--glass));
 }
 
-@media (min-width: 640px) {
-  .activity-detail { max-width: 520px; }
+@media (min-width: 640px) {.activity-detail { max-width: 520px; }
 }
 
-@media (max-width: 639px) {
-  .activity-detail {
+@media (max-width: 639px) {.activity-detail {
     max-height: 86vh;
     max-height: 86dvh;
     border-radius: var(--tk-radius-lg, 16px) var(--tk-radius-lg, 16px) 0 0;
@@ -1943,133 +1943,6 @@ body.light-mode .tab-back-btn:hover {
   transition: width 0.4s ease;
 }
 
-/* Notification bell popup */
-#notif-btn { position: relative; }
-.notif-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
-  background: #2563eb;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--navy);
-}
-.notif-popup {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 360px;
-  max-width: calc(100vw - 32px);
-  max-height: 480px;
-  background: var(--navy-mid);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  z-index: 1000;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-@media (max-width: 480px) {
-  .notif-popup {
-    width: calc(100vw - 24px);
-    right: -8px;
-    border-radius: 10px;
-  }
-}
-.notif-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-}
-.notif-header h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-.notif-list {
-  overflow-y: auto;
-  max-height: 420px;
-  padding: 8px;
-}
-.notif-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-  align-items: flex-start;
-}
-.notif-item:hover { background: #1e293b; }
-.notif-item.unread { background: rgba(59,130,246,0.08); }
-.notif-item.unread .notif-text { color: #fff; }
-.notif-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.notif-icon.journal { background: rgba(59,130,246,0.2); color: #3b82f6; }
-.notif-icon.attendance { background: rgba(34,197,94,0.2); color: #22c55e; }
-.notif-icon.system { background: rgba(245,200,66,0.2); color: #f5c82; }
-.notif-icon.dtr { background: rgba(239,68,68,0.2); color: #ef4444; }
-.notif-icon.inactivity { background: rgba(239,68,68,0.2); color: #ef4444; }
-.notif-icon.activity { background: rgba(34,197,94,0.2); color: #22c55e; }
-.notif-content { flex: 1; min-width: 0; }
-.notif-text {
-  font-size: 13px;
-  color: #94a3b8;
-  margin: 0 0 4px 0;
-  line-height: 1.4;
-}
-.notif-time {
-  font-size: 11px;
-  color: #64748b;
-}
-.notif-close {
-  width: 20px;
-  height: 20px;
-  background: none;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  padding: 0;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-.notif-close:hover { color: #ef4444; }
-.notif-empty {
-  text-align: center;
-  padding: 32px 16px;
-  color: #64748b;
-  font-size: 13px;
-}
-
-body.light-mode .notif-popup {
-  background: #fff;
-  border-color: rgba(0,0,0,0.1);
-}
-body.light-mode .notif-header {
-  border-color: rgba(0,0,0,0.1);
-}
-body.light-mode .notif-item:hover { background: rgba(0,0,0,0.03); }
-body.light-mode .notif-item.unread { background: rgba(59,130,246,0.1); }
-body.light-mode .notif-text { color: #475569; }
-body.light-mode .notif-time { color: #94a3b8; }
 
 .progress-fill-complete { background: #22c55e; }
 
@@ -3132,8 +3005,7 @@ body.light-mode .week-picker__option-current {
   color: var(--teal-dark);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .week-picker__chevron,
+@media (prefers-reduced-motion: reduce) {.week-picker__chevron,
   .week-picker__trigger,
   .week-picker__option {
     transition: none;
@@ -3295,8 +3167,7 @@ button.jt-dot:focus-visible { outline: 2px solid var(--teal); outline-offset: 1p
   animation: skelSweep 1.4s ease-in-out infinite;
 }
 
-@keyframes skelSweep {
-  100% { transform: translateX(100%); }
+@keyframes skelSweep {100% { transform: translateX(100%); }
 }
 
 .skel--value { width: 72px; height: 32px; margin: 2px 0 4px; }
@@ -3715,17 +3586,14 @@ body.light-mode .pager__btn--current { color: var(--teal-deep, #1d4ed8); backgro
   .ov-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 1024px) {
-  .ov-grid--snapshot { grid-template-columns: 1fr; }
+@media (max-width: 1024px) {.ov-grid--snapshot { grid-template-columns: 1fr; }
   .ov-grid--halves { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 900px) {
-  .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) {.filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 640px) {
-  .page-header { margin-bottom: 20px; }
+@media (max-width: 640px) {.page-header { margin-bottom: 20px; }
   .ov-kpi-grid { grid-template-columns: 1fr; }
 
   /* Phones: the four trainee filters read as a 2x2 grid instead of one tall
@@ -3790,8 +3658,7 @@ body.light-mode .pager__btn--current { color: var(--teal-deep, #1d4ed8); backgro
   body .glass-card .jt-table tbody td { padding: 6px 3px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .skel::after { animation: none; }
+@media (prefers-reduced-motion: reduce) {.skel::after { animation: none; }
   .ov-kpi:hover { transform: none; }
   .row-flash .cell { animation: none; }
 }
@@ -3813,6 +3680,10 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
 
 #global-search-container {
   position: relative;
+  /* Width lives here (not as an inline style) so the nav can narrow the field
+     on medium screens. The results dropdown is positioned from the input's
+     own measured rect, so it follows automatically. */
+  width: var(--tk-search-w, 280px);
 }
 
 /* The magnifier is absolutely positioned at left: 12px and is 18px wide, so
@@ -3827,13 +3698,21 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
 }
 
 #global-search-input {
-  width: 280px !important;
+  width: var(--tk-search-w, 280px) !important;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
 #global-search-input:focus {
   /* Keep width stable to prevent layout shift and ensure dropdown alignment */
-  width: 280px !important;
+  width: var(--tk-search-w, 280px) !important;
+}
+
+/* Between the md and lg breakpoints the nav carries the desktop search field
+   but has no room for it at full width next to the wordmark and controls. */
+@media (min-width: 768px) and (max-width: 1199px) {
+  #navbar {
+    --tk-search-w: 200px;
+  }
 }
 
 #global-search-results,
@@ -3849,8 +3728,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
   position: fixed !important;
 }
 
-@keyframes searchResultsFadeIn {
-  from {
+@keyframes searchResultsFadeIn {from {
     opacity: 0;
     transform: translateY(-8px);
   }
@@ -4020,8 +3898,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
   animation: mobileSearchSlideDown 0.25s ease-out;
 }
 
-@keyframes mobileSearchSlideDown {
-  from {
+@keyframes mobileSearchSlideDown {from {
     opacity: 0;
     transform: translateY(-20px);
   }
@@ -4035,8 +3912,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
   animation: overlayFadeIn 0.2s ease-out;
 }
 
-@keyframes overlayFadeIn {
-  from { opacity: 0; }
+@keyframes overlayFadeIn {from { opacity: 0; }
   to { opacity: 1; }
 }
 
@@ -4112,8 +3988,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
   animation: modalSlideUp 0.25s ease-out;
 }
 
-@keyframes modalSlideUp {
-  from {
+@keyframes modalSlideUp {from {
     opacity: 0;
     transform: translateY(20px) scale(0.98);
   }
@@ -4765,8 +4640,7 @@ body.light-mode .chip--neutral { color: #475569; }
   .tp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 768px) {
-  .tp-modal {
+@media (max-width: 768px) {.tp-modal {
     width: 100%;
     max-height: 94vh;
     border-radius: 14px;
@@ -4793,13 +4667,11 @@ body.light-mode .chip--neutral { color: #475569; }
   .tp-foot-primary { flex: 1 1 auto; justify-content: center; }
 }
 
-@media (max-width: 560px) {
-  .tp-kpis { grid-template-columns: 1fr; }
+@media (max-width: 560px) {.tp-kpis { grid-template-columns: 1fr; }
   .tp-header__titlerow h3 { font-size: 1.15rem; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tp-modal { animation: none; }
+@media (prefers-reduced-motion: reduce) {.tp-modal { animation: none; }
   .tp-panel.is-active { animation: none; }
 }
 
@@ -5103,14 +4975,738 @@ body:not(.light-mode) .overflow-x-auto::-webkit-scrollbar-thumb {
   background: rgba(59, 130, 246, 0.4);
 }
 
-@keyframes rowFlashDark {
-  0% { background: rgba(59, 130, 246, 0.16); }
+@keyframes rowFlashDark {0% { background: rgba(59, 130, 246, 0.16); }
   100% { background: transparent; }
 }
 
 body:not(.light-mode) .row-flash .cell { animation: rowFlashDark 1.2s ease; }
 
-@media (prefers-reduced-motion: reduce) {
-  body:not(.light-mode) .row-flash .cell { animation: none; }
+@media (prefers-reduced-motion: reduce) {body:not(.light-mode) .row-flash .cell { animation: none; }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   COORDINATOR OVERVIEW — REFINEMENT PASS
+   Visual-only layer scoped to #overview plus the coordinator nav/sidebar.
+   Reuses the existing --tk-* theme tokens (which flip with the theme toggle),
+   so light mode inherits the same hierarchy. No layout, markup, data or
+   behaviour changes: this pass only adjusts type scale, spacing, surfaces,
+   separators and removes decorative gradients / hover lift.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+#overview {
+  --ov-surface: var(--tk-surface-1, #151f32);
+  --ov-surface-muted: var(--tk-surface-2, #1e293b);
+  --ov-hairline: var(--tk-hairline, #29364b);
+  --ov-hairline-soft: rgba(148, 163, 184, 0.1);
+  --ov-text: var(--tk-text, #e2e8f0);
+  --ov-text-strong: var(--tk-text-strong, #f1f5f9);
+  --ov-muted: var(--tk-text-muted, #94a3b8);
+  --ov-radius: var(--tk-radius, 14px);
+  --ov-radius-sm: var(--tk-radius-sm, 10px);
+  font-size: 0.875rem;
+}
+
+/* --- Typography: neutral enterprise scale --------------------------------- */
+
+#overview :is(h1, h2, h3) {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+#overview .page-header {
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+#overview .page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+#overview .ov-header__desc {
+  max-width: 66ch;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--ov-muted);
+}
+
+/* Header actions: compact, quiet outline buttons. */
+#overview .ov-header__actions .btn-ghost--sm {
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border-color: var(--ov-hairline);
+  background: transparent;
+  color: var(--ov-text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+#overview .ov-header__actions .btn-ghost--sm:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+  color: #bfdbfe;
+}
+
+body.light-mode #overview .ov-header__actions .btn-ghost--sm:hover {
+  color: #1d4ed8;
+}
+
+/* --- KPI cards ------------------------------------------------------------ */
+
+#overview .ov-header__actions {
+  margin-left: auto;
+}
+
+#overview .ov-kpi-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+#overview .ov-kpi {
+  height: 100%;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+  background: var(--ov-surface);
+  border: 1px solid var(--ov-hairline);
+  border-radius: var(--ov-radius);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+/* Drop the decorative top gradient and the card lift. */
+#overview .ov-kpi::before { content: none; }
+
+#overview .ov-kpi:hover {
+  border-color: var(--ov-hairline);
+  box-shadow: none;
+  transform: none;
+}
+
+#overview .ov-kpi__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 0;
+  background: var(--kpi-soft);
+  color: var(--kpi-accent);
+}
+
+#overview .ov-kpi__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#overview .ov-kpi__label {
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ov-muted);
+}
+
+#overview .ov-kpi__value {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--ov-text-strong);
+}
+
+#overview .ov-kpi__note {
+  margin-top: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ov-muted);
+}
+
+/* --- Panels --------------------------------------------------------------- */
+
+#overview .ov-grid {
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Give the attendance chart enough width for its header controls and bars. */
+#overview .ov-grid--snapshot {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+/* Pending Actions is a list, not a stretched surface: don't leave a dead
+   block at the bottom just to match the tracker's height. */
+#overview .ov-grid--halves { align-items: start; }
+
+#overview .ov-panel {
+  padding: 20px;
+  background: var(--ov-surface);
+  border: 1px solid var(--ov-hairline);
+  border-radius: var(--ov-radius);
+  box-shadow: none;
+}
+
+#overview .ov-panel:hover {
+  border-color: var(--ov-hairline);
+  box-shadow: none;
+  transform: none;
+}
+
+#overview .ov-panel__head {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+#overview .ov-panel__titles {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+#overview .ov-panel__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 0;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--teal, #3b82f6);
+}
+
+#overview .ov-panel__title {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--ov-text-strong);
+}
+
+#overview .ov-panel__sub {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ov-muted);
+}
+
+#overview .ov-panel__actions {
+  align-items: center;
+  gap: 8px;
+}
+
+#overview .ov-panel__actions .field__label {
+  margin-bottom: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--ov-muted);
+  white-space: nowrap;
+}
+
+#overview .ov-panel__actions .field__control {
+  min-height: 34px;
+  padding: 6px 30px 6px 10px;
+  border-radius: 8px;
+  border-color: var(--ov-hairline);
+  background-color: var(--ov-surface-muted);
+  font-size: 0.8125rem;
+  background-position: right 10px center;
+}
+
+#overview .ov-panel__foot {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ov-hairline);
+}
+
+#overview .link-btn {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* --- Trainee Progress Snapshot ------------------------------------------- */
+
+#overview .snap-table { min-width: 600px; }
+
+#overview .snap-table thead th {
+  padding: 10px;
+  background: var(--ov-surface-muted);
+  border-bottom: 1px solid var(--ov-hairline);
+  color: var(--ov-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+#overview .snap-table .cell {
+  padding: 14px 10px;
+  border-bottom: 1px solid var(--ov-hairline-soft);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--ov-text);
+}
+
+#overview .snap-table tbody tr:last-child .cell { border-bottom: 0; }
+
+#overview .snap-table .cell--trainee { min-width: 168px; }
+
+#overview .snap-trainee { gap: 10px; }
+
+#overview .snap-avatar {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+#overview .snap-trainee__meta { min-width: 0; }
+
+/* Keep the name optically centred on the avatar when no status chip follows. */
+#overview .snap-trainee__meta .cell__name {
+  margin-bottom: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ov-text-strong);
+}
+
+#overview .snap-trainee__meta .chip { margin-top: 4px; }
+
+#overview .snap-hours {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ov-text);
+  font-variant-numeric: tabular-nums;
+}
+
+#overview .snap-progress { gap: 10px; min-width: 110px; }
+
+#overview .snap-progress__track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+#overview .snap-progress__track .progress-fill { border-radius: 3px; }
+
+#overview .snap-progress__pct {
+  min-width: 42px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ov-text);
+}
+
+#overview .snap-time__date,
+#overview .snap-time__clock { display: block; }
+
+#overview .snap-time__clock {
+  margin-top: 1px;
+  font-size: 0.75rem;
+  color: var(--ov-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+#overview .snap-time {
+  min-width: 112px;
+  color: var(--ov-text);
+  white-space: normal;
+}
+
+#overview .cell--muted,
+#overview .snap-time.cell--muted { color: var(--ov-muted); }
+
+/* Status chips: soft tint, no outline, no full pill. */
+#overview .chip {
+  gap: 6px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+#overview .chip::before {
+  width: 5px;
+  height: 5px;
+}
+
+#overview .snap-table .btn-ghost--sm {
+  min-height: 28px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #60a5fa;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+#overview .snap-table .btn-ghost--sm:hover {
+  border-color: transparent;
+  background: rgba(59, 130, 246, 0.1);
+  color: #bfdbfe;
+}
+
+body.light-mode #overview .snap-table .btn-ghost--sm { color: #1d4ed8; }
+body.light-mode #overview .snap-table .btn-ghost--sm:hover {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1e40af;
+}
+
+/* --- Weekly Attendance ---------------------------------------------------- */
+
+#overview .week-picker {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+#overview .week-picker__label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--ov-muted);
+  white-space: nowrap;
+}
+
+#overview .week-picker__trigger {
+  min-width: 168px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border-color: var(--ov-hairline);
+  background: var(--ov-surface-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+#overview .week-picker__trigger:hover {
+  border-color: rgba(148, 163, 184, 0.3);
+  background: var(--ov-surface-muted);
+}
+
+#overview .week-picker__trigger[aria-expanded="true"] {
+  border-color: var(--teal, #3b82f6);
+  box-shadow: none;
+}
+
+#overview .week-picker__icon { color: var(--ov-muted); opacity: 1; }
+
+#overview .week-picker__dropdown {
+  top: calc(100% + 4px);
+  /* The trigger is narrower than the longest option label, so pin the menu to
+     the picker's right edge and let it size to its content instead of
+     ellipsising "This Week (Oct 26 – Oct 30)". It grows leftwards, which keeps
+     it inside the panel on phones. */
+  left: auto;
+  right: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(320px, calc(100vw - 40px));
+  border-radius: var(--ov-radius-sm);
+  border-color: var(--ov-hairline);
+  background: var(--ov-surface);
+  box-shadow: var(--tk-shadow-3, 0 22px 48px -18px rgba(2, 6, 23, 0.6));
+}
+
+#overview .week-picker__option {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--ov-hairline-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ov-text);
+}
+
+#overview .week-picker__option:hover,
+#overview .week-picker__option:focus {
+  background: var(--ov-surface-muted);
+}
+
+#overview .week-picker__option[aria-selected="true"] {
+  background: rgba(59, 130, 246, 0.1);
+  color: #bfdbfe;
+}
+
+#overview .week-picker__option[aria-selected="true"] .week-picker__option-dot {
+  background: var(--teal, #3b82f6);
+}
+
+#overview .week-picker__option-current {
+  border: 0;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #bfdbfe;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+#overview .ov-attendance-chart { min-height: 0; }
+
+#overview .ov-attendance-chart .chart-frame {
+  padding-top: 4px;
+}
+
+/* --- Pending Actions ------------------------------------------------------ */
+
+#overview #pending-actions {
+  border: 1px solid var(--ov-hairline);
+  border-radius: var(--ov-radius-sm);
+  background: var(--ov-surface);
+  overflow: hidden;
+}
+
+#overview .pending-action {
+  gap: 14px;
+  margin: 0;
+  padding: 14px 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ov-hairline-soft);
+  border-radius: 0;
+  transition: background-color 0.15s ease;
+}
+
+#overview .pending-action:last-child {
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+#overview .pending-action:hover {
+  background: var(--ov-surface-muted);
+  border-color: transparent;
+}
+
+#overview .pending-action:focus-visible {
+  outline: 2px solid var(--teal, #3b82f6);
+  outline-offset: -2px;
+}
+
+#overview .pending-action__icon {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+}
+
+#overview .pending-action__label {
+  font-size: 0.84375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ov-text-strong);
+}
+
+#overview .pending-action__desc {
+  margin-top: 3px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--ov-muted);
+}
+
+#overview .pending-action__count {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* --- Journal Submission Tracker ------------------------------------------ */
+
+#overview .jt-legend {
+  gap: 8px 18px;
+  margin-bottom: 14px;
+  font-size: 0.75rem;
+  color: var(--ov-muted);
+}
+
+#overview .jt-legend__dot {
+  width: 7px;
+  height: 7px;
+}
+
+#overview .jt-table { font-size: 0.8125rem; }
+
+#overview .jt-table th {
+  padding: 10px 6px;
+  background: var(--ov-surface-muted);
+  border-bottom: 1px solid var(--ov-hairline);
+  color: var(--ov-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+#overview .jt-table th.jt-name {
+  padding-left: 12px;
+  color: var(--ov-muted);
+}
+
+#overview .jt-table td.jt-name {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ov-hairline-soft);
+  background: var(--ov-surface);
+}
+
+#overview .jt-table td.jt-name .cell__name {
+  margin-bottom: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ov-text-strong);
+}
+
+#overview .jt-cell {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--ov-hairline-soft);
+}
+
+#overview .jt-table tbody tr:last-child td { border-bottom: 0; }
+
+#overview .jt-dot { width: 26px; height: 26px; }
+#overview .jt-dot::before { width: 9px; height: 9px; }
+
+#overview .jt-foot {
+  gap: 12px 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ov-hairline);
+}
+
+#overview .pager { gap: 4px; }
+
+#overview .pager__btn {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border-color: var(--ov-hairline);
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+#overview .pager__btn:hover:not(:disabled):not(.pager__btn--current) {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+  color: #bfdbfe;
+}
+
+#overview .pager__btn--current {
+  background: var(--teal, #3b82f6);
+  border-color: var(--teal, #3b82f6);
+  color: #ffffff;
+}
+
+body.light-mode #overview .pager__btn--current {
+  background: var(--tk-teal, #2457c5);
+  border-color: var(--tk-teal, #2457c5);
+  color: #ffffff;
+}
+
+/* --- Shared chrome: nav search, controls, sidebar rail ------------------- */
+
+body #navbar #global-search-container #global-search-input {
+  min-height: 36px;
+  border-color: var(--tk-hairline, #29364b);
+  border-radius: 8px;
+  background: var(--tk-surface-1, #151f32);
+  font-size: 0.8125rem;
+}
+
+body #navbar #global-search-container #global-search-input:focus {
+  border-color: var(--tk-hairline-teal, #3b82f6);
+  background: var(--tk-surface-1, #151f32);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+}
+
+/* The notification bell is styled once in trackit-glass.css. It used to be
+   listed here too, and `body #navbar #notif-btn` carries an extra id, so it
+   silently outranked the shared rules (including their expanded/hover states). */
+body #navbar #theme-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--tk-hairline, #29364b);
+  border-radius: 8px;
+  background: var(--tk-surface-1, #151f32);
+  color: var(--tk-text-muted, #94a3b8);
+}
+
+body #navbar #theme-toggle:hover {
+  border-color: var(--tk-hairline-strong, #3b4a61);
+  background: var(--tk-surface-2, #1e293b);
+  color: var(--tk-text-strong, #f1f5f9);
+}
+
+body #navbar .btn-ghost {
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border-color: var(--tk-hairline, #29364b);
+  color: var(--tk-text, #e2e8f0);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+body #navbar .btn-ghost:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+  color: #bfdbfe;
+}
+
+/* Sidebar navigation is styled once, in trackit-glass.css. A coordinator-only
+   `body .sidebar .nav-link*` block used to live here; because it carried one
+   class more than the shared rules it silently won, so the rail looked
+   different on this dashboard than on the supervisor and student ones.
+   Nothing replaced it - the shared rules are the single source now. */
+
+/* --- Responsive adjustments ---------------------------------------------- */
+
+/* The snapshot table needs ~693px inside its panel, so the two-column
+   composition only holds on wide desktops. Below that the panels stack and
+   the table gets the full width instead of being silently clipped. */
+@media (max-width: 1280px) {
+  #overview .ov-grid--snapshot,
+  #overview .ov-grid--halves { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 1200px) {#overview .ov-kpi__value { font-size: 1.875rem; }
+}
+
+@media (max-width: 1000px) {#overview .ov-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1024px) {#overview .ov-kpi-grid { gap: 14px; }
+  #overview .ov-grid { gap: 14px; }
+}
+
+@media (max-width: 640px) {#overview .page-header { margin-bottom: 20px; }
+  #overview .page-header h1 { font-size: 1.5rem; }
+  #overview .ov-kpi-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-bottom: 20px; }
+  #overview .ov-kpi { padding: 16px; gap: 12px; }
+  #overview .ov-kpi__icon { width: 36px; height: 36px; }
+  #overview .ov-kpi__value { font-size: 1.75rem; }
+  #overview .ov-panel { padding: 16px; }
+  #overview .ov-panel__head { margin-bottom: 14px; }
+  #overview .ov-grid { gap: 12px; margin-bottom: 20px; }
+  #overview .snap-table .cell { padding: 12px 10px; }
+  #overview .snap-table thead th { padding: 9px 10px; }
+  #overview .pending-action { padding: 12px; }
+  #overview .jt-table th { padding: 9px 4px; }
+  #overview .jt-table td.jt-name { padding: 9px 10px; }
+  #overview .week-picker { width: 100%; }
+  #overview .week-picker__trigger { flex: 1 1 auto; }
+}

@@ -424,24 +424,63 @@ let notifError = '';
 let notifUnreadCount = 0;
 let notifPollTimer = null;
 
-function toggleNotifications() {
+/**
+ * The panel is a body-level fixed element (the header's backdrop-filter would
+ * trap it otherwise), so it is anchored to the bell here rather than in CSS.
+ * It is clamped to the viewport on both axes and flips above the bell when the
+ * list would otherwise run off the bottom edge.
+ */
+function positionNotifPopup() {
   const popup = document.getElementById('notif-popup');
-  if (!popup) return;
-  
-  if (notifPopupOpen) {
-    popup.style.display = 'none';
-    notifPopupOpen = false;
-  } else {
-    popup.style.display = 'flex';
-    notifPopupOpen = true;
-    loadOJTNotifications();
+  const btn = document.getElementById('notif-btn');
+  if (!popup || !btn || !notifPopupOpen) return;
+
+  const gap = 8;
+  const margin = 10;
+  const rect = btn.getBoundingClientRect();
+  const width = popup.offsetWidth;
+  const height = popup.offsetHeight;
+  const maxLeft = window.innerWidth - width - margin;
+  const maxTop = window.innerHeight - height - margin;
+
+  // Right-aligned to the bell, pulled back inside the viewport on narrow screens.
+  const left = Math.max(margin, Math.min(rect.right - width, maxLeft));
+
+  let top = rect.bottom + gap;
+  if (top > maxTop && rect.top - gap - height >= margin) {
+    top = rect.top - gap - height;
   }
+  top = Math.max(margin, Math.min(top, maxTop));
+
+  popup.style.left = `${Math.round(left)}px`;
+  popup.style.top = `${Math.round(top)}px`;
+}
+
+function openNotifications() {
+  const popup = document.getElementById('notif-popup');
+  const btn = document.getElementById('notif-btn');
+  if (!popup) return;
+
+  notifPopupOpen = true;
+  popup.classList.add('is-open');
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  positionNotifPopup();
+  // Always refetch on open so a notification created while the dashboard was
+  // already loaded shows up without a full page refresh.
+  loadOJTNotifications();
 }
 
 function closeNotifications() {
   const popup = document.getElementById('notif-popup');
-  if (popup) popup.style.display = 'none';
+  const btn = document.getElementById('notif-btn');
+  if (popup) popup.classList.remove('is-open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
   notifPopupOpen = false;
+}
+
+function toggleNotifications() {
+  if (notifPopupOpen) closeNotifications();
+  else openNotifications();
 }
 
 /** "Mark all read" - marks every notification read on the server. */
@@ -491,13 +530,31 @@ async function deleteAllNotifications() {
 
 function updateNotifBadge() {
   const badge = document.getElementById('notif-badge');
-  if (!badge) return;
-  
-  if (notifUnreadCount > 0) {
-    badge.style.display = 'flex';
-    badge.textContent = notifUnreadCount > 9 ? '9+' : notifUnreadCount;
-  } else {
-    badge.style.display = 'none';
+  const btn = document.getElementById('notif-btn');
+  const count = document.getElementById('notif-count');
+
+  // The accessible name carries the real number; the chip is capped at 9+.
+  if (btn) {
+    btn.setAttribute(
+      'aria-label',
+      notifUnreadCount > 0 ? `Notifications, ${notifUnreadCount} unread` : 'Notifications'
+    );
+  }
+
+  if (badge) {
+    if (notifUnreadCount > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = notifUnreadCount > 9 ? '9+' : String(notifUnreadCount);
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  // The panel header has room to spell the count out, so the true number is
+  // never hidden behind the bell's 9+ cap.
+  if (count) {
+    count.hidden = notifUnreadCount === 0;
+    count.textContent = notifUnreadCount === 0 ? '' : `${notifUnreadCount} unread`;
   }
 }
 
@@ -538,6 +595,63 @@ async function loadOJTNotifications(options = {}) {
   }
 }
 
+const NOTIF_TYPES = ['journal', 'attendance', 'dtr', 'system', 'inactivity', 'activity'];
+
+/** Unknown or missing types fall back to the neutral system icon and tint. */
+function notifType(type) {
+  const value = String(type || '').toLowerCase();
+  return NOTIF_TYPES.includes(value) ? value : 'system';
+}
+
+/**
+ * The model has no avatar field, so a row shows the actor's initials. When
+ * there is no actor (system/inactivity events) the type icon is used instead.
+ */
+function notificationInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '';
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+/** Persists a read on the server, then repaints the row and the badge. */
+function markNotificationRead(id) {
+  const notif = ojtNotifications.find(n => n.id === id);
+  if (!notif || !notif.unread) return;
+  fetchAPI(`/notifications/${id}/read`, { method: 'PATCH' })
+    .then(() => {
+      notif.unread = false;
+      notif.read = true;
+      notifUnreadCount = Math.max(0, notifUnreadCount - 1);
+      updateNotifBadge();
+      renderNotificationList();
+    })
+    .catch(err => console.error('Error marking notification read:', err));
+}
+
+function notificationRow(n) {
+  const type = notifType(n.type);
+  const title = escapeHtml(n.title || 'Notification');
+  const message = escapeHtml(n.message || n.text || '');
+  const initials = notificationInitials(n.actorName);
+  const label = `${n.unread ? 'Unread: ' : ''}${n.title || 'Notification'}`;
+
+  return `
+    <div class="notif-item ${n.unread ? 'unread' : ''}" data-id="${escapeHtml(String(n.id || ''))}" role="button" tabindex="0" aria-label="${escapeHtml(label)}">
+      <div class="notif-avatar ${type}" aria-hidden="true">${initials ? escapeHtml(initials) : getNotifIcon(type)}</div>
+      <div class="notif-content">
+        <div class="notif-head">
+          <p class="notif-text notif-text--title">${title}</p>
+          <span class="notif-time">${timeAgo(n.createdAt || n.time)}</span>
+        </div>
+        ${message ? `<p class="notif-text notif-message">${message}</p>` : ''}
+      </div>
+      ${n.unread ? '<span class="notif-dot" aria-hidden="true"></span>' : ''}
+      <button type="button" class="notif-close" aria-label="Dismiss notification">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>`;
+}
+
 function renderNotificationList() {
   const list = document.getElementById('notif-list');
   if (!list) return;
@@ -550,51 +664,45 @@ function renderNotificationList() {
   if (notifError) {
     list.innerHTML = `
       <div class="notif-empty">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
         <p>${escapeHtml(notifError)}</p>
-        <button onclick="loadOJTNotifications()" class="text-xs text-blue-400 hover:underline mt-2">Retry</button>
+        <button type="button" class="notif-action" onclick="loadOJTNotifications()">Try again</button>
       </div>`;
     return;
   }
   
   if (ojtNotifications.length === 0) {
-    list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+    list.innerHTML = `
+      <div class="notif-empty">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <p>No notifications yet</p>
+      </div>`;
     return;
   }
   
-  list.innerHTML = ojtNotifications.map(n => `
-    <div class="notif-item ${n.unread ? 'unread' : ''}" data-id="${n.id}">
-      <div class="notif-icon ${escapeHtml(n.type || 'system')}">
-        ${getNotifIcon(n.type)}
-      </div>
-      <div class="notif-content">
-        <p class="notif-text font-semibold">${escapeHtml(n.title || 'Notification')}</p>
-        <p class="notif-text">${escapeHtml(n.message || n.text || '')}</p>
-        <p class="notif-time">${timeAgo(n.createdAt || n.time)}</p>
-      </div>
-      <button class="notif-close" onclick="event.stopPropagation(); dismissNotification('${n.id}')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-    </div>
-  `).join('');
+  list.innerHTML = ojtNotifications.map(notificationRow).join('');
   
-  // Click to mark as read (persisted on the server, not just locally).
+  // Click or Enter/Space marks the notification read on the server. The
+  // dismiss control stops propagation, so it never also marks the row read.
   list.querySelectorAll('.notif-item').forEach(item => {
-    item.addEventListener('click', function() {
-      const id = this.dataset.id;
-      const notif = ojtNotifications.find(n => n.id === id);
-      if (notif && notif.unread) {
-        fetchAPI(`/notifications/${id}/read`, { method: 'PATCH' })
-          .then(() => {
-            notif.unread = false;
-            notif.read = true;
-            notifUnreadCount = Math.max(0, notifUnreadCount - 1);
-            updateNotifBadge();
-            renderNotificationList();
-          })
-          .catch(err => console.error('Error marking notification read:', err));
-      }
+    item.addEventListener('click', () => markNotificationRead(item.dataset.id));
+    item.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      markNotificationRead(item.dataset.id);
     });
+    const closeBtn = item.querySelector('.notif-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        dismissNotification(item.dataset.id);
+      });
+    }
   });
+
+  // The list just changed height (loading stub -> rows), so the clamped
+  // position has to be recomputed.
+  positionNotifPopup();
 }
 
 /** Polls the bell every minute and refetches when the tab regains focus. */
@@ -635,7 +743,8 @@ function timeAgo(dateStr) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-// Close popup when clicking outside
+// Clicking outside closes the panel; Escape closes it and returns focus to the
+// bell, matching the other dialogs in the dashboard.
 document.addEventListener('click', function(e) {
   const notifBtn = document.getElementById('notif-btn');
   const notifPopup = document.getElementById('notif-popup');
@@ -645,6 +754,18 @@ document.addEventListener('click', function(e) {
     }
   }
 });
+
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape' || !notifPopupOpen) return;
+  closeNotifications();
+  const notifBtn = document.getElementById('notif-btn');
+  if (notifBtn) notifBtn.focus();
+});
+
+// The panel is fixed-positioned, so it follows the bell on resize and scroll.
+// Registered once here - opening and closing never adds another listener.
+window.addEventListener('resize', positionNotifPopup);
+window.addEventListener('scroll', positionNotifPopup, true);
 
 // Add CSS animations for notifications
 const style = document.createElement('style');

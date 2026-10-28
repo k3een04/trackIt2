@@ -1034,7 +1034,6 @@ body .trackit-toast p:last-child {
 /* Modals and dropdowns get stronger blur + higher opacity than cards so the
    text on top stays comfortably readable. */
 
-body .notif-popup,
 body .download-modal-card,
 body .journal-detail-modal > div,
 body .report-modal-card {
@@ -1047,56 +1046,386 @@ body .report-modal-card {
   overflow: hidden;
 }
 
-body .notif-header {
+/* ── Notification bell + popover ─────────────────────────────────────────── */
+/* One definition for all three dashboards. The panel itself lives at body
+   level and is positioned against the bell by JS: #navbar carries a
+   backdrop-filter, which makes it the containing block for anything inside it,
+   so a panel nested in the header could neither clamp to the viewport nor
+   reliably stack above the page. The global search results were moved out for
+   the same reason. */
+
+body #notif-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--tk-hairline);
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-1);
+  color: var(--tk-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--tk-dur) var(--tk-ease),
+    background-color var(--tk-dur) var(--tk-ease),
+    border-color var(--tk-dur) var(--tk-ease);
+}
+
+body #notif-btn:hover {
+  border-color: var(--tk-hairline-strong);
   background: var(--tk-surface-2);
+  color: var(--tk-text-strong);
+}
+
+/* Open state: brighter icon and a tinted border - a cobalt outline at full
+   strength read louder than any other control in the header. */
+body #notif-btn[aria-expanded='true'] {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: var(--tk-surface-2);
+  color: var(--tk-text-strong);
+}
+
+body.light-mode #notif-btn[aria-expanded='true'] {
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
+body #notif-btn:focus-visible {
+  outline: 2px solid var(--tk-teal);
+  outline-offset: 2px;
+}
+
+/* Touch: the bell keeps a 44px target on phones and coarse pointers while the
+   icon and chip stay the same size. */
+@media (max-width: 768px), (pointer: coarse) {
+  body #notif-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Count chip. It sits on the button's corner, so the ring uses the rail colour
+   to lift the chip off the header instead of a visible border. */
+body .notif-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: var(--tk-radius-pill);
+  background: var(--tk-teal);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--tk-surface-nav);
+}
+
+/* Unread rows are marked by the chip, not by the niche "dot" style. */
+body .unread-dot {
+  background: var(--tk-teal);
+  border-radius: var(--tk-radius-pill);
+}
+
+body #notif-popup {
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 400;
+  display: none;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(540px, calc(100dvh - 96px));
+  padding: 0;
+  background: var(--tk-surface-overlay);
+  border: 1px solid var(--tk-hairline-strong);
+  border-radius: var(--tk-radius);
+  box-shadow: var(--tk-shadow-3);
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(var(--tk-blur-strong)) saturate(150%);
+  backdrop-filter: blur(var(--tk-blur-strong)) saturate(150%);
+}
+
+body #notif-popup.is-open {
+  display: flex;
+  animation: tk-notif-in 160ms var(--tk-ease) both;
+}
+
+@keyframes tk-notif-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body #notif-popup.is-open { animation: none; }
+}
+
+/* Header: title, optional unread chip, quiet text actions. */
+body .notif-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: transparent;
   border-bottom: 1px solid var(--tk-hairline);
 }
 
-body .notif-header h3 { color: var(--tk-text-strong); }
+body .notif-header h3 {
+  margin: 0;
+  color: var(--tk-text-strong);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+body .notif-count {
+  padding: 1px 7px;
+  border-radius: var(--tk-radius-pill);
+  background: var(--tk-selected);
+  color: var(--tk-text-strong);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+body .notif-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+body .notif-action {
+  appearance: none;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--tk-text-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    color var(--tk-dur) var(--tk-ease),
+    background-color var(--tk-dur) var(--tk-ease);
+}
+
+body .notif-action:hover {
+  background: var(--tk-hover);
+  color: var(--tk-text-strong);
+}
+
+/* "Clear all" is destructive, so it keeps a red resting tone - quieter than the
+   old red-400 link, but still distinguishable from "Mark all read". */
+body .notif-action--danger { color: #f87171; }
+
+body .notif-action--danger:hover {
+  background: var(--tk-status-error-bg);
+  color: #fca5a5;
+}
+
+body.light-mode .notif-action--danger { color: #b91c1c; }
+body.light-mode .notif-action--danger:hover { color: #991b1b; }
+
+body .notif-action:focus-visible,
+body .notif-item:focus-visible,
+body .notif-close:focus-visible {
+  outline: 2px solid var(--tk-teal);
+  outline-offset: -2px;
+}
+
+/* List scrolls on its own so the header and the panel edge stay put. */
+body #notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
 
 body .notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
   background: transparent;
-  border-bottom: 1px solid var(--tk-hairline);
-  border-radius: 0;
   box-shadow: none;
   color: var(--tk-text);
+  cursor: pointer;
   transition: background-color var(--tk-dur) var(--tk-ease);
 }
 
-/* Unread rows: same surface + cobalt left indicator; no bright blue wash. */
-body .notif-item.unread,
-body .notification-item.unread {
-  background: var(--tk-surface-1);
-  box-shadow: inset 2px 0 0 #3b82f6;
-}
-
-body.light-mode .notif-item.unread,
-body.light-mode .notification-item.unread {
-  background: var(--tk-selected);
-}
-
 body .notif-item:hover { background: var(--tk-hover); }
-body .notif-item.unread:hover { background: var(--tk-hover); }
 
-body .notif-text { color: var(--tk-text); }
-body .notif-item.unread .notif-text { color: var(--tk-text-strong); font-weight: 500; }
-body .notif-time { color: var(--tk-text-faint); }
-body .notif-empty { color: var(--tk-text-muted); }
+/* Avatar: initials from the notification's actorName. The model has no
+   picture field, and inventing one would need a backend change, so the
+   circle is tinted by notification type and falls back to the type icon. */
+body .notif-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--tk-hairline);
+  border-radius: 50%;
+  background: var(--tk-surface-3);
+  color: var(--tk-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+  overflow: hidden;
+}
 
-/* Bell badge: cobalt count chip with white text (light keeps its existing badge styling). */
-body .notif-badge,
-body .unread-dot {
+body .notif-avatar.journal,
+body .notif-avatar.system { background: var(--tk-status-info-bg); border-color: rgba(147, 197, 253, 0.28); color: #60a5fa; }
+
+body .notif-avatar.attendance,
+body .notif-avatar.activity { background: var(--tk-status-success-bg); border-color: rgba(134, 239, 172, 0.28); color: #4ade80; }
+
+body .notif-avatar.inactivity { background: var(--tk-status-pending-bg); border-color: rgba(252, 211, 77, 0.28); color: #fbbf24; }
+
+body .notif-avatar.dtr { background: var(--tk-status-error-bg); border-color: rgba(252, 165, 165, 0.28); color: #f87171; }
+
+body.light-mode .notif-avatar.journal,
+body.light-mode .notif-avatar.system { border-color: rgba(37, 99, 235, 0.22); color: #1d4ed8; }
+
+body.light-mode .notif-avatar.attendance,
+body.light-mode .notif-avatar.activity { border-color: rgba(22, 163, 74, 0.22); color: #15803d; }
+
+body.light-mode .notif-avatar.inactivity { border-color: rgba(180, 83, 9, 0.22); color: #b45309; }
+
+body.light-mode .notif-avatar.dtr { border-color: rgba(220, 38, 38, 0.22); color: #b91c1c; }
+
+body .notif-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body .notif-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+body .notif-text {
+  margin: 0;
+  color: var(--tk-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+body .notif-text--title {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--tk-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .notif-item.unread .notif-text--title {
+  color: var(--tk-text-strong);
+  font-weight: 600;
+}
+
+body .notif-message {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+body .notif-time {
+  flex: 0 0 auto;
+  color: var(--tk-text-faint);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+body .notif-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 50%;
   background: var(--tk-teal);
-  color: #06231f;
-  border-radius: var(--tk-radius-pill);
-  box-shadow: 0 0 0 2px rgba(11, 17, 32, 0.7);
 }
 
-body:not(.light-mode) .notif-badge,
-body:not(.light-mode) .unread-dot {
-  background: #2563eb;
-  color: #ffffff;
+/* Dismiss control stays out of the way until the row is hovered or focused,
+   and is always visible on touch, where hover never happens. */
+body .notif-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tk-text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--tk-dur) var(--tk-ease),
+    color var(--tk-dur) var(--tk-ease),
+    background-color var(--tk-dur) var(--tk-ease);
 }
+
+body .notif-item:hover .notif-close,
+body .notif-item:focus-within .notif-close { opacity: 1; }
+
+body .notif-close:hover {
+  background: var(--tk-surface-3);
+  color: var(--tk-text-strong);
+}
+
+@media (hover: none) {
+  body .notif-close { opacity: 1; }
+}
+
+/* Empty / loading / error states share this centred block. */
+body .notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 164px;
+  padding: 32px 20px;
+  color: var(--tk-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+body .notif-empty svg { color: var(--tk-text-faint); }
+body .notif-empty p { margin: 0; }
 
 /* Notification type wells keep their hues as flat L3 chips. */
 body .notif-icon,
@@ -1216,10 +1545,12 @@ body .sidebar {
   border-right: 1px solid var(--tk-hairline);
   border-top: 0;
   margin: 0;
-  padding: 16px 12px;
+  /* 12px gutters keep every row on the same left edge as the rail edge; the
+     nav owns the vertical rhythm (see `> nav` below). */
+  padding: 18px 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   -webkit-backdrop-filter: blur(var(--tk-blur-strong)) saturate(150%);
   backdrop-filter: blur(var(--tk-blur-strong)) saturate(150%);
 }
@@ -1232,8 +1563,21 @@ body .sidebar > nav {
   backdrop-filter: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   width: 100%;
+  /* Each dashboard's stylesheet carries a bare `nav { padding: 16px 20px }`
+     that also lands on the sidebar list, double-padding it inside the rail.
+     The rail's own 12px gutter is the single horizontal inset now. */
+  padding: 0;
+}
+
+/* The markup also carries Tailwind's `space-y-2` on the list. Its selector
+   (`.space-y-2 > :not([hidden]) ~ :not([hidden])`) outranks a plain child
+   combinator, so it kept stacking 8px margins on top of the flex gap and real
+   row spacing was 16px, not 8px. This matches that specificity to zero it;
+   the gap above is the single source of vertical rhythm. */
+body .sidebar > nav > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0;
 }
 
 body .nav-link {
@@ -1244,44 +1588,53 @@ body .nav-link {
   padding: 10px 12px;
   border-radius: var(--tk-radius-sm);
   color: var(--tk-text-muted);
+  /* Transparent border is kept only so the row box never shifts by 1px
+     between states; it is never given a visible colour. */
   border: 1px solid transparent;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.3;
   white-space: nowrap;
   transition:
     color var(--tk-dur) var(--tk-ease),
-    background-color var(--tk-dur) var(--tk-ease),
-    border-color var(--tk-dur) var(--tk-ease);
+    background-color var(--tk-dur) var(--tk-ease);
 }
 
-body .nav-link svg { flex-shrink: 0; }
+body .nav-link svg {
+  flex-shrink: 0;
+  transition: color var(--tk-dur) var(--tk-ease);
+}
 
-/* Hover: neutral lift. Active: cobalt indicator + selected surface. */
+/* Hover: a quiet neutral wash, no outline and no movement. */
 body .nav-link:hover {
   color: var(--tk-text-strong);
   background: var(--tk-hover);
   background-image: none;
-  border-color: var(--tk-hairline);
 }
 
+/* Active: a soft slate pill carrying the whole selected state. Cobalt moves to
+   the icon alone, the label goes bright, and the old hairline border plus 2px
+   inset bar are gone - three competing cues for one state. */
 body .nav-link.active {
-  color: #93c5fd;
+  color: var(--tk-text-strong);
   background: var(--tk-selected);
   background-image: none;
-  border-color: var(--tk-hairline-teal);
-  box-shadow: inset 2px 0 0 var(--tk-teal);
+  border-color: transparent;
+  box-shadow: none;
   font-weight: 600;
 }
 
-body.light-mode .nav-link:hover {
-  background: rgba(255, 255, 255, 0.7);
+body .nav-link.active svg { color: var(--tk-teal); }
+
+/* Keyboard focus has to be visible without importing the cobalt wash, so it
+   is a ring offset from the pill instead of a fill change. */
+body .nav-link:focus-visible {
+  outline: 2px solid var(--tk-teal);
+  outline-offset: 2px;
+  color: var(--tk-text-strong);
 }
 
-body.light-mode .nav-link.active {
-  background: rgba(59, 130, 246, 0.10);
-  border-color: rgba(59, 130, 246, 0.28);
-}
+/* Light-mode nav states are defined once, in the theme block below. */
 
 /* Theme toggle reads as a glass chip, not a bare button. */
 body #theme-toggle {
@@ -1386,10 +1739,6 @@ body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
   body .page-header h1 { font-size: 1.8rem; }
   body .analytics-kpi,
   body .analytics-mini { padding: 18px; }
-  body .notif-popup {
-    width: min(360px, calc(100vw - 32px));
-    right: 12px;
-  }
 }
 
 /* Tablet portrait: two-up → one-up happens in page CSS; here we tighten the
@@ -1408,6 +1757,8 @@ body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
     z-index: 60;
   }
   body .sidebar.open { transform: none; }
+  /* Drawer is touch-first: rows grow slightly past the desktop 44px. */
+  body .sidebar .nav-link { min-height: 46px; }
   body .glass-card,
   body .glass-panel { padding: 18px; border-radius: var(--tk-radius-sm); }
   body .page-header { margin-bottom: 20px; }
@@ -1420,11 +1771,6 @@ body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
   body .analytics-mini-value,
   body .stat-num { font-size: 1.6rem; overflow-wrap: anywhere; }
   body .icon-box { width: 42px; height: 42px; }
-  body .notif-popup {
-    width: min(340px, calc(100vw - 24px));
-    max-height: min(480px, calc(100dvh - 120px));
-  }
-  body .notif-item { padding: 10px 12px; }
   body input,
   body select,
   body textarea { min-height: 44px; font-size: 16px; }
@@ -1442,13 +1788,11 @@ body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
   body .glass-card > h3:first-child,
   body .glass-panel > h3:first-child { font-size: 0.95rem; overflow-wrap: anywhere; }
   body .analytics-table-wrap { border-radius: var(--tk-radius-sm); }
-  body .notif-popup {
-    position: fixed;
-    top: 64px;
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-height: calc(100dvh - 96px);
+  /* Phones: JS keeps the panel inside the viewport; here it only gets a shorter
+     ceiling so the list never runs under the bottom edge. */
+  body #notif-popup {
+    max-height: calc(100dvh - 88px);
+    border-radius: var(--tk-radius-sm);
   }
   body .notif-text { overflow-wrap: anywhere; }
   body .journal-detail-modal,
@@ -1548,15 +1892,16 @@ body.light-mode .nav-link {
 body.light-mode .nav-link:hover {
   color: var(--tk-text-strong);
   background: var(--tk-hover);
-  border-color: var(--tk-hairline);
 }
 
 body.light-mode .nav-link.active {
-  color: var(--tk-teal);
+  color: var(--tk-text-strong);
   background: var(--tk-selected);
-  border-color: var(--tk-hairline-teal);
-  box-shadow: inset 2px 0 0 var(--tk-teal);
+  border-color: transparent;
+  box-shadow: none;
 }
+
+body.light-mode .nav-link.active svg { color: var(--tk-teal); }
 
 body.light-mode .btn-primary {
   background: var(--tk-teal) !important;
@@ -1691,10 +2036,10 @@ body.light-mode .journal-sticky-header {
   background: rgba(255, 255, 255, 0.96);
 }
 
-body.light-mode .notif-item.unread,
+/* The bell list marks unread rows with the dot and a bolder title rather than a
+   tinted surface, so the tinted treatment is left to the standalone widget. */
 body.light-mode .notification-item.unread {
   background: var(--tk-selected);
-  box-shadow: inset 2px 0 0 var(--tk-teal);
 }
 
 body.light-mode .notif-item:hover,
@@ -2067,30 +2412,15 @@ body .page-header > * {
   }
 }
 
-/* The notification panel is anchored to the bell, which sits close to the
-   right edge - a 380px panel then pushed past the left edge of a 360px
-   phone. On small screens pin it to the viewport instead of the button. */
+/* Phones: the panel is positioned by JS against the bell and clamped to the
+   viewport, so it only needs a tighter header and row rhythm here. */
 @media (max-width: 560px) {
-  body .notif-popup,
-  body #notif-popup {
-    position: fixed;
-    top: 64px;
-    left: 10px;
-    right: 10px;
-    width: auto;
-    max-width: none;
-    max-height: calc(100vh - 84px);
-  }
-
   body .notif-header {
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 14px;
+    gap: 6px;
+    padding: 10px 12px;
   }
 
-  body .notif-item {
-    padding: 12px;
-  }
+  body .notif-item { padding: 10px 8px; }
 }
 
 /* Toolbars and control rows keep their buttons reachable instead of

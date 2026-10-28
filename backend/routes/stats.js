@@ -346,7 +346,25 @@ async function buildAttendanceThisWeek(trainees, now, options = {}) {
   for (let i = 0; i < 5; i += 1) {
     const day = addDays(weekStart, i);
     if (!isApplicableDay(day, workDays, holidays)) continue;
-    if (day > effectiveEnd) break; // Don't include future days beyond today
+
+    // A day that has not happened yet keeps its slot in the axis, so the
+    // current week draws the same Mon-Fri frame as a past week instead of
+    // stopping at today. Stopping early made the chart look truncated (on a
+    // Monday it drew a single column) until another week was selected, because
+    // a past week always has all five days. Nobody is counted as absent on a
+    // day that has not started, so totals are unaffected.
+    if (day > effectiveEnd) {
+      daysData.push({
+        date: dayKey(day),
+        dayLabel: dayLabels[i],
+        dayIndex: i,
+        pending: true,
+        present: { count: 0, trainees: [] },
+        late: { count: 0, trainees: [] },
+        absent: { count: 0, trainees: [] },
+      });
+      continue;
+    }
 
     const dayKeyStr = dayKey(day);
     const dayDtrs = dtrRows.filter(dtr => dayKey(dtr.date) === dayKeyStr);

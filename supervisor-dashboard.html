@@ -9,11 +9,11 @@
   <title>TrackIT – Supervisor Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="visuals/supervisor-dashboard.css?v=6">
+  <link rel="stylesheet" href="visuals/supervisor-dashboard.css?v=7">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
-  <link rel="stylesheet" href="visuals/trackit-glass.css?v=3">
+  <link rel="stylesheet" href="visuals/trackit-glass.css?v=5">
   <!-- Reusable date/month picker. Loaded last so its field and popover rules
        win against the per-page input styles above. -->
   <link rel="stylesheet" href="visuals/trackit-calendar.css?v=3">
@@ -21,7 +21,7 @@
        self-contained in .vm-* so it stays identical on every dashboard. -->
   <link rel="stylesheet" href="visuals/verification-modal.css?v=5">
   <!-- Sidebar messenger: launcher at the bottom of the rail + popup chat. -->
-  <link rel="stylesheet" href="visuals/messaging.css?v=5">
+  <link rel="stylesheet" href="visuals/messaging.css?v=6">
   <!-- Profile picture badge + Settings uploader shared by all dashboards. -->
   <link rel="stylesheet" href="visuals/profile-picture.css?v=2">
 </head>
@@ -68,20 +68,10 @@
             <line class="sun-icon" x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
           </svg>
         </button>
-        <button id="notif-btn" onclick="toggleNotifications()" class="p-2 hover:bg-white/10 rounded-lg transition relative flex-shrink-0" title="Notifications" aria-label="Notifications">
+        <button id="notif-btn" onclick="toggleNotifications()" class="p-2 hover:bg-white/10 rounded-lg transition relative flex-shrink-0" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-controls="notif-popup" aria-expanded="false">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
           <span id="notif-badge" class="notif-badge" style="display:none;"></span>
         </button>
-        <div id="notif-popup" class="notif-popup" style="display:none;">
-          <div class="notif-header">
-            <h3>Notifications</h3>
-            <div class="flex items-center gap-3 flex-wrap">
-              <button onclick="clearAllNotifications()" class="text-xs text-blue-400 hover:text-blue-300">Mark all read</button>
-              <button onclick="deleteAllNotifications()" class="text-xs text-red-400 hover:text-red-300" title="Permanently delete all notifications">Clear all</button>
-            </div>
-          </div>
-          <div id="notif-list" class="notif-list"></div>
-        </div>
         <button onclick="logout()" class="btn-ghost text-xs md:text-sm hidden sm:inline-flex flex-shrink-0" aria-label="Logout">Logout</button>
         <button onclick="logout()" class="btn-ghost p-2 sm:hidden flex-shrink-0" aria-label="Logout" title="Logout">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -92,6 +82,20 @@
       </div>
     </div>
   </nav>
+
+  <!-- Notification panel. Body level because the nav's backdrop-filter would
+       otherwise become the containing block and trap it. -->
+  <div id="notif-popup" class="notif-popup" role="dialog" aria-label="Notifications">
+    <div class="notif-header">
+      <h3>Notifications</h3>
+      <span id="notif-count" class="notif-count" hidden></span>
+      <div class="notif-actions">
+        <button type="button" class="notif-action" onclick="clearAllNotifications()">Mark all read</button>
+        <button type="button" class="notif-action notif-action--danger" onclick="deleteAllNotifications()" title="Permanently delete all notifications">Clear all</button>
+      </div>
+    </div>
+    <div id="notif-list" class="notif-list"></div>
+  </div>
 
 <!-- Sidebar Overlay (mobile) -->
   <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebarOnMobile()" aria-hidden="true"></div>
