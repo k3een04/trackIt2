@@ -2896,47 +2896,371 @@ function updateAnalyticsSummary(summary, windows, analytics = {}) {
 }
 
 
-function renderHoursChart(hoursByTrainee) {
-  const hoursCtx = document.getElementById('hoursChart');
-  if (!hoursCtx) return;
+// ────────────────────────────────────────────────────────────────────────────
+// TRAINEE ACTIVITY STATUS (analytics card)
+//
+// The classification is not recomputed in the browser: `traineeProgress` is
+// already labelled by services/activityStatusService.js (3 consecutive
+// applicable OJT days without a time-in, new-student grace included), so this
+// card, the Status column, the notification bell and the reports cannot
+// disagree about who is inactive.
+// ────────────────────────────────────────────────────────────────────────────
 
-  const chartData = Array.isArray(hoursByTrainee) ? hoursByTrainee : [];
-  const labels = chartData.length > 0
-    ? chartData.map(item => (item.name || 'Unknown').split(' ')[0])
-    : ['No data'];
-  const values = chartData.length > 0
-    ? chartData.map(item => item.hours || 0)
-    : [0];
+// Names listed in the hover tooltip before it collapses to "+N more".
+const ACTIVITY_TOOLTIP_NAMES = 5;
 
-  const dataset = {
-    label: 'Hours Completed',
-    data: values,
+let activityStatusState = {
+  active: [],
+  inactive: [],
+  deactivated: 0,
+  thresholdDays: 3,
+  ready: false,
+};
+
+function activityTraineeName(trainee) {
+  return String((trainee && (trainee.name || trainee.fullName)) || '').trim();
+}
+
+/** "ID · Department · Section" for the detail panel, skipping empty fields. */
+function activityTraineeIdentity(trainee) {
+  const parts = [trainee.studentId, trainee.department, trainee.section]
+    .map(value => (value === null || value === undefined ? '' : String(value).trim()))
+    .filter(value => value && value !== '—' && value !== 'Unassigned');
+  return parts.length ? parts.join(' · ') : 'No student details on file';
+}
+
+/** Short "why is this trainee in this bar" note for the detail rows. */
+function activityTraineeNote(trainee) {
+  const missed = Number(trainee.consecutiveMissedDays);
+  if (trainee.activityStatus === 'INACTIVE' && Number.isFinite(missed) && missed > 0) {
+    return `${missed} missed OJT day${missed === 1 ? '' : 's'}`;
+  }
+  const days = trainee.daysSinceLastAttendance;
+  if (days === null || days === undefined || !Number.isFinite(Number(days))) {
+    return 'No time-in recorded';
+  }
+  const value = Number(days);
+  if (value <= 0) return 'Last time-in today';
+  if (value === 1) return 'Last time-in yesterday';
+  return `Last time-in ${value} days ago`;
+}
+
+function activityTooltipNames(group) {
+  if (!group.length) return ['No trainees in this category'];
+  const lines = group
+    .slice(0, ACTIVITY_TOOLTIP_NAMES)
+    .map(trainee => `• ${activityTraineeName(trainee) || 'Unnamed trainee'}`);
+  const remaining = group.length - lines.length;
+  if (remaining > 0) lines.push(`+${remaining} more — click the bar for the full list`);
+  return lines;
+}
+
+/**
+ * Draws "0" at the baseline for a category with no trainees. The shared value
+ * label plugin intentionally skips zeroes, and a bar with no length must still
+ * show its exact count.
+ */
+const activityZeroLabels = {
+  id: 'activityZeroLabels',
+  afterDatasetsDraw(chart) {
+    const dataset = chart.data && chart.data.datasets && chart.data.datasets[0];
+    const meta = chart.getDatasetMeta(0);
+    if (!dataset || !meta || !chart.scales || !chart.scales.x) return;
+
+    const theme = window.TrackITCharts.tokens();
+    meta.data.forEach((element, index) => {
+      if (Number(dataset.data[index]) !== 0) return;
+      if (!element || !isFinite(element.x) || !isFinite(element.y)) return;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.fillStyle = theme.muted;
+      ctx.font = "600 11px 'DM Sans', system-ui, sans-serif";
+      ctx.textBaseline = 'middle';
+      ctx.fillText('0', chart.scales.x.getPixelForValue(0) + 8, element.y);
+      ctx.restore();
+    });
+  },
+};
+
+/** Loading / empty / error states for the card, using the shared overlays. */
+function setActivityChartState(state) {
+  const overlay = el('activity-chart-overlay');
+  const skeleton = el('activity-chart-skeleton');
+  if (skeleton) skeleton.hidden = state !== 'loading';
+  if (!overlay) return;
+
+  if (state === 'ready') {
+    overlay.hidden = true;
+    return;
+  }
+
+  const title = el('activity-overlay-title');
+  const text = el('activity-overlay-text');
+  const retry = el('activity-overlay-retry');
+  if (retry) retry.hidden = state !== 'error';
+
+  overlay.hidden = false;
+  if (state === 'loading') {
+    if (title) title.textContent = 'Loading activity status';
+    if (text) text.textContent = 'Reading the latest attendance records…';
+    return;
+  }
+  if (state === 'error') {
+    if (title) title.textContent = 'Unable to load activity status';
+    if (text) text.textContent = 'Attendance records could not be read. Check the connection and try again.';
+    return;
+  }
+  if (title) title.textContent = 'No enrolled trainees';
+  if (text) text.textContent = 'Registered trainees appear here once they are enrolled in the OJT program.';
+}
+
+function renderActivityStatusChart(traineeProgress, summary = {}) {
+  const rows = Array.isArray(traineeProgress) ? traineeProgress.filter(Boolean) : [];
+
+  // Deactivated accounts are no longer part of the OJT population, so they are
+  // left out of both bars. The backend reports the same split in `summary`.
+  const enrolled = rows.filter(trainee => trainee.isActive !== false);
+  const active = enrolled
+    .filter(trainee => trainee.activityStatus !== 'INACTIVE')
+    .sort((a, b) => activityTraineeName(a).localeCompare(activityTraineeName(b)));
+  const inactive = enrolled
+    .filter(trainee => trainee.activityStatus === 'INACTIVE')
+    .sort((a, b) =>
+      (Number(b.consecutiveMissedDays) || 0) - (Number(a.consecutiveMissedDays) || 0) ||
+      activityTraineeName(a).localeCompare(activityTraineeName(b))
+    );
+
+  activityStatusState = {
+    active,
+    inactive,
+    deactivated: Math.max(0, rows.length - enrolled.length),
+    thresholdDays: Number(summary.inactivityThresholdDays) || 3,
+    ready: true,
   };
-  window.TrackITCharts.styleDataset(dataset, {
-    accent: TrackITCharts.accent.teal,
-    maxBarThickness: 26,
+
+  setAnalyticsText('activity-active-count', analyticsCount(active.length));
+  setAnalyticsText('activity-inactive-count', analyticsCount(inactive.length));
+
+  const activeBtn = el('activity-active-btn');
+  if (activeBtn) {
+    activeBtn.setAttribute('aria-label',
+      `${analyticsCount(active.length)} active trainee${active.length === 1 ? '' : 's'}. Show the full list.`);
+  }
+  const inactiveBtn = el('activity-inactive-btn');
+  if (inactiveBtn) {
+    inactiveBtn.setAttribute('aria-label',
+      `${analyticsCount(inactive.length)} inactive trainee${inactive.length === 1 ? '' : 's'}. Show the full list.`);
+  }
+
+  const note = el('activity-chart-note');
+  if (note) {
+    if (activityStatusState.deactivated > 0) {
+      note.hidden = false;
+      note.textContent = `${analyticsCount(activityStatusState.deactivated)} deactivated account${
+        activityStatusState.deactivated === 1 ? '' : 's'} excluded from both totals.`;
+    } else {
+      note.hidden = true;
+      note.textContent = '';
+    }
+  }
+
+  renderActivityBars(active.length, inactive.length);
+  setActivityChartState(enrolled.length === 0 ? 'empty' : 'ready');
+}
+
+function renderActivityBars(activeCount, inactiveCount) {
+  const canvas = document.getElementById('activityStatusChart');
+  if (!canvas) return;
+
+  const labels = ['Active Trainees', 'Inactive Trainees'];
+  const dataset = {
+    label: 'Trainees',
+    data: [activeCount, inactiveCount],
+    // One fill per category, both from the shared palette: cobalt for active,
+    // muted slate for inactive. Colours are read from the live theme on every
+    // paint, so a light/dark switch repaints without a second definition.
+    backgroundColor: (context) => {
+      const theme = window.TrackITCharts.tokens();
+      const accent = context.dataIndex === 0 ? theme.teal : theme.muted;
+      return window.TrackITCharts.barFill(accent, theme, context.dataIndex === 0)(context);
+    },
+    hoverBackgroundColor: (context) => {
+      const theme = window.TrackITCharts.tokens();
+      const accent = context.dataIndex === 0 ? theme.teal : theme.muted;
+      return window.TrackITCharts.alpha(accent, 1);
+    },
+    borderColor: (context) => {
+      const theme = window.TrackITCharts.tokens();
+      const accent = context.dataIndex === 0 ? theme.teal : theme.muted;
+      return window.TrackITCharts.alpha(accent, 1);
+    },
+    borderWidth: 0,
+    borderSkipped: false,
+    borderRadius: 6,
+    barPercentage: 0.7,
+    categoryPercentage: 0.62,
+    maxBarThickness: 34,
+    trackitValueLabels: true,
+  };
+
+  const options = window.TrackITCharts.barOptions({
+    horizontal: true,
+    legend: false,
+    categoryCount: labels.length,
+    datasetCount: 1,
+    xTitle: 'Number of Trainees',
+    valueFormatter: (value) => analyticsCount(Math.round(value)),
   });
 
-  if (window.analyticsCharts?.hoursChart) {
-    window.analyticsCharts.hoursChart.data.labels = labels;
-    window.analyticsCharts.hoursChart.data.datasets = [dataset];
-    window.analyticsCharts.hoursChart.update();
+  // Count + names on hover. The list is capped so the tooltip stays readable;
+  // the click panel always carries every trainee.
+  options.plugins.tooltip.callbacks = {
+    label: (context) => {
+      const count = Number(context.parsed.x) || 0;
+      return `Total: ${analyticsCount(count)} trainee${count === 1 ? '' : 's'}`;
+    },
+    afterLabel: (context) => activityTooltipNames(
+      context.dataIndex === 0 ? activityStatusState.active : activityStatusState.inactive
+    ),
+  };
+
+  // A click / tap is the touch-friendly equivalent of the hover tooltip.
+  options.onClick = (event, elements) => {
+    if (!elements || !elements.length) return;
+    openActivityDetail(elements[0].index === 0 ? 'active' : 'inactive');
+  };
+  options.onHover = (event, elements) => {
+    const target = event && event.native && event.native.target;
+    if (target && target.style) target.style.cursor = elements && elements.length ? 'pointer' : 'default';
+  };
+
+  // An all-zero total would collapse the axis; keep a readable 0–1 scale.
+  const largest = Math.max(activeCount, inactiveCount);
+  options.scales.x.suggestedMax = largest === 0 ? 1 : largest;
+
+  if (window.analyticsCharts?.activityStatusChart) {
+    const chart = window.analyticsCharts.activityStatusChart;
+    chart.data.labels = labels;
+    chart.data.datasets = [dataset];
+    chart.options.scales.x.suggestedMax = options.scales.x.suggestedMax;
+    chart.update();
     return;
   }
 
   window.analyticsCharts = window.analyticsCharts || {};
-  window.analyticsCharts.hoursChart = window.TrackITCharts.createBar(hoursCtx, {
-    data: { labels, datasets: [dataset] },
-    options: window.TrackITCharts.barOptions({
-      horizontal: true,
-      legend: false,
-      categoryCount: labels.length,
-      datasetCount: 1,
-      xTitle: 'Verified Hours',
-      valueFormatter: (value) => `${Math.round(value * 10) / 10} h`,
-    }),
-  });
+  window.analyticsCharts.activityStatusChart = window.TrackITCharts.register(new Chart(canvas,
+    window.TrackITCharts.withPlugins({
+      type: 'bar',
+      data: { labels, datasets: [dataset] },
+      options,
+      plugins: [activityZeroLabels],
+    })
+  ));
 }
+
+/** Error path: clear the totals and explain why the bars are unavailable. */
+function resetActivityStatusCard() {
+  activityStatusState = { active: [], inactive: [], deactivated: 0, thresholdDays: 3, ready: false };
+  setAnalyticsText('activity-active-count', '—');
+  setAnalyticsText('activity-inactive-count', '—');
+  const note = el('activity-chart-note');
+  if (note) {
+    note.hidden = true;
+    note.textContent = '';
+  }
+  setActivityChartState('error');
+}
+
+// ── Full trainee list for one bar ───────────────────────────────────────────
+
+function activityDetailRow(trainee) {
+  const name = activityTraineeName(trainee) || 'Unnamed trainee';
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2)
+    .map(part => part.charAt(0)).join('').toUpperCase();
+  return `
+    <button type="button" class="activity-row" onclick="openActivityTraineeProfile('${jsStringArg(trainee.id)}')">
+      <span class="activity-row__avatar" aria-hidden="true">${escapeHtml(initials || '?')}</span>
+      <span class="activity-row__main">
+        <span class="activity-row__name">${escapeHtml(name)}</span>
+        <span class="activity-row__meta">${escapeHtml(activityTraineeIdentity(trainee))}</span>
+      </span>
+      <span class="activity-row__aside">${escapeHtml(activityTraineeNote(trainee))}</span>
+    </button>
+  `;
+}
+
+function openActivityDetail(category) {
+  if (!activityStatusState.ready) return;
+
+  const key = category === 'inactive' ? 'inactive' : 'active';
+  const group = activityStatusState[key];
+  const modal = el('activity-detail-modal');
+  const list = el('activity-detail-list');
+  if (!modal || !list) return;
+
+  const isActive = key === 'active';
+  setAnalyticsText('activity-detail-title', isActive ? 'Active Trainees' : 'Inactive Trainees');
+  setAnalyticsText('activity-detail-subtitle', group.length === 0
+    ? 'No trainees in this category'
+    : `${analyticsCount(group.length)} enrolled trainee${group.length === 1 ? '' : 's'} · ` +
+      (isActive
+        ? 'recorded attendance within the activity window'
+        : `no time-in on ${activityStatusState.thresholdDays} consecutive applicable OJT days`));
+
+  if (group.length === 0) {
+    const anyEnrolled = activityStatusState.active.length + activityStatusState.inactive.length > 0;
+    list.innerHTML = `
+      <div class="activity-detail__empty">
+        <p class="empty-state__title">No ${isActive ? 'active' : 'inactive'} trainees</p>
+        <p class="empty-state__text">${anyEnrolled
+          ? (isActive
+            ? 'Every enrolled trainee is currently inactive.'
+            : 'Every enrolled trainee has recorded attendance within the activity window.')
+          : 'No trainees are enrolled in the OJT program yet.'}</p>
+      </div>
+    `;
+  } else {
+    list.innerHTML = group.map(activityDetailRow).join('');
+  }
+
+  setAnalyticsText('activity-detail-foot', group.length
+    ? 'Select a trainee to open their full profile.'
+    : '');
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  const closeBtn = modal.querySelector('.activity-detail__close');
+  if (closeBtn) closeBtn.focus();
+}
+
+function closeActivityDetail() {
+  const modal = el('activity-detail-modal');
+  if (modal) modal.classList.add('hidden');
+  if (document.body.style.overflow === 'hidden') document.body.style.overflow = '';
+}
+
+/** Detail row action: leave the activity panel, then open the shared profile. */
+function openActivityTraineeProfile(traineeId) {
+  if (!traineeId) return;
+  closeActivityDetail();
+  openTraineeProfileModal(traineeId);
+}
+
+// Clicking the backdrop and pressing Escape close the category panel.
+document.addEventListener('click', (event) => {
+  const modal = el('activity-detail-modal');
+  if (!modal || modal.classList.contains('hidden')) return;
+  if (event.target === modal) closeActivityDetail();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  const modal = el('activity-detail-modal');
+  if (modal && !modal.classList.contains('hidden')) {
+    event.stopPropagation();
+    closeActivityDetail();
+  }
+});
 
 function renderJournalStatusChart(statusData, windowDays = 90) {
   const journalCtx = document.getElementById('journalStatusChart');
@@ -3559,6 +3883,12 @@ async function loadAnalyticsData(options = {}) {
   const background = options.background === true;
   const refreshBtn = document.querySelector('#analytics .btn-ghost');
 
+  // First paint of the Activity Status card shows a skeleton; later passes keep
+  // the last good bars on screen instead of blinking.
+  if (!background && !window.analyticsCharts?.activityStatusChart) {
+    setActivityChartState('loading');
+  }
+
   // Background passes never grab the refresh button - disabling it on every
   // cycle made the control flicker and blocked deliberate clicks.
   if (refreshBtn && !background) refreshBtn.disabled = true;
@@ -3576,6 +3906,7 @@ async function loadAnalyticsData(options = {}) {
 
     forgetPainted('analytics');
     updateAnalyticsSummary({}, { conceptWindowDays: 30 }, {});
+    resetActivityStatusCard();
     renderAttentionList([]);
     renderNarrative([]);
     showNotification('Analytics', 'Unable to load analytics data right now', 'error');
@@ -3597,6 +3928,7 @@ async function loadAnalyticsData(options = {}) {
   renderAttendancePanel(analytics.attendance || {});
   renderRecentDTRs(analytics.attendance?.recentRecords || []);
   renderTraineeProgress(analytics.traineeProgress || []);
+  renderActivityStatusChart(analytics.traineeProgress || [], analytics.summary || {});
   renderPerformancePanel(analytics.performance || {});
   renderJournalPanel(analytics.journals || {});
   renderDepartmentAnalytics(analytics.departments || []);
@@ -3604,7 +3936,6 @@ async function loadAnalyticsData(options = {}) {
   renderNarrative(analytics.narrative || []);
 
   // Legacy charts kept from the previous dashboard version
-  renderHoursChart(analytics.hoursByTrainee || []);
   renderJournalStatusChart(analytics.journalStatusBreakdown || {}, analytics.journalWindowDays || 90);
   renderDepartmentChart();
 }
@@ -5892,11 +6223,43 @@ function tpScrollToTabs() {
   if (scroll && tabs) scroll.scrollTo({ top: Math.max(0, tabs.offsetTop - 8), behavior: 'smooth' });
 }
 
-function tpViewInTrainees() {
-  const traineeId = window.currentTraineeProfileId;
+/**
+ * Open the shared sidebar messenger straight into the conversation with a
+ * trainee. Used by the Trainees tab rows and the profile modal footer.
+ */
+function openMessengerWith(userId) {
+  const messenger = window.TrackITMessenger;
+  if (!messenger || typeof messenger.openWith !== 'function') {
+    showNotification(
+      'Messages unavailable',
+      'The messaging panel has not loaded yet. Refresh the page and try again.',
+      'error'
+    );
+    return;
+  }
+
+  // The "All Trainees" overlay is z-100 and would cover the messenger panel,
+  // so close it before diving into the conversation.
+  const allTrainees = document.getElementById('all-trainees-modal');
+  if (allTrainees && !allTrainees.classList.contains('hidden')) {
+    closeAllTraineesModal();
+  }
+
+  Promise.resolve(messenger.openWith(userId)).catch((error) => {
+    console.error('[Coordinator] Could not open message thread:', error);
+    showNotification('Messages', 'Could not open the conversation. Please try again.', 'error');
+  });
+}
+
+/** Profile modal footer: close the modal, then land in that trainee's chat. */
+function tpMessageTrainee() {
+  const traineeId = currentTraineeProfileId || window.currentTraineeProfileId;
+  if (!traineeId) return;
+  // closeTraineeProfileModal() clears the id, so capture it first. The modal
+  // is stacked above the messenger panel, so it has to close for the chat to
+  // be visible.
   closeTraineeProfileModal();
-  switchTab('trainees');
-  if (traineeId) openSnapshotTrainee(traineeId);
+  openMessengerWith(traineeId);
 }
 
 // Arrow-key navigation for the profile tablist (WAI-ARIA tabs pattern).

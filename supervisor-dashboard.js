@@ -803,8 +803,29 @@ function saveTraineeNotes(traineeId) {
   showNotification('Success', 'Trainee notes saved successfully', 'success');
 }
 
+/**
+ * "Message" buttons in the My Trainees tab (and the trainee detail modal).
+ * Hands the trainee's user id to the shared sidebar messenger, which opens the
+ * panel and loads the conversation with that person.
+ */
 function messageTrainee(traineeId) {
-  showNotification('Notice', 'Messaging feature - Open messaging dialog', 'info');
+  const messenger = window.TrackITMessenger;
+
+  if (!messenger || typeof messenger.openWith !== 'function') {
+    showNotification(
+      'Messages unavailable',
+      'The messaging panel has not loaded yet. Refresh the page and try again.',
+      'error'
+    );
+    return;
+  }
+
+  // Static fallback cards use placeholder ids; openWith() opens the contact
+  // list in that case instead of failing silently.
+  Promise.resolve(messenger.openWith(traineeId)).catch((error) => {
+    console.error('[Supervisor] Could not open message thread:', error);
+    showNotification('Messages', 'Could not open the conversation. Please try again.', 'error');
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────

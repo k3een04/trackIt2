@@ -727,6 +727,10 @@ async function buildCoordinatorAnalytics() {
       rating,
       performanceBand: band,
       status,
+      // Account state, straight from the User document. The Activity Status
+      // card only counts enrolled trainees, so it needs this flag to leave
+      // deactivated accounts out of both totals.
+      isActive,
       // Attendance-derived activity (services/activityStatusService.js)
       activityStatus,
       lastTimeIn: activity.lastTimeIn,
@@ -770,10 +774,15 @@ async function buildCoordinatorAnalytics() {
   traineeProgress.sort((a, b) => b.completedHours - a.completedHours);
   followUp.sort((a, b) => a.completionRate - b.completionRate);
 
-  const inactiveTraineeCount = traineeProgress.filter(
+  // Activity split for enrolled trainees only: a deactivated account
+  // (`isActive: false`) is not part of the OJT population any more, so it must
+  // not land in either bar of the Activity Status card.
+  const enrolledProgress = traineeProgress.filter(trainee => trainee.isActive !== false);
+  const inactiveTraineeCount = enrolledProgress.filter(
     trainee => trainee.activityStatus === STATUS_INACTIVE
   ).length;
-  const activeTraineeCount = traineeProgress.length - inactiveTraineeCount;
+  const activeTraineeCount = enrolledProgress.length - inactiveTraineeCount;
+  const deactivatedAccounts = traineeProgress.length - enrolledProgress.length;
 
   // ── Attendance summary + trends ─────────────────────────────────────────
   const attendanceStatusBreakdown = { present: 0, late: 0, absent: 0, excused: 0 };
@@ -1144,6 +1153,8 @@ async function buildCoordinatorAnalytics() {
     // Attendance-derived activity split (services/activityStatusService.js)
     activeActivityTrainees: activeTraineeCount,
     inactiveTrainees: inactiveTraineeCount,
+    // Deactivated accounts are excluded from both activity totals.
+    deactivatedAccounts,
     inactivityThresholdDays: INACTIVITY_THRESHOLD_DAYS,
     completedTrainees: completedTraineeCount,
     onTrackTrainees: onTrackCount,

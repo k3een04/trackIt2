@@ -1,0 +1,599 @@
+/* ===========================================================================
+   TrackIT — Sidebar messenger
+   ---------------------------------------------------------------------------
+   One launcher pinned to the bottom of every dashboard sidebar, plus a popup
+   conversation panel anchored just to the right of the rail. Shared by the
+   OJT, supervisor and coordinator dashboards; colours come from the tokens in
+   trackit-glass.css so both themes are covered without duplicated palettes.
+   =========================================================================== */
+
+/* ── Launcher (bottom of the sidebar) ────────────────────────────────────── */
+
+.tk-msg-launcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  min-height: 44px;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 14px;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-top: 1px solid var(--tk-hairline);
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-nav);
+  color: var(--tk-text-muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color var(--tk-dur) var(--tk-ease),
+    background-color var(--tk-dur) var(--tk-ease),
+    border-color var(--tk-dur) var(--tk-ease);
+}
+
+/* Room for the pinned launcher so the last nav item never hides behind it. */
+body .sidebar.has-tk-msg { padding-bottom: 82px; }
+
+.tk-msg-launcher:hover {
+  color: var(--tk-text-strong);
+  background: var(--tk-hover);
+}
+
+.tk-msg-launcher.is-open {
+  color: #93c5fd;
+  background: var(--tk-selected);
+  border-color: var(--tk-hairline-teal);
+}
+
+.tk-msg-launcher svg { flex-shrink: 0; }
+
+.tk-msg-launcher__label { flex: 1; min-width: 0; }
+
+.tk-msg-launcher__badge,
+.tk-msg-panel__badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.tk-msg-launcher__badge[hidden],
+.tk-msg-panel__badge[hidden] { display: none; }
+
+/* Mobile: the sidebar is an off-canvas drawer, so the rail launcher would be
+   hidden behind it. The module also appends a fixed launcher in that case. */
+.tk-msg-launcher--floating {
+  display: none;
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  right: auto;
+  width: auto;
+  margin: 0;
+  z-index: 75;
+  padding: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--tk-hairline-strong);
+  background: var(--tk-surface-overlay);
+  box-shadow: var(--tk-shadow-2);
+}
+
+.tk-msg-launcher--floating .tk-msg-launcher__label { display: none; }
+
+.tk-msg-launcher--floating .tk-msg-launcher__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
+/* ── Panel shell ─────────────────────────────────────────────────────────── */
+
+.tk-msg-panel {
+  position: fixed;
+  left: 232px;
+  bottom: 16px;
+  z-index: 80;
+  display: none;
+  flex-direction: column;
+  width: 374px;
+  height: min(560px, calc(100vh - 104px));
+  height: min(560px, calc(100dvh - 104px));
+  overflow: hidden;
+  background: var(--tk-surface-overlay);
+  border: 1px solid var(--tk-hairline);
+  border-radius: var(--tk-radius-lg);
+  box-shadow: var(--tk-shadow-3);
+  color: var(--tk-text);
+}
+
+.tk-msg-panel.is-open {
+  display: flex;
+  animation: tk-msg-enter 180ms var(--tk-ease);
+}
+
+.tk-msg-panel [hidden] { display: none !important; }
+
+@keyframes tk-msg-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to   { opacity: 1; transform: none; }
+}
+
+.tk-msg-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 50px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--tk-hairline);
+  background: var(--tk-surface-1);
+}
+
+.tk-msg-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  color: var(--tk-text-strong);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tk-msg-iconbtn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: var(--tk-radius-sm);
+  background: transparent;
+  color: var(--tk-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--tk-dur) var(--tk-ease),
+    background-color var(--tk-dur) var(--tk-ease);
+}
+
+.tk-msg-iconbtn:hover {
+  color: var(--tk-text-strong);
+  background: var(--tk-hover);
+}
+
+.tk-msg-panel__body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── Conversation list ───────────────────────────────────────────────────── */
+
+.tk-msg-listview {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+}
+
+.tk-msg-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--tk-hairline);
+}
+
+.tk-msg-search svg { color: var(--tk-text-faint); flex-shrink: 0; }
+
+.tk-msg-search input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--tk-input-border);
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-2);
+  color: var(--tk-text);
+  font: inherit;
+  font-size: 0.8rem;
+  outline: none;
+}
+
+.tk-msg-search input::placeholder { color: var(--tk-text-faint); }
+
+.tk-msg-search input:focus { border-color: var(--tk-teal); }
+
+.tk-msg-contacts {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  overscroll-behavior: contain;
+}
+
+.tk-msg-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--tk-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--tk-dur) var(--tk-ease),
+    border-color var(--tk-dur) var(--tk-ease);
+}
+
+.tk-msg-contact:hover { background: var(--tk-hover); }
+
+.tk-msg-contact.is-active {
+  background: var(--tk-selected);
+  border-color: var(--tk-hairline-teal);
+}
+
+.tk-msg-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.tk-msg-avatar--supervisor {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+}
+
+.tk-msg-avatar--coordinator {
+  background: linear-gradient(135deg, #f59e0b, #b45309);
+}
+
+.tk-msg-avatar--lg {
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+}
+
+.tk-msg-contact__main { flex: 1; min-width: 0; }
+
+.tk-msg-contact__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tk-msg-contact__name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--tk-text-strong);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.tk-msg-contact__time {
+  flex-shrink: 0;
+  color: var(--tk-text-faint);
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tk-msg-contact__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  min-width: 0;
+}
+
+.tk-msg-role {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--tk-status-info-bg);
+  color: var(--tk-status-info-text);
+}
+
+.tk-msg-role--supervisor {
+  background: rgba(139, 92, 246, 0.16);
+  color: #c4b5fd;
+}
+
+.tk-msg-role--coordinator {
+  background: var(--tk-status-pending-bg);
+  color: var(--tk-status-pending-text);
+}
+
+body.light-mode .tk-msg-role--supervisor {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.tk-msg-contact__preview {
+  margin-top: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--tk-text-muted);
+  font-size: 0.74rem;
+}
+
+.tk-msg-contact__unread {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--tk-teal);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ── Thread ──────────────────────────────────────────────────────────────── */
+
+.tk-msg-threadview {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+}
+
+.tk-msg-thread__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--tk-hairline);
+  background: var(--tk-surface-1);
+}
+
+.tk-msg-thread__who { min-width: 0; }
+
+.tk-msg-thread__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--tk-text-strong);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.tk-msg-thread__sub {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--tk-text-faint);
+  font-size: 0.68rem;
+}
+
+.tk-msg-thread {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 12px;
+  overscroll-behavior: contain;
+}
+
+.tk-msg-day {
+  align-self: center;
+  margin: 6px 0 2px;
+  padding: 3px 9px;
+  border: 1px solid var(--tk-hairline);
+  border-radius: 999px;
+  background: var(--tk-surface-2);
+  color: var(--tk-text-faint);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tk-msg-bubble {
+  align-self: flex-start;
+  max-width: 84%;
+  padding: 8px 11px;
+  border: 1px solid var(--tk-hairline);
+  border-radius: 14px 14px 14px 4px;
+  background: var(--tk-surface-2);
+  color: var(--tk-text);
+  font-size: 0.81rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tk-msg-bubble--mine {
+  align-self: flex-end;
+  border-color: transparent;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--tk-teal-strong);
+  color: #fff;
+}
+
+.tk-msg-bubble__time {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.6rem;
+  text-align: right;
+  opacity: 0.65;
+}
+
+.tk-msg-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+  color: var(--tk-text-muted);
+  font-size: 0.8rem;
+}
+
+.tk-msg-empty strong {
+  color: var(--tk-text-strong);
+  font-size: 0.88rem;
+}
+
+.tk-msg-empty svg { color: var(--tk-text-faint); }
+
+.tk-msg-retry {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--tk-hairline-strong);
+  border-radius: 999px;
+  background: var(--tk-surface-2);
+  color: var(--tk-text-strong);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--tk-dur) var(--tk-ease),
+    border-color var(--tk-dur) var(--tk-ease);
+}
+
+.tk-msg-retry:hover {
+  background: var(--tk-hover);
+  border-color: var(--tk-teal);
+}
+
+.tk-msg-status {
+  padding: 8px 12px;
+  border-top: 1px solid var(--tk-hairline);
+  color: var(--tk-status-error-text);
+  font-size: 0.72rem;
+}
+
+/* ── Composer ────────────────────────────────────────────────────────────── */
+
+.tk-msg-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px;
+  border-top: 1px solid var(--tk-hairline);
+  background: var(--tk-surface-1);
+}
+
+.tk-msg-composer textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  max-height: 96px;
+  padding: 9px 12px;
+  border: 1px solid var(--tk-input-border);
+  border-radius: 12px;
+  background: var(--tk-surface-2);
+  color: var(--tk-text);
+  font: inherit;
+  font-size: 0.81rem;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+  overscroll-behavior: contain;
+}
+
+.tk-msg-composer textarea::placeholder { color: var(--tk-text-faint); }
+
+.tk-msg-composer textarea:focus { border-color: var(--tk-teal); }
+
+.tk-msg-send {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tk-teal-strong);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background-color var(--tk-dur) var(--tk-ease),
+    opacity var(--tk-dur) var(--tk-ease);
+}
+
+.tk-msg-send:hover { background: var(--tk-teal-deep); }
+
+.tk-msg-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+/* 769–1024px: the rail narrows to 160px on the dashboards. */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .tk-msg-panel { left: 172px; }
+}
+
+@media (max-width: 768px) {
+  .tk-msg-launcher--floating { display: flex; }
+  /* 16px keeps iOS Safari from zooming the page when the field is focused. */
+  .tk-msg-search input,
+  .tk-msg-composer textarea { font-size: 16px; }
+  .tk-msg-panel {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+    height: min(78vh, 560px);
+    height: min(78dvh, 560px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-msg-panel.is-open { animation: none; }
+}

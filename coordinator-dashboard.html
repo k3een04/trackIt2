@@ -10,7 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=21">
+    <link rel="stylesheet" href="visuals/coordinator-dashboard.css?v=22">
   <!-- Shared TrackIT date/month picker (the same one used on the OJT and
        supervisor dashboards). Enhances any [data-trackit-cal] input. -->
   <link rel="stylesheet" href="visuals/trackit-calendar.css?v=3">
@@ -21,6 +21,8 @@
   <!-- Verification workflow (confirmation, loading and text-entry dialogs).
        Self-contained .vm-* rules so it stays identical on every dashboard. -->
   <link rel="stylesheet" href="visuals/verification-modal.css?v=5">
+  <!-- Sidebar messenger: launcher at the bottom of the rail + popup chat. -->
+  <link rel="stylesheet" href="visuals/messaging.css?v=4">
 </head>
 <body>
   <script>
@@ -700,11 +702,37 @@
           </div>
         </div>
         <div class="glass-card p-6 lg:col-span-2">
-          <h3 class="font-display font-700 mb-2">Hours Rendered per Trainee</h3>
-          <p class="text-xs text-slate-500 mb-6">Highest verified hour totals (top 8).</p>
-          <div class="chart-frame chart-frame--bars chart-frame--tall chart-frame--h chart-frame--compact">
-            <canvas id="hoursChart"></canvas>
+          <h3 class="font-display font-700 mb-2">Trainee Activity Status</h3>
+          <p class="text-xs text-slate-500 mb-3">Active and inactive trainees based on recent attendance activity.</p>
+
+          <!-- Totals double as buttons: the only reliable way to open the full
+               trainee list on touch devices, where there is no hover. -->
+          <div class="activity-split" id="activity-split">
+            <button type="button" class="activity-split__item" id="activity-active-btn"
+              onclick="openActivityDetail('active')" title="Show every active trainee">
+              <span class="activity-split__dot activity-split__dot--active" aria-hidden="true"></span>
+              <span class="activity-split__label">Active</span>
+              <span class="activity-split__value" id="activity-active-count">—</span>
+            </button>
+            <button type="button" class="activity-split__item" id="activity-inactive-btn"
+              onclick="openActivityDetail('inactive')" title="Show every inactive trainee">
+              <span class="activity-split__dot activity-split__dot--inactive" aria-hidden="true"></span>
+              <span class="activity-split__label">Inactive</span>
+              <span class="activity-split__value" id="activity-inactive-count">—</span>
+            </button>
           </div>
+
+          <div class="chart-frame chart-frame--bars chart-frame--tall chart-frame--h chart-frame--compact activity-chart-frame">
+            <canvas id="activityStatusChart" role="img"
+              aria-label="Active and inactive trainee counts. Use the Active and Inactive buttons above for the full list."></canvas>
+            <div class="skel skel--chart activity-chart-skeleton" id="activity-chart-skeleton" aria-hidden="true"></div>
+            <div class="chart-overlay activity-chart-overlay" id="activity-chart-overlay" hidden>
+              <p class="empty-state__title" id="activity-overlay-title"></p>
+              <p class="empty-state__text" id="activity-overlay-text"></p>
+              <button type="button" class="link-btn" id="activity-overlay-retry" onclick="loadAnalyticsData()" hidden>Retry</button>
+            </div>
+          </div>
+          <p class="activity-chart-note" id="activity-chart-note" hidden></p>
         </div>
       </div>
 
@@ -1364,7 +1392,7 @@
       </div>
 
       <footer class="tp-modal__foot">
-        <button onclick="tpViewInTrainees()" class="btn-ghost btn-ghost--sm">View in Trainees List</button>
+        <button onclick="tpMessageTrainee()" class="btn-ghost btn-ghost--sm">Message Trainee</button>
         <button onclick="closeTraineeProfileModal(); switchTab('journal-review')" class="btn-primary tp-foot-primary">Review Journals</button>
       </footer>
     </div>
@@ -1446,6 +1474,30 @@
     </div>
   </div>
 
+  <!-- Activity Status detail: the complete trainee list for one bar. Opened by
+       clicking a bar or one of the Active / Inactive totals, so the full list
+       never depends on hovering. -->
+  <div id="activity-detail-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
+    style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);" role="dialog" aria-modal="true"
+    aria-labelledby="activity-detail-title">
+    <div class="glass-card activity-detail">
+      <header class="activity-detail__head">
+        <div>
+          <h3 class="font-display font-700 text-lg" id="activity-detail-title">Active Trainees</h3>
+          <p class="text-xs text-slate-500" id="activity-detail-subtitle"></p>
+        </div>
+        <button type="button" class="activity-detail__close" onclick="closeActivityDetail()" aria-label="Close trainee list">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </header>
+      <div class="activity-detail__body" id="activity-detail-list"></div>
+      <footer class="activity-detail__foot">
+        <p class="text-xs text-slate-500" id="activity-detail-foot"></p>
+        <button type="button" class="btn-ghost btn-ghost--sm" onclick="closeActivityDetail()">Close</button>
+      </footer>
+    </div>
+  </div>
+
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
   <script src="chart-theme.js?v=2"></script>
@@ -1455,6 +1507,8 @@
   <!-- Defines window.VerificationModal; must precede the dashboard script that
        opens it from the notification, journal and session actions. -->
   <script src="verification-modal.js?v=5"></script>
-  <script src="coordinator-dashboard.js?v=17"></script>
+  <!-- Sidebar messenger (shared by all three dashboards). -->
+  <script src="messaging.js?v=4"></script>
+  <script src="coordinator-dashboard.js?v=20"></script>
 </body>
 </html>

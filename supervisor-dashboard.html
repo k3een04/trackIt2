@@ -20,6 +20,8 @@
   <!-- Verification workflow (journal sign / DTR verify / appraisal sign). Kept
        self-contained in .vm-* so it stays identical on every dashboard. -->
   <link rel="stylesheet" href="visuals/verification-modal.css?v=5">
+  <!-- Sidebar messenger: launcher at the bottom of the rail + popup chat. -->
+  <link rel="stylesheet" href="visuals/messaging.css?v=4">
 </head>
 <body>
   <script>
@@ -967,6 +969,8 @@
   <!-- Defines window.VerificationModal; must precede the dashboard script that
        opens it from the journal, DTR and appraisal actions. -->
   <script src="verification-modal.js?v=5"></script>
-  <script src="supervisor-dashboard.js?v=6"></script>
+  <!-- Sidebar messenger (shared by all three dashboards). -->
+  <script src="messaging.js?v=4"></script>
+  <script src="supervisor-dashboard.js?v=7"></script>
 </body>
 </html>

@@ -63,6 +63,7 @@ const journalRoutes = require('./routes/journal');
 const geofenceRoutes = require('./routes/geofence');
 const notificationRoutes = require('./routes/notifications');
 const appraisalRoutes = require('./routes/appraisal');
+const messageRoutes = require('./routes/messages');
 
 // API Router
 const apiRouter = express.Router();
@@ -77,6 +78,7 @@ apiRouter.use('/journal', journalRoutes);
 apiRouter.use('/geofence', geofenceRoutes);
 apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/appraisal', appraisalRoutes);
+apiRouter.use('/messages', messageRoutes);
 
 // Broad safety net for every API route. The limit is high on purpose - the
 // dashboard pages make many small calls - it only exists to blunt a runaway
@@ -157,6 +159,10 @@ app.get('/visuals/trackit-calendar.css', (req, res) => {
 app.get('/visuals/verification-modal.css', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'visuals', 'verification-modal.css'));
 });
+// Sidebar messenger shared by the OJT, supervisor and coordinator dashboards.
+app.get('/visuals/messaging.css', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'visuals', 'messaging.css'));
+});
 app.get('/landingpage.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'landingpage.js'));
 });
@@ -180,6 +186,10 @@ app.get('/trackit-calendar.js', (req, res) => {
 // calls window.VerificationModal.
 app.get('/verification-modal.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'verification-modal.js'));
+});
+// Shared sidebar messenger; loaded by all three dashboards.
+app.get('/messaging.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'messaging.js'));
 });
 app.get('/coordinator-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'coordinator-dashboard.js'));

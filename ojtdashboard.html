@@ -27,6 +27,8 @@
   <!-- Verification workflow (confirmation, loading and text-entry dialogs).
        Self-contained .vm-* rules so it stays identical on every dashboard. -->
   <link rel="stylesheet" href="visuals/verification-modal.css?v=5">
+  <!-- Sidebar messenger: launcher at the bottom of the rail + popup chat. -->
+  <link rel="stylesheet" href="visuals/messaging.css?v=4">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
@@ -1047,6 +1049,8 @@
   <!-- Shared appraisal PDF overlay builder (window.AppraisalPDF); must precede
        the dashboard script that calls it from the Documents tab download. -->
   <script src="appraisal-pdf.js?v=1"></script>
+  <!-- Sidebar messenger (shared by all three dashboards). -->
+  <script src="messaging.js?v=4"></script>
   <script src="ojtdashboard.js?v=14"></script>
 </body>
 </html>
