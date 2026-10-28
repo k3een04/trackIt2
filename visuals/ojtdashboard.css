@@ -2895,7 +2895,7 @@ body.light-mode .notif-time { color: #94a3b8; }
    OVERVIEW DASHBOARD
    ----------------------------------------------------------------------------
    A self-contained design layer for the trainee Overview tab. Everything is
-   scoped under #overview so nothing here can reach the DTR, Journal, Duty Log,
+   scoped under #overview so nothing here can reach the DTR, Journal,
    Progress, Documents or Settings tabs.
 
    Colour is declared explicitly per theme rather than through the inherited

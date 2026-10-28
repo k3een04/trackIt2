@@ -32,7 +32,6 @@ router.get('/student/:studentId', authenticateToken, authorizeRole('student'), a
     // In a production app, you'd fetch from separate collections:
     // - AttendanceRecords
     // - JournalSubmissions
-    // - DutyLogs
     // - DTRRecords
     res.status(200).json({
       success: true,
@@ -62,11 +61,6 @@ router.get('/student/:studentId', authenticateToken, authorizeRole('student'), a
             type: 'journal',
             message: 'Weekly journal approved',
             date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-          },
-          {
-            type: 'dutylog',
-            message: 'Duty log submitted',
-            date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
           },
         ],
       },

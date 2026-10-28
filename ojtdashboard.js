@@ -2761,36 +2761,6 @@ async function autoExtractTheories(event) {
   }
 }
 
-// Duty log submission
-async function submitDutyLog(event) {
-  event.preventDefault();
-  const date = document.getElementById('dutylog-date').value;
-  const desc = document.getElementById('dutylog-desc').value;
-  const category = document.getElementById('dutylog-category').value;
-  const hours = document.getElementById('dutylog-hours').value;
-
-  if (!date || !desc || !hours) {
-    alert('Please fill all fields');
-    return;
-  }
-
-  // API call to save duty log (when backend endpoint is ready)
-  // const result = await fetchAPI(`/dutylog`, {
-  //   method: 'POST',
-  //   body: JSON.stringify({
-  //     studentId: window.currentUser.id,
-  //     date,
-  //     taskDescription: desc,
-  //     category,
-  //     hoursSpent: parseFloat(hours),
-  //     status: 'submitted'
-  //   })
-  // });
-
-  alert(`Duty log added for ${date}!\nTask: ${desc}\nCategory: ${category}\nHours: ${hours}`);
-  document.getElementById('dutylog-form').reset();
-}
-
 // Profile functions
 async function saveProfile(event) {
   event.preventDefault();
@@ -4142,15 +4112,6 @@ function logout() {
       window.location.href = 'loginpage.html';
     },
   });
-}
-
-// Set today's date in duty log
-function setTodayDate() {
-  const dateInput = document.getElementById('dutylog-date');
-  if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
-  }
 }
 
 // Profile photo upload
@@ -5592,7 +5553,7 @@ document.addEventListener('click', (e) => {
    data-label pseudo-element. Labels are stamped from the thead here and
    re-stamped whenever a render replaces the rows, so no render code changes. */
 (function initStackedTables() {
-  const TARGETS = ['#dtr-table-body', '#all-records-table-body', '#dutylog-table-body'];
+  const TARGETS = ['#dtr-table-body', '#all-records-table-body'];
 
   function stamp(tbody) {
     const table = tbody.closest('table');
