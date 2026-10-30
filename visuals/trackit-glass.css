@@ -1651,6 +1651,32 @@ body #theme-toggle:hover {
   border-color: var(--tk-hairline-strong);
 }
 
+/* Theme toggle glyph: sun and moon share one 20px cell so swapping them never
+   shifts the header layout. */
+body .theme-toggle__icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+}
+
+body .theme-toggle__icon > svg {
+  grid-area: 1 / 1;
+  width: 20px;
+  height: 20px;
+}
+
+/* Dark mode is the default, so the moon starts hidden and JS fades it in. */
+body .theme-toggle__icon .moon-icon { display: none; }
+
+/* Linear icons must stay outline-only; the per-dashboard
+   `#theme-icon * { fill: currentColor }` rule would otherwise fill them. */
+body #theme-icon svg,
+body #theme-icon svg * {
+  fill: none;
+  stroke: currentColor;
+}
+
 /* ── 12. MICRO-INTERACTIONS + RESPONSIVE REFINEMENT ───────────────────────── */
 
 /* Focus: one restrained teal ring shared by every interactive surface. */

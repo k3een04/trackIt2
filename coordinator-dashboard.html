@@ -59,40 +59,29 @@
         <!-- Global Search -->
         <div id="global-search-container" class="hidden md:flex items-center flex-shrink-0">
           <div class="relative w-full">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="search-normal"></svg>
             <input type="text" id="global-search-input" placeholder="Search trainees..." class="w-full pl-10 pr-4 py-2 text-sm bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 focus:bg-white/10 transition-colors duration-200" aria-label="Search trainees" autocomplete="off" spellcheck="false">
           </div>
         </div>
 
         <button id="theme-toggle" onclick="toggleTheme()" class="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" title="Toggle dark/light mode" aria-label="Toggle theme">
-          <svg id="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            <circle class="sun-icon" cx="12" cy="12" r="5"></circle>
-            <line class="sun-icon" x1="12" y1="1" x2="12" y2="3"></line>
-            <line class="sun-icon" x1="12" y1="21" x2="12" y2="23"></line>
-            <line class="sun-icon" x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line class="sun-icon" x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line class="sun-icon" x1="1" y1="12" x2="3" y2="12"></line>
-            <line class="sun-icon" x1="21" y1="12" x2="23" y2="12"></line>
-            <line class="sun-icon" x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line class="sun-icon" x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
+          <span id="theme-icon" class="theme-toggle__icon" aria-hidden="true"><svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-iconsax="sun1" aria-hidden="true"></svg><svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-iconsax="moon" aria-hidden="true"></svg></span>
         </button>
         <button id="notif-btn" onclick="toggleNotifications()" class="p-2 hover:bg-white/10 rounded-lg transition relative flex-shrink-0" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-controls="notif-popup" aria-expanded="false">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="notification"></svg>
           <span id="notif-badge" class="notif-badge" style="display:none;"></span>
         </button>
         <button onclick="logout()" class="btn-ghost text-xs md:text-sm hidden sm:inline-flex flex-shrink-0" aria-label="Logout">Logout</button>
         <button onclick="logout()" class="btn-ghost p-2 sm:hidden flex-shrink-0" aria-label="Logout" title="Logout">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="logout"></svg>
         </button>
         <!-- Mobile Search Button -->
         <button id="mobile-search-btn" onclick="toggleMobileSearch()" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" aria-label="Search trainees" title="Search">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="search-normal"></svg>
         </button>
 
         <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" aria-label="Toggle menu" title="Menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="hamberger-menu"></svg>
         </button>
       </div>
     </div>
@@ -129,10 +118,10 @@
   <div id="mobile-search-panel" class="hidden fixed inset-0 z-[90] flex flex-col md:hidden" style="background: #0f172a; backdrop-filter: none;">
     <div class="flex items-center gap-3 p-4 border-b border-white/10 sticky top-0" style="background: #0f172a; backdrop-filter: none; z-index: 10;">
       <button onclick="closeMobileSearch()" class="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" aria-label="Close search" title="Close">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
       <div class="relative flex-1">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="search-normal"></svg>
         <input type="text" id="mobile-search-input" placeholder="Search trainees..." class="w-full pl-10 pr-4 py-3 text-base bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 focus:bg-white/10" aria-label="Search trainees" autocomplete="off" spellcheck="false">
       </div>
     </div>
@@ -143,23 +132,23 @@
   <div class="sidebar">
     <nav class="space-y-2">
       <a href="#overview" class="nav-link active" onclick="switchTab('overview'); closeSidebarOnMobile()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="category"></svg>
         <span>Dashboard</span>
       </a>
       <a href="#trainees" class="nav-link" onclick="switchTab('trainees'); closeSidebarOnMobile()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile2-user"></svg>
         <span>Trainees</span>
       </a>
       <a href="#journal-review" class="nav-link" onclick="switchTab('journal-review'); closeSidebarOnMobile()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>
         <span>Journal Review</span>
       </a>
       <a href="#analytics" class="nav-link" onclick="switchTab('analytics'); closeSidebarOnMobile()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13 16 8 11 2 17"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="trend-up"></svg>
         <span>Analytics</span>
       </a>
       <a href="#settings" class="nav-link" onclick="switchTab('settings'); closeSidebarOnMobile()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.96 2.96l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.96-2.96l4.24-4.24M19.78 19.78l-4.24-4.24m-2.96-2.96l-4.24-4.24"></path></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="setting2"></svg>
         <span>Settings</span>
       </a>
     </nav>
@@ -169,9 +158,7 @@
   <div class="main-content">
     <div class="tab-toolbar">
       <button id="tab-back" class="tab-back-btn is-disabled" onclick="goBackTab()" disabled aria-label="Go back to previous tab">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-left3"></svg>
         <span>Back</span>
       </button>
     </div>
@@ -185,15 +172,15 @@
         </div>
         <div class="ov-header__actions">
           <button type="button" class="btn-ghost btn-ghost--sm" onclick="switchTab('journal-review')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-text"></svg>
             Review Journals
           </button>
           <button type="button" class="btn-ghost btn-ghost--sm" onclick="switchTab('trainees')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile2-user"></svg>
             Manage Trainees
           </button>
           <button type="button" class="btn-ghost btn-ghost--sm" onclick="switchTab('analytics')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 6 13 16 8 11 2 17"></polyline></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="trend-up"></svg>
             View Analytics
           </button>
         </div>
@@ -203,7 +190,7 @@
       <section class="ov-kpi-grid" id="overview-kpis" aria-label="Trainee summary">
         <article class="ov-kpi ov-kpi--teal is-loading" id="kpi-total" aria-busy="true">
           <span class="ov-kpi__icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile2-user"></svg>
           </span>
           <div class="ov-kpi__body">
             <p class="ov-kpi__label">Total Trainees</p>
@@ -214,7 +201,7 @@
 
         <article class="ov-kpi ov-kpi--green is-loading" id="kpi-active" aria-busy="true">
           <span class="ov-kpi__icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="user-tick"></svg>
           </span>
           <div class="ov-kpi__body">
             <p class="ov-kpi__label">Active Trainees</p>
@@ -225,7 +212,7 @@
 
         <article class="ov-kpi ov-kpi--red is-loading" id="kpi-inactive" aria-busy="true">
           <span class="ov-kpi__icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="17" y1="8" x2="22" y2="13"></line><line x1="22" y1="8" x2="17" y2="13"></line></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="user-remove"></svg>
           </span>
           <div class="ov-kpi__body">
             <p class="ov-kpi__label">Inactive Trainees</p>
@@ -240,7 +227,7 @@
         <section class="glass-card ov-panel" aria-labelledby="ov-snapshot-title">
           <header class="ov-panel__head">
             <span class="ov-panel__icon" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="9" y1="4" x2="9" y2="21"></line></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="chart21"></svg>
             </span>
             <div class="ov-panel__titles">
               <h3 class="ov-panel__title" id="ov-snapshot-title">Trainee Progress Snapshot</h3>
@@ -279,14 +266,14 @@
             </table>
           </div>
           <footer class="ov-panel__foot">
-            <button type="button" class="link-btn" onclick="switchTab('trainees')">View All Trainees <span aria-hidden="true">→</span></button>
+            <button type="button" class="link-btn" onclick="switchTab('trainees')">View All Trainees <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-right"></svg></button>
           </footer>
         </section>
 
         <section class="glass-card ov-panel" aria-labelledby="ov-attendance-title">
           <header class="ov-panel__head">
             <span class="ov-panel__icon" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m9 16 2 2 4-4"></path></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>
             </span>
             <div class="ov-panel__titles">
               <h3 class="ov-panel__title" id="ov-attendance-title">Weekly Attendance</h3>
@@ -297,15 +284,8 @@
                 <label class="week-picker__label" for="attendance-week-select">Week</label>
                 <div class="week-picker__trigger" id="attendance-week-trigger" tabindex="0" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-label="Select week" onclick="toggleWeekPicker()">
                   <span class="week-picker__value" id="attendance-week-value">This Week</span>
-                  <svg class="week-picker__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                  <svg class="week-picker__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
+                  <svg class="week-picker__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar"></svg>
+                  <svg class="week-picker__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-down3"></svg>
                 </div>
                 <select id="attendance-week-select" class="week-picker__native" onchange="loadAttendanceChart(this.value)" aria-hidden="true" tabindex="-1">
                   <option value="">Current Week</option>
@@ -331,7 +311,7 @@
         <section class="glass-card ov-panel">
           <header class="ov-panel__head">
             <span class="ov-panel__icon" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-1.71 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="warning2"></svg>
             </span>
             <div class="ov-panel__titles">
               <h3 class="ov-panel__title">Pending Actions</h3>
@@ -349,7 +329,7 @@
         <section class="glass-card ov-panel" aria-labelledby="ov-tracker-title">
           <header class="ov-panel__head">
             <span class="ov-panel__icon" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="task-square"></svg>
             </span>
             <div class="ov-panel__titles">
               <h3 class="ov-panel__title" id="ov-tracker-title">Journal Submission Tracker</h3>
@@ -381,7 +361,7 @@
             <div id="journal-tracker-pagination" class="pager"></div>
             <button type="button" id="journal-tracker-view-all" class="link-btn hidden"
               onclick="openJournalTrackerModal()">
-              View all students <span aria-hidden="true">→</span>
+              View all students <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-right"></svg>
             </button>
           </div>
         </section>
@@ -952,28 +932,28 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="p-4 rounded-lg bg-white/5 border border-white/10">
             <button onclick="generateSemesterReport()" class="btn-primary w-full mb-3">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-download"></svg>
               Semester Summary
             </button>
             <p id="report-note-summary" class="text-xs text-slate-500">Full descriptive report preview</p>
           </div>
           <div class="p-4 rounded-lg bg-white/5 border border-white/10">
             <button onclick="exportTraineeData()" class="btn-primary w-full mb-3">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-download"></svg>
               Trainee Data
             </button>
             <p id="report-note-trainees" class="text-xs text-slate-500">CSV of trainee hours and status</p>
           </div>
           <div class="p-4 rounded-lg bg-white/5 border border-white/10">
             <button onclick="exportAttendanceLogs()" class="btn-primary w-full mb-3">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-download"></svg>
               Attendance Logs
             </button>
             <p id="report-note-attendance" class="text-xs text-slate-500">CSV of attendance per trainee</p>
           </div>
           <div class="p-4 rounded-lg bg-white/5 border border-white/10">
             <button onclick="exportJournalAnalytics()" class="btn-primary w-full mb-3">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-download"></svg>
               Journal Analytics
             </button>
             <p id="report-note-journals" class="text-xs text-slate-500">Journal status preview and CSV</p>
@@ -1146,7 +1126,7 @@
   <div id="trainee-profile-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
     <div class="glass-card tp-modal" role="dialog" aria-modal="true" aria-labelledby="trainee-profile-name" style="background: #151f32; border: 1px solid #29364b;">
       <button onclick="closeTraineeProfileModal()" class="tp-modal__close" aria-label="Close profile" title="Close">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
 
       <div class="tp-modal__scroll" id="tp-scroll">
@@ -1168,7 +1148,7 @@
         <section class="tp-kpis" id="tp-kpis" aria-label="OJT progress overview">
           <article class="ov-kpi tp-kpi is-loading" id="tp-kpi-hours" aria-busy="true">
             <span class="ov-kpi__icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="clock"></svg>
             </span>
             <div class="ov-kpi__body">
               <p class="ov-kpi__label">Completed OJT Hours</p>
@@ -1180,7 +1160,7 @@
 
           <article class="ov-kpi tp-kpi is-loading" id="tp-kpi-attendance" aria-busy="true">
             <span class="ov-kpi__icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar"></svg>
             </span>
             <div class="ov-kpi__body">
               <p class="ov-kpi__label">Attendance Summary</p>
@@ -1191,7 +1171,7 @@
 
           <article class="ov-kpi tp-kpi is-loading" id="tp-kpi-journals" aria-busy="true">
             <span class="ov-kpi__icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>
             </span>
             <div class="ov-kpi__body">
               <p class="ov-kpi__label">Weekly Journal Progress</p>
@@ -1202,7 +1182,7 @@
 
           <article class="ov-kpi tp-kpi is-loading" id="tp-kpi-dtr" aria-busy="true">
             <span class="ov-kpi__icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>
             </span>
             <div class="ov-kpi__body">
               <p class="ov-kpi__label">DTR Verification</p>
@@ -1428,8 +1408,8 @@
   <!-- Assign Supervisor Modal -->
   <div id="assign-supervisor-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
     <div class="glass-card p-8 w-full max-w-md relative" style="background: #151f32; border: 1px solid #29364b;">
-      <button onclick="closeAssignModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      <button onclick="closeAssignModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition" aria-label="Close dialog">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
       <h3 class="font-display font-700 text-xl mb-2">Assign Supervisor</h3>
       <p class="text-slate-400 text-sm mb-6">Assigning supervisor to: <span id="assign-trainee-name" class="text-blue-400 font-semibold"></span></p>
@@ -1452,7 +1432,7 @@
       <div class="flex gap-3">
         <button onclick="closeAssignModal()" class="btn-ghost flex-1">Cancel</button>
         <button onclick="confirmAssignSupervisor()" id="confirm-assign-btn" class="btn-primary flex-1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>
           Assign
         </button>
       </div>
@@ -1514,7 +1494,7 @@
           <p class="text-xs text-slate-500" id="activity-detail-subtitle"></p>
         </div>
         <button type="button" class="activity-detail__close" onclick="closeActivityDetail()" aria-label="Close trainee list">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
         </button>
       </header>
       <div class="activity-detail__body" id="activity-detail-list"></div>
@@ -1527,6 +1507,9 @@
 
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
+  <!-- Local Iconsax Linear icon registry. Must load before any script that
+       renders icons; hydrates [data-iconsax] placeholders. -->
+  <script src="iconsax.js?v=1"></script>
   <script src="chart-theme.js?v=2"></script>
   <!-- Enhances the profile modal's [data-trackit-cal] date fields with the
        shared TrackIT calendar. Must precede the dashboard script. -->

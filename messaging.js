@@ -380,7 +380,7 @@
 
     els.contacts.innerHTML =
       '<div class="tk-msg-empty">' +
-      '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="16.5" x2="12" y2="16.5"></line></svg>' +
+      '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg>' +
       `<strong>${escapeHtml(heading)}</strong>` +
       `<span>${escapeHtml(hint)}</span>` +
       '<button type="button" class="tk-msg-retry" data-msg-action="retry">Try again</button>' +
@@ -401,7 +401,7 @@
     if (!state.contacts.length) {
       els.contacts.innerHTML =
         '<div class="tk-msg-empty">' +
-        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>' +
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="messages"></svg>' +
         `<strong>${escapeHtml(emptyStateHeading())}</strong>` +
         `<span>${escapeHtml(emptyStateCopy())}</span>` +
         '</div>';
@@ -539,7 +539,7 @@
     if (!state.messages.length) {
       els.thread.innerHTML =
         '<div class="tk-msg-empty">' +
-        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>' +
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="messages"></svg>' +
         '<strong>No messages yet</strong>' +
         '<span>Say hello to start the conversation.</span>' +
         '</div>' +
@@ -940,9 +940,7 @@
 
   function chatIcon(size) {
     return (
-      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
-      '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>' +
-      '</svg>'
+      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="messages"></svg>`
     );
   }
 
@@ -981,13 +979,13 @@
       '<span class="tk-msg-panel__badge" hidden>0</span>' +
       '</div>' +
       '<button type="button" class="tk-msg-iconbtn" data-msg-action="close" aria-label="Close messages">' +
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>' +
       '</button>' +
       '</div>' +
       '<div class="tk-msg-panel__body">' +
       '<section class="tk-msg-listview">' +
       '<div class="tk-msg-search">' +
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="search-normal"></svg>' +
       '<input type="search" id="tk-msg-search" placeholder="Search people" autocomplete="off" aria-label="Search people">' +
       '</div>' +
       '<div class="tk-msg-contacts" id="tk-msg-contacts"></div>' +
@@ -995,7 +993,7 @@
       '<section class="tk-msg-threadview" hidden>' +
       '<div class="tk-msg-thread__head">' +
       '<button type="button" class="tk-msg-iconbtn" data-msg-action="back" aria-label="Back to conversations">' +
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-left3"></svg>' +
       '</button>' +
       '<span class="tk-msg-avatar tk-msg-avatar--lg" id="tk-msg-thread-avatar">?</span>' +
       '<div class="tk-msg-thread__who">' +
@@ -1008,7 +1006,7 @@
       '<form class="tk-msg-composer" id="tk-msg-composer">' +
       '<textarea id="tk-msg-input" rows="1" maxlength="2000" placeholder="Write a message…" aria-label="Message"></textarea>' +
       '<button type="submit" class="tk-msg-send" id="tk-msg-send" aria-label="Send message" disabled>' +
-      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="send2"></svg>' +
       '</button>' +
       '</form>' +
       '</section>' +

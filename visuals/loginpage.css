@@ -306,6 +306,14 @@ nav {
   cursor: not-allowed;
 }
 
+/* Success notices keep the tick and the text on one line. */
+.msg-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.msg-with-icon svg { flex-shrink: 0; }
+
 @media (max-width: 480px) {
   .modal-panel {
     padding: 26px 18px 22px;

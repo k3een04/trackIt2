@@ -24,8 +24,12 @@ function showNotification(title, message, type = 'info') {
     animation: slideIn 0.3s ease-out;
   `;
 
+  const toastIcon = toastType === 'success' ? 'tick-circle' : toastType === 'error' ? 'close-circle' : 'info-circle';
   notificationEl.innerHTML = `
-    <p style="margin: 0; font-weight: 600; font-size: 14px;">${title}</p>
+    <p style="margin: 0; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="${toastIcon}"></svg>
+      <span>${title}</span>
+    </p>
     <p style="margin: 5px 0 0 0; font-size: 12px;">${message}</p>
   `;
 
@@ -324,7 +328,7 @@ function notificationRow(n) {
       </div>
       ${n.unread ? '<span class="notif-dot" aria-hidden="true"></span>' : ''}
       <button type="button" class="notif-close" aria-label="Dismiss notification">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
     </div>`;
 }
@@ -341,7 +345,7 @@ function renderNotificationList() {
   if (notifError) {
     list.innerHTML = `
       <div class="notif-empty">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg>
         <p>${escapeHtml(notifError)}</p>
         <button type="button" class="notif-action" onclick="loadSupervisorNotifications()">Try again</button>
       </div>`;
@@ -351,7 +355,7 @@ function renderNotificationList() {
   if (supervisorNotifications.length === 0) {
     list.innerHTML = `
       <div class="notif-empty">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="notification"></svg>
         <p>No notifications yet</p>
       </div>`;
     return;
@@ -400,10 +404,10 @@ function startNotificationPolling() {
 
 function getNotifIcon(type) {
   const icons = {
-    journal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
-    attendance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-    dtr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
-    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+    journal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>',
+    attendance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>',
+    dtr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>',
+    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg>'
   };
   return icons[type] || icons.system;
 }
@@ -1604,8 +1608,8 @@ function selectJournal(element, journalId) {
           </div>
           <div class="flex items-start gap-2">
             <span class="status-badge ${statusStyle}">${statusText}</span>
-            <button onclick="closeJournalViewer()" class="p-2 hover:bg-white/10 rounded-lg transition" title="Close">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <button onclick="closeJournalViewer()" class="p-2 hover:bg-white/10 rounded-lg transition" title="Close" aria-label="Close journal viewer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
             </button>
           </div>
         </div>
@@ -1663,16 +1667,16 @@ function selectJournal(element, journalId) {
         <div class="flex gap-3">
           ${isSigned ? `
             <div class="glass-card p-4 bg-green-500/10 border border-green-500/30 rounded-lg w-full">
-              <p class="text-sm text-green-400">✓ This journal has been signed on ${new Date(journal.supervisorSignedAt).toLocaleDateString('en-US')}</p>
+              <p class="text-sm text-green-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg> This journal has been signed on ${new Date(journal.supervisorSignedAt).toLocaleDateString('en-US')}</p>
               ${journal.supervisorReview ? `<p class="text-xs text-slate-400 mt-2">Your remarks: ${journal.supervisorReview}</p>` : ''}
             </div>
           ` : `
             <button onclick="returnJournalForRevision('${journal._id}')" class="btn-ghost flex-1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-rotate-left"></svg>
               Return for Revision
             </button>
             <button onclick="verifyAndSignJournal('${journal._id}')" class="btn-primary flex-1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>
               Verify & Sign
             </button>
           `}
@@ -2856,7 +2860,7 @@ async function saveTraineeSchedule(event) {
       return;
     }
 
-    showNotification('Success', '✓ Schedule saved successfully', 'success');
+    showNotification('Success', 'Schedule saved successfully', 'success');
     await loadScheduleTraineeList(); // Refresh list
   } catch (error) {
     console.error('[Schedule Manager] Exception error saving schedule:', error);
@@ -2892,7 +2896,7 @@ function clearTraineeSchedule() {
           throw new Error(response?.message || 'Failed to clear schedule');
         }
 
-        showNotification('Success', '✓ Schedule cleared successfully', 'success');
+        showNotification('Success', 'Schedule cleared successfully', 'success');
         clearScheduleFields();
         await loadScheduleTraineeList(); // Refresh list
       } catch (error) {
@@ -3067,14 +3071,14 @@ function renderNotifications(actions, filterType) {
     let icon, title, desc, timeDisplay;
 
     if (action.type === 'dtr') {
-      icon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect></svg>';
+      icon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar"></svg>';
       title = 'DTR Submitted for Verification';
       desc = `${action.trainee} submitted DTR for ${action.date}`;
       
       const diffHrs = Math.floor((new Date() - new Date(action.timestamp)) / 3600000);
       timeDisplay = diffHrs > 24 ? Math.floor(diffHrs / 24) + ' days ago' : (diffHrs > 0 ? diffHrs + ' hours ago' : 'Recently');
     } else if (action.type === 'journal') {
-      icon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
+      icon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>';
       title = 'Journal Submitted';
       desc = `${action.trainee} submitted ${action.week} journal`;
       

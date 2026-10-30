@@ -29,13 +29,8 @@ if (togglePasswordBtn && passwordInput) {
     passwordInput.type = isPassword ? 'text' : 'password';
     
     if (eyeIcon) {
-      if (isPassword) {
-        // Eye off icon
-        eyeIcon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`;
-      } else {
-        // Eye on icon
-        eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
-      }
+      eyeIcon.setAttribute('data-iconsax', isPassword ? 'eye-slash' : 'eye');
+      if (window.Iconsax) window.Iconsax.hydrate(eyeIcon);
     }
   });
 }
@@ -205,6 +200,17 @@ function cancelLoginVerification() {
   if (password) password.value = '';
 }
 
+// Renders an inline notice; success notices get the Iconsax tick.
+function setNoticeContent(el, message, isSuccess) {
+  el.classList.toggle('msg-with-icon', !!isSuccess);
+  if (!isSuccess) {
+    el.textContent = message;
+    return;
+  }
+  el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg><span></span>';
+  el.lastElementChild.textContent = message;
+}
+
 function setLoginVerifyMessage(message, isSuccess = false) {
   const el = document.getElementById('loginTotpError');
   if (!el) return;
@@ -218,7 +224,7 @@ function setLoginVerifyMessage(message, isSuccess = false) {
   el.className = 'mb-4 p-3.5 rounded-xl text-sm border ' + (isSuccess
     ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
     : 'bg-red-500/10 border-red-500/30 text-red-300');
-  el.textContent = message;
+  setNoticeContent(el, message, isSuccess);
 }
 
 async function submitLoginVerificationCode() {
@@ -257,7 +263,7 @@ async function submitLoginVerificationCode() {
       throw new Error(data.message || 'Could not verify that code.');
     }
 
-    setLoginVerifyMessage('✅ ' + (data.message || 'Authenticator app confirmed!') + ' You can sign in now.', true);
+    setLoginVerifyMessage((data.message || 'Authenticator app confirmed!') + ' You can sign in now.', true);
     textEl.textContent = 'Verified';
     spinner.classList.add('hidden');
 
@@ -339,7 +345,7 @@ function forgotSetMessage(elId, message, isSuccess = false) {
   el.className = 'mt-4 p-3.5 rounded-xl text-sm border ' + (isSuccess
     ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
     : 'bg-red-500/10 border-red-500/30 text-red-300');
-  el.textContent = message;
+  setNoticeContent(el, message, isSuccess);
 }
 
 function forgotBusy(prefix, busy, idleLabel, busyLabel) {

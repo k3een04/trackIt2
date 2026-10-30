@@ -44,25 +44,15 @@
 
   var ICONS = {
     shield:
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
-      '<path d="M12 3l7.5 3v5.2c0 4.7-3.2 8.7-7.5 10.3C7.7 19.9 4.5 15.9 4.5 11.2V6L12 3z"/>' +
-      '<path d="M8.8 12.2l2.3 2.3 4.1-4.4"/></svg>',
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="shield-tick"></svg>',
     check:
-      '<svg class="vm-check" viewBox="0 0 52 52" fill="none" aria-hidden="true" focusable="false">' +
-      '<circle class="vm-check__circle" cx="26" cy="26" r="23" stroke="currentColor" stroke-width="2.5"/>' +
-      '<path class="vm-check__mark" d="M15.5 27l7.3 7.3L37 19.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      '<svg class="vm-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>',
     error:
-      '<svg class="vm-error" viewBox="0 0 52 52" fill="none" aria-hidden="true" focusable="false">' +
-      '<circle cx="26" cy="26" r="23" stroke="currentColor" stroke-width="2.5"/>' +
-      '<path d="M26 15v14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>' +
-      '<path d="M26 36.5h.01" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>',
+      '<svg class="vm-error" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>',
     warn:
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
-      '<path d="M10.3 3.9L1.9 18a2 2 0 001.7 3h16.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>' +
-      '<path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="warning2"></svg>',
     edit:
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
-      '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="edit2"></svg>'
   };
 
   var PRESETS = {

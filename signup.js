@@ -1,3 +1,16 @@
+// ── Inline form notices ───────────────────────────────────────────────────
+// Success notices carry the Iconsax tick; errors stay plain text.
+function setFormNotice(el, message, isSuccess = false) {
+  if (!el) return;
+  el.classList.toggle('msg-with-icon', !!isSuccess);
+  if (!isSuccess) {
+    el.textContent = message;
+    return;
+  }
+  el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg><span></span>';
+  el.lastElementChild.textContent = message;
+}
+
 // ── Password strength checker ─────────────────────────────────────────────
 function checkPasswordStrength(password) {
   let strength = 0;
@@ -121,7 +134,7 @@ document.getElementById('signupForm')?.addEventListener('submit', async function
 
   // Students and coordinators must use the STI email given by the school
   if (requiresSchoolEmail(selectedRole) && !SCHOOL_EMAIL_PATTERN.test(email)) {
-    errorMsg.textContent = SCHOOL_EMAIL_MESSAGE;
+    setFormNotice(errorMsg, SCHOOL_EMAIL_MESSAGE, false);
     errorMsg.classList.remove('hidden');
     errorMsg.classList.remove('success-msg');
     errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -181,7 +194,7 @@ document.getElementById('signupForm')?.addEventListener('submit', async function
     }
     
     // Show success message with better visibility
-    errorMsg.textContent = '✅ Account created successfully! Redirecting to login page...';
+    setFormNotice(errorMsg, 'Account created successfully! Redirecting to login page...', true);
     errorMsg.classList.remove('hidden');
     errorMsg.classList.add('success-msg');
     
@@ -195,7 +208,7 @@ document.getElementById('signupForm')?.addEventListener('submit', async function
     }, 1500);
   } catch (err) {
     console.error('❌ Registration error:', err.message);
-    errorMsg.textContent = err.message;
+    setFormNotice(errorMsg, err.message, false);
     errorMsg.classList.remove('hidden');
     errorMsg.classList.remove('success-msg');
     submitBtn.disabled    = false;
@@ -283,7 +296,7 @@ async function verifyAuthenticatorCode() {
 
     console.log('✅ Authenticator app verified');
 
-    errorEl.textContent = '✅ ' + (data.message || 'Authenticator app confirmed!') + ' Redirecting to the login page…';
+    setFormNotice(errorEl, (data.message || 'Authenticator app confirmed!') + ' Redirecting to the login page…', true);
     errorEl.classList.remove('hidden');
     errorEl.classList.add('success-msg');
     textEl.textContent = 'Verified';
@@ -309,7 +322,7 @@ function showVerificationError(message) {
     return;
   }
 
-  errorEl.textContent = message;
+  setFormNotice(errorEl, message, false);
   errorEl.classList.remove('success-msg');
   errorEl.classList.remove('hidden');
 }

@@ -344,7 +344,7 @@ function startDTRPolling() {
 
         if (changeDetected) {
           // Show notification and refresh
-          showNotification('✅ Attendance Recorded', 'Your time in/out has been recorded. Refreshing page...', 'success');
+          showNotification('Attendance Recorded', 'Your time in/out has been recorded. Refreshing page...', 'success');
 
           // Refresh after showing notification
           setTimeout(() => {
@@ -384,8 +384,12 @@ function showNotification(title, message, type = 'info') {
     animation: slideIn 0.3s ease-out;
   `;
 
+  const toastIcon = toastType === 'success' ? 'tick-circle' : toastType === 'error' ? 'close-circle' : 'info-circle';
   notificationEl.innerHTML = `
-    <p style="margin: 0; font-weight: 600; font-size: 14px;">${title}</p>
+    <p style="margin: 0; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="${toastIcon}"></svg>
+      <span>${title}</span>
+    </p>
     <p style="margin: 5px 0 0 0; font-size: 12px;">${message}</p>
   `;
 
@@ -647,7 +651,7 @@ function notificationRow(n) {
       </div>
       ${n.unread ? '<span class="notif-dot" aria-hidden="true"></span>' : ''}
       <button type="button" class="notif-close" aria-label="Dismiss notification">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
     </div>`;
 }
@@ -664,7 +668,7 @@ function renderNotificationList() {
   if (notifError) {
     list.innerHTML = `
       <div class="notif-empty">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg>
         <p>${escapeHtml(notifError)}</p>
         <button type="button" class="notif-action" onclick="loadOJTNotifications()">Try again</button>
       </div>`;
@@ -674,7 +678,7 @@ function renderNotificationList() {
   if (ojtNotifications.length === 0) {
     list.innerHTML = `
       <div class="notif-empty">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="notification"></svg>
         <p>No notifications yet</p>
       </div>`;
     return;
@@ -723,10 +727,10 @@ function startNotificationPolling() {
 
 function getNotifIcon(type) {
   const icons = {
-    journal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
-    attendance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-    dtr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
-    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+    journal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>',
+    attendance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>',
+    dtr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>',
+    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg>'
   };
   return icons[type] || icons.system;
 }
@@ -1382,7 +1386,7 @@ async function handleOverviewClockOut() {
       showNotification('Error', response?.message || 'Failed to record time out', 'error');
       return;
     }
-    showNotification('Success', '✓ Time Out Recorded', 'success');
+    showNotification('Success', 'Time Out Recorded', 'success');
     await loadDTRRecords();
     await loadOverviewToday();
   } catch (error) {
@@ -1780,12 +1784,12 @@ const OV_WEEK_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
  * aria-label, so colour is never the only signal.
  */
 const OV_WEEK_ICONS = {
-  present: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6.5 9.5 17 4 11.5"></polyline></svg>',
-  late: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><polyline points="12 7.5 12 12 15 13.5"></polyline></svg>',
-  absent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="7.5" y1="7.5" x2="16.5" y2="16.5"></line><line x1="16.5" y1="7.5" x2="7.5" y2="16.5"></line></svg>',
-  excused: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="6.5" y1="12" x2="17.5" y2="12"></line></svg>',
-  today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="8.5"></circle></svg>',
-  upcoming: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle></svg>',
+  present: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>',
+  late: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="clock"></svg>',
+  absent: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>',
+  excused: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="minus"></svg>',
+  today: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="record-circle"></svg>',
+  upcoming: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="record"></svg>',
 };
 OV_WEEK_ICONS.missed = OV_WEEK_ICONS.absent;
 
@@ -1995,12 +1999,12 @@ async function loadOverviewJournal() {
  * the adjacent text label carries the meaning.
  */
 const OV_JOURNAL_MARKS = {
-  pending: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle></svg>',
-  draft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5a2 2 0 0 1-2 2H8l-4 3.5V6a2 2 0 0 1 2-2h12.5a2 2 0 0 1 2 2z"></path><path d="M10 9h5"></path></svg>',
-  submitted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6.5 9.5 17 4 11.5"></polyline></svg>',
-  reviewed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><polyline points="8.5 12.2 11 14.7 15.5 9.5"></polyline></svg>',
-  approved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5a2 2 0 0 1-2 2H8l-4 3.5V6a2 2 0 0 1 2-2h12.5a2 2 0 0 1 2 2z"></path><polyline points="9 11.5 11.5 14 15.5 9.5"></polyline></svg>',
-  error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"></path><circle cx="12" cy="16.5" r="0.6" fill="currentColor"></circle></svg>',
+  pending: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="clock"></svg>',
+  draft: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="message-text"></svg>',
+  submitted: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>',
+  reviewed: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="message-tick"></svg>',
+  approved: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="message-tick"></svg>',
+  error: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="warning2"></svg>',
 };
 
 function ovJournalMark(state) {
@@ -2034,9 +2038,9 @@ function resolveJournalState(journal) {
 // ── DTR verification & weekly activity ─────────────────────────────────────
 
 const OV_DTR_ICONS = {
-  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><polyline points="14 3 14 8 19 8"></polyline><line x1="8.5" y1="13" x2="15" y2="13"></line><line x1="8.5" y1="16.5" x2="13" y2="16.5"></line></svg>',
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6.5 9.5 17 4 11.5"></polyline></svg>',
-  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><polyline points="12 7.5 12 12 15 13.5"></polyline></svg>',
+  doc: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-text"></svg>',
+  check: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>',
+  clock: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="clock"></svg>',
 };
 
 /**
@@ -2713,7 +2717,7 @@ async function updatePerformanceMetrics() {
     const ratingEl = document.getElementById('metric-rating');
     if (ratingEl) {
       if (student.supervisorRating !== null && student.supervisorRating !== undefined) {
-        ratingEl.textContent = `${student.supervisorRating}★`;
+        ratingEl.innerHTML = `${student.supervisorRating}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="star"></svg>`;
         document.getElementById('metric-rating-detail').textContent = 'Out of 5.0';
       } else {
         ratingEl.textContent = '—';
@@ -4127,7 +4131,7 @@ async function loadStudentAppraisals() {
     if (!records.length) {
       container.innerHTML = `
         <div class="text-center py-8">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto mb-4 text-slate-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <svg class="mx-auto mb-4 text-slate-600" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-text"></svg>
           <p class="text-sm text-slate-400 mb-1">No performance appraisals yet</p>
           <p class="text-xs text-slate-500">Once your OJT supervisor submits and signs a monthly appraisal, it will appear here for download.</p>
         </div>
@@ -4267,7 +4271,7 @@ async function refreshQRCode() {
     if (!companyName) {
       const msg = 'Company not assigned to user';
       console.warn(msg);
-      if (qrStatus) qrStatus.textContent = '❌ ' + msg;
+      if (qrStatus) qrStatus.textContent = msg;
       return;
     }
 
@@ -4311,25 +4315,25 @@ async function refreshQRCode() {
           timerBox.style.background = 'rgba(34, 197, 94, 0.1)';
           timerBox.style.borderColor = 'rgba(34, 197, 94, 0.3)';
           timerBox.style.color = '#22c55e';
-          timerBox.innerHTML = '<p style="margin: 0; font-weight: 600;">✅ Completed for Today</p><p style="margin: 5px 0 0 0; font-size: 11px;">No QR code available until tomorrow</p>';
+          timerBox.innerHTML = '<p style="margin: 0; font-weight: 600; display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg> Completed for Today</p><p style="margin: 5px 0 0 0; font-size: 11px;">No QR code available until tomorrow</p>';
         }
         
         if (qrStatus) {
           qrStatus.innerHTML = `
             <div class="attendance-completion" style="padding: 15px; border-radius: 8px;">
-              <p class="attendance-completion__title" style="font-weight: 600; margin: 0 0 5px 0;">✅ Time Out Completed</p>
+              <p class="attendance-completion__title" style="font-weight: 600; margin: 0 0 5px 0; display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg> Time Out Completed</p>
               <p class="attendance-completion__text" style="font-size: 12px; margin: 0;">You have already completed your time in and time out for today. No new QR code can be generated until tomorrow.</p>
             </div>
           `;
         }
       } else {
-        if (qrStatus) qrStatus.textContent = `❌ ${errorMsg}`;
+        if (qrStatus) qrStatus.textContent = `${errorMsg}`;
       }
     }
   } catch (error) {
     console.error('QR refresh error:', error);
     const qrStatus = document.getElementById('qr-load-status');
-    if (qrStatus) qrStatus.textContent = `❌ Error: ${error.message}`;
+    if (qrStatus) qrStatus.textContent = `Error: ${error.message}`;
   }
 }
 
@@ -4773,8 +4777,8 @@ async function recordTimeIn() {
 
     // Show loading state
     const btn = document.getElementById('time-in-btn');
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ Recording...';
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="clock"></svg> Recording...';
     btn.disabled = true;
 
     const response = await fetchAPI('/geofence/time-in', {
@@ -4786,7 +4790,7 @@ async function recordTimeIn() {
       }),
     });
 
-    btn.textContent = originalText;
+    btn.innerHTML = originalHTML;
     btn.disabled = false;
 
     if (!response || !response.success) {
@@ -4796,9 +4800,9 @@ async function recordTimeIn() {
 
     if (response.data && response.data.late) {
       const mins = Number(response.data.lateMinutes) || 0;
-      showNotification('Success', `✓ Time In Recorded — ${mins} min after your scheduled start (supervisor notified)`, 'success');
+      showNotification('Success', `Time In Recorded — ${mins} min after your scheduled start (supervisor notified)`, 'success');
     } else {
-      showNotification('Success', '✓ Time In Recorded', 'success');
+      showNotification('Success', 'Time In Recorded', 'success');
     }
     console.log('[Geofence] Time In recorded:', response.data);
 
@@ -4841,8 +4845,8 @@ async function recordTimeOut() {
 
     // Show loading state
     const btn = document.getElementById('time-out-btn');
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ Recording...';
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="clock"></svg> Recording...';
     btn.disabled = true;
 
     const response = await fetchAPI('/geofence/time-out', {
@@ -4854,7 +4858,7 @@ async function recordTimeOut() {
       }),
     });
 
-    btn.textContent = originalText;
+    btn.innerHTML = originalHTML;
     btn.disabled = false;
 
     if (!response || !response.success) {
@@ -4862,7 +4866,7 @@ async function recordTimeOut() {
       return;
     }
 
-    showNotification('Success', '✓ Time Out Recorded', 'success');
+    showNotification('Success', 'Time Out Recorded', 'success');
     console.log('[Geofence] Time Out recorded:', response.data);
 
     // Update UI to show time in button again
@@ -4936,7 +4940,7 @@ function displayQRCode(qrData) {
   }
 
   if (!qrData || !qrData.qrImage) {
-    qrStatus.textContent = '❌ Invalid QR data received';
+    qrStatus.textContent = 'Invalid QR data received';
     qrImage.style.display = 'none';
     return;
   }
@@ -4949,7 +4953,7 @@ function displayQRCode(qrData) {
   };
   qrImage.onerror = () => {
     console.error('Failed to load QR image');
-    qrStatus.textContent = '❌ Failed to load QR image';
+    qrStatus.textContent = 'Failed to load QR image';
     qrImage.style.display = 'none';
   };
 }
@@ -5249,7 +5253,9 @@ function populateDTRTable(records) {
             ${displayStatus}
           </span>
         </td>
-        <td class="py-3 px-4">${record.verifiedBySupervisor ? '✅' : '⏳'}</td>
+        <td class="py-3 px-4">${record.verifiedBySupervisor
+          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Verified by supervisor" data-iconsax="tick-circle"></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Pending supervisor verification" data-iconsax="clock"></svg>'}</td>
       </tr>
     `;
   }).join('');
@@ -5340,7 +5346,9 @@ function populateAllRecordsTable(records) {
             ${displayStatus}
           </span>
         </td>
-        <td class="py-3 px-4">${record.verifiedBySupervisor ? '✅' : '⏳'}</td>
+        <td class="py-3 px-4">${record.verifiedBySupervisor
+          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Verified by supervisor" data-iconsax="tick-circle"></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Pending supervisor verification" data-iconsax="clock"></svg>'}</td>
       </tr>
     `;
   }).join('');

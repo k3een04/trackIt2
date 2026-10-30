@@ -24,8 +24,12 @@ function showNotification(title, message, type = 'info') {
     animation: slideIn 0.3s ease-out;
   `;
 
+  const toastIcon = toastType === 'success' ? 'tick-circle' : toastType === 'error' ? 'close-circle' : 'info-circle';
   notificationEl.innerHTML = `
-    <p style="margin: 0; font-weight: 600; font-size: 14px;">${title}</p>
+    <p style="margin: 0; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="${toastIcon}"></svg>
+      <span>${title}</span>
+    </p>
     <p style="margin: 5px 0 0 0; font-size: 12px;">${message}</p>
   `;
 
@@ -371,7 +375,7 @@ function notificationRow(n) {
       </div>
       ${n.unread ? '<span class="notif-dot" aria-hidden="true"></span>' : ''}
       <button type="button" class="notif-close" aria-label="Dismiss notification">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
     </div>`;
 }
@@ -388,7 +392,7 @@ function renderNotificationList() {
   if (notifError) {
     list.innerHTML = `
       <div class="notif-empty">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg>
         <p>${escapeHtml(notifError)}</p>
         <button type="button" class="notif-action" onclick="loadCoordinatorNotifications()">Try again</button>
       </div>`;
@@ -398,7 +402,7 @@ function renderNotificationList() {
   if (coordinatorNotifications.length === 0) {
     list.innerHTML = `
       <div class="notif-empty">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="notification"></svg>
         <p>No notifications yet</p>
       </div>`;
     return;
@@ -451,12 +455,12 @@ function startNotificationPolling() {
 
 function getNotifIcon(type) {
   const icons = {
-    journal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
-    attendance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-    dtr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
-    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
-    inactivity: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
-    activity: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 11.08 12 1 2 11.08"></polyline><polyline points="5 19 12 12 19 19"></polyline></svg>'
+    journal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>',
+    attendance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>',
+    dtr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>',
+    system: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg>',
+    inactivity: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="warning2"></svg>',
+    activity: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="activity"></svg>'
   };
   return icons[type] || icons.system;
 }
@@ -808,10 +812,10 @@ function renderOverviewSummary() {
 }
 
 const PENDING_ACTION_ICONS = {
-  journalReviews: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>',
-  attendanceIssues: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-  inactiveTrainees: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="17" y1="8" x2="22" y2="13"></line><line x1="22" y1="8" x2="17" y2="13"></line></svg>',
-  missingJournals: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>',
+  journalReviews: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>',
+  attendanceIssues: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="warning2"></svg>',
+  inactiveTrainees: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="user-remove"></svg>',
+  missingJournals: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="direct-inbox"></svg>',
 };
 
 // Severity vocabulary, lifted straight from the Analytics attention list so the
@@ -2207,7 +2211,7 @@ async function confirmAssignSupervisor() {
   });
 
   btn.disabled = false;
-  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Assign`;
+  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg> Assign`;
 
   if (result && result.success) {
     showNotification('Error', result.message, 'error');
@@ -2308,8 +2312,10 @@ function sortTrainees(key) {
 function updateTraineeSortIndicators() {
   document.querySelectorAll('[data-sort-indicator]').forEach(indicator => {
     const key = indicator.getAttribute('data-sort-indicator');
-    indicator.textContent = key === traineeSort.key
-      ? (traineeSort.dir === 'asc' ? '▲' : '▼')
+    indicator.innerHTML = key === traineeSort.key
+      ? (traineeSort.dir === 'asc'
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-up3"></svg>'
+        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-down3"></svg>')
       : '';
   });
 }
@@ -2686,7 +2692,7 @@ function renderJournalList(status) {
         </div>
         <p class="text-xs text-slate-400">${status === 'approved' ? 'Approved' : status === 'returned' ? 'Updated' : 'Submitted'}: ${displayDate}</p>
         ${identifiedTheories.length > 0
-          ? `<p class="text-xs text-blue-300 mt-1">💡 ${identifiedTheories.length} theory${identifiedTheories.length === 1 ? '' : 's'} identified</p>`
+          ? `<p class="text-xs text-blue-300 mt-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg> ${identifiedTheories.length} theory${identifiedTheories.length === 1 ? '' : 's'} identified</p>`
           : ''
         }
       </div>
@@ -2824,17 +2830,17 @@ function selectJournal(element, journalId, status = currentJournalFilter) {
       <div class="flex gap-3">
         ${canReview
           ? `<button onclick="approveJournal('${journal._id}')" class="btn-primary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>
               Approve
             </button>
             <button onclick="returnJournal('${journal._id}')" class="btn-ghost">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-rotate-left"></svg>
               Return
             </button>`
           : ''
         }
         <button onclick="downloadJournal('${journal._id}')" class="btn-ghost">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-download"></svg>
           Download
         </button>
       </div>
@@ -4640,11 +4646,7 @@ function renderGlobalSearchResults(results, platform = 'desktop', state = 'resul
   if (state === 'no-trainees') {
     resultsEl.innerHTML = `
       <div class="search-empty-state">
-        <svg class="search-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <line x1="12" y1="2" x2="12" y2="6"></line>
-        </svg>
+        <svg class="search-empty-state__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="user-add"></svg>
         <p class="search-empty-state__title">No trainees yet</p>
         <p class="search-empty-state__text">Registered trainees will appear here as soon as they are enrolled.</p>
       </div>
@@ -4656,14 +4658,11 @@ function renderGlobalSearchResults(results, platform = 'desktop', state = 'resul
   if (results.length === 0) {
     resultsEl.innerHTML = `
       <div class="search-empty-state">
-        <svg class="search-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
+        <svg class="search-empty-state__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="search-normal"></svg>
         <p class="search-empty-state__title">No trainees found</p>
         <p class="search-empty-state__text">Try searching by name, student ID, section, course, or company.</p>
       </div>
-      <a href="#" class="search-view-all" onclick="event.preventDefault(); closeGlobalSearch(); switchTab('trainees'); document.getElementById('trainee-search').value = document.getElementById('global-search-input').value; applyTraineeFilters();">View all results →</a>
+      <a href="#" class="search-view-all" onclick="event.preventDefault(); closeGlobalSearch(); switchTab('trainees'); document.getElementById('trainee-search').value = document.getElementById('global-search-input').value; applyTraineeFilters();">View all results <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-right"></svg></a>
     `;
     showGlobalSearchResults(platform);
     return;
@@ -4710,7 +4709,7 @@ function renderGlobalSearchResults(results, platform = 'desktop', state = 'resul
 
   // Add "View all results" link for desktop
   const viewAllHtml = platform === 'desktop' ? `
-    <a href="#" class="search-view-all" onclick="event.preventDefault(); closeGlobalSearch(); switchTab('trainees'); document.getElementById('trainee-search').value = document.getElementById('global-search-input').value; applyTraineeFilters();">View all results →</a>
+    <a href="#" class="search-view-all" onclick="event.preventDefault(); closeGlobalSearch(); switchTab('trainees'); document.getElementById('trainee-search').value = document.getElementById('global-search-input').value; applyTraineeFilters();">View all results <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-right"></svg></a>
   ` : '';
 
   resultsEl.innerHTML = html + viewAllHtml;
@@ -5079,9 +5078,9 @@ const TP_TOTAL_OJT_WEEKS = 17;
 const TP_WEEK_LABEL_RE = /^\s*(?:week\s*)?0*(\d+)\s*$/i;
 
 const TP_TIMELINE_ICONS = {
-  journal: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
-  attendance: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-  supervisor: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+  journal: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>',
+  attendance: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="calendar-tick"></svg>',
+  supervisor: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile2-user"></svg>',
 };
 
 // ── formatting & small utilities ────────────────────────────────────────────

@@ -348,6 +348,14 @@ select.input-field option {
   color: #6ee7b7;
 }
 
+/* Success notices keep the tick and the text on one line. */
+.msg-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.msg-with-icon svg { flex-shrink: 0; }
+
 /* Slide-in animation for form step */
 @keyframes slideInForm {
   from { opacity: 0; transform: translateY(12px); }
