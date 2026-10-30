@@ -4493,8 +4493,12 @@ function updateSupervisorScheduleInfo(schedule) {
   if (!infoBox || !valueEl) return;
 
   const punchState = window.dtrPunchState || {};
-  const isTimedOut = !!punchState.hasTimedOut;
-  const timeValue = isTimedOut ? schedule?.startTime : schedule?.endTime;
+  // The NEXT action decides which supervisor-set time matters: before the
+  // first punch (or after clocking out) it is TIME IN — the scheduled start;
+  // while working it is TIME OUT — the scheduled end. Keying this off
+  // `hasTimedOut` alone mislabelled the not-timed-in state as "Time out".
+  const nextActionIsTimeIn = !punchState.hasTimedIn || !!punchState.hasTimedOut;
+  const timeValue = nextActionIsTimeIn ? schedule?.startTime : schedule?.endTime;
 
   if (!timeValue) {
     infoBox.style.display = 'none';
@@ -4503,7 +4507,7 @@ function updateSupervisorScheduleInfo(schedule) {
   }
 
   if (labelEl) {
-    labelEl.textContent = isTimedOut ? 'Time in set by supervisor' : 'Time out set by supervisor';
+    labelEl.textContent = nextActionIsTimeIn ? 'Time in set by supervisor' : 'Time out set by supervisor';
   }
   valueEl.textContent = formatScheduleTime(timeValue);
   infoBox.style.display = 'flex';
@@ -4684,6 +4688,9 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       statusText.classList.add('in-range');
       // The badge already carries the glyph, so the label stays clean text.
       statusText.textContent = 'In Range';
+      // Remember the verdict so the punch buttons can apply it the moment they
+      // become visible (today-status may resolve after the first validation).
+      window.geofenceInRange = true;
       // Button enable/lock is handled by the schedule-window logic AFTER
       // this call; do NOT force-enable here.
       if (loadStatus) {
@@ -4696,6 +4703,7 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       indicator.classList.add('out-of-range');
       statusText.classList.add('out-of-range');
       statusText.textContent = 'Out of Range';
+      window.geofenceInRange = false;
       setAttendanceButtonState(timeInBtn, false);
       setAttendanceButtonState(timeOutBtn, false);
       // The detail box below carries the message, so the supporting line is
@@ -4712,7 +4720,9 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       if (loadStatus) {
         loadStatus.textContent = 'Checking your position against the company geofence…';
       }
-      timeInBtn.disabled = true;
+      if (timeInBtn && timeInBtn.style.display !== 'none') {
+        setAttendanceButtonState(timeInBtn, false);
+      }
       geofenceInfo.style.display = 'none';
       break;
 
@@ -4722,8 +4732,11 @@ function updateGeofenceStatusUI(status, message, geofenceData = null, scheduleDa
       indicator.classList.add('out-of-range');
       statusText.classList.add('out-of-range');
       statusText.textContent = 'Error';
+      window.geofenceInRange = false;
       if (loadStatus) loadStatus.textContent = '';
-      timeInBtn.disabled = true;
+      if (timeInBtn && timeInBtn.style.display !== 'none') {
+        setAttendanceButtonState(timeInBtn, false);
+      }
       geofenceInfo.style.display = 'block';
       geofenceMessage.textContent = message;
   }
@@ -4825,9 +4838,10 @@ async function recordTimeIn() {
     }
     console.log('[Geofence] Time In recorded:', response.data);
 
-    // Update UI to show time out button
+    // Update UI to show time out button ('inline-flex' keeps the icon and
+    // label vertically centered — see applyPunchButtons).
     btn.style.display = 'none';
-    document.getElementById('time-out-btn').style.display = 'block';
+    document.getElementById('time-out-btn').style.display = 'inline-flex';
 
     // Refresh DTR records / re-apply the correct locked state
     await loadDTRRecords();
@@ -4889,7 +4903,7 @@ async function recordTimeOut() {
     console.log('[Geofence] Time Out recorded:', response.data);
 
     // Update UI to show time in button again
-    document.getElementById('time-in-btn').style.display = 'block';
+    document.getElementById('time-in-btn').style.display = 'inline-flex';
     btn.style.display = 'none';
 
     // Refresh DTR records / re-apply the correct locked state
@@ -4907,12 +4921,21 @@ async function recordTimeOut() {
 async function loadTodayDTRSummary() {
   try {
     const response = await fetchAPI('/geofence/today-status');
-    if (!response || !response.success) return;
+    if (!response || !response.success) {
+      // First-load failure used to leave BOTH punch buttons hidden with no way
+      // to recover. Fall back to the last known punch state (or the
+      // start-of-day state on a fresh load, so Time In stays reachable); the
+      // server rejects duplicate punches and the 5s geofence poll applies the
+      // real lock state, so this is safe.
+      applyPunchButtons(window.dtrPunchState || {});
+      return;
+    }
 
     const { hasTimedIn, hasTimedOut, dtr, schedule } = response.data;
     window.dtrPunchState = { hasTimedIn, hasTimedOut };
 
-    // Show the supervisor-set time on the DTR tab (time out, or time in after clocking out)
+    // Show the supervisor-set time for the NEXT action (time in before the
+    // first punch / after clocking out, time out while working).
     updateSupervisorScheduleInfo(schedule);
     window.supervisorScheduleTimes = schedule?.startTime || schedule?.endTime ? schedule : window.supervisorScheduleTimes;
 
@@ -4922,27 +4945,45 @@ async function loadTodayDTRSummary() {
       document.getElementById('today-hours').textContent = dtr.hoursRendered?.toFixed(2) || '0';
     }
 
-    // Update button visibility AND apply the correct locked/enabled state
-    const timeInBtn = document.getElementById('time-in-btn');
-    const timeOutBtn = document.getElementById('time-out-btn');
-
-    // Determine which button is visible (in-range state was already checked by updateGeofenceStatus)
-    const showTimeIn = !hasTimedIn || hasTimedOut;
-    timeInBtn.style.display = showTimeIn ? 'block' : 'none';
-    timeOutBtn.style.display = (showTimeIn ? 'none' : 'block');
-
-    // Apply the schedule-window lock to whichever button is visible
-    const timeInWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-in');
-    const timeOutWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-out');
-
-    if (!hasTimedIn || hasTimedOut) {
-      setAttendanceButtonState(timeInBtn, timeInWindow.allowed);
-    }
-    if (hasTimedIn && !hasTimedOut) {
-      setAttendanceButtonState(timeOutBtn, timeOutWindow.allowed);
-    }
+    applyPunchButtons({ hasTimedIn, hasTimedOut });
   } catch (error) {
     console.error('[Geofence] Error loading today status:', error);
+  }
+}
+
+/**
+ * Show the correct punch button for the current punch state and apply the
+ * schedule-window lock combined with the last known geofence verdict. The
+ * 5-second geofence poll keeps this fresh afterwards.
+ * @param {{ hasTimedIn?: boolean, hasTimedOut?: boolean }} punchState
+ */
+function applyPunchButtons(punchState) {
+  const timeInBtn = document.getElementById('time-in-btn');
+  const timeOutBtn = document.getElementById('time-out-btn');
+  if (!timeInBtn || !timeOutBtn) return;
+
+  const state = punchState || {};
+  // Unknown punch state (today-status failed on a fresh load): default to the
+  // start-of-day presentation so Time In is reachable.
+  const hasTimedIn = state.hasTimedIn === true;
+  const hasTimedOut = state.hasTimedOut === true;
+
+  // Determine which button is visible. 'inline-flex' keeps the punch glyph and
+  // label vertically centered — 'block' would drop the icon to the baseline.
+  const showTimeIn = !hasTimedIn || hasTimedOut;
+  timeInBtn.style.display = showTimeIn ? 'inline-flex' : 'none';
+  timeOutBtn.style.display = (showTimeIn ? 'none' : 'inline-flex');
+
+  // Apply the schedule-window lock to whichever button is visible, combined
+  // with the last geofence verdict (undefined = unknown, poll will correct).
+  const geofenceOk = window.geofenceInRange !== false;
+  const timeInWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-in');
+  const timeOutWindow = getScheduleWindowState(window.supervisorScheduleTimes, 'time-out');
+
+  if (showTimeIn) {
+    setAttendanceButtonState(timeInBtn, timeInWindow.allowed && geofenceOk);
+  } else {
+    setAttendanceButtonState(timeOutBtn, timeOutWindow.allowed && geofenceOk);
   }
 }
 

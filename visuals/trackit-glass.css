@@ -1935,7 +1935,9 @@ body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
   body select,
   body textarea { min-height: 44px; font-size: 16px; }
   body .btn-primary,
-  body .btn-ghost { min-height: 44px; }
+  body .btn-ghost,
+  body #time-in-btn,
+  body #time-out-btn { min-height: 44px; }
   body .status-badge,
   body .badge { white-space: nowrap; }
 }

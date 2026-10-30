@@ -1173,12 +1173,24 @@ body.light-mode .attendance-status {
 
 #time-in-btn,
 #time-out-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
-  padding: 14px 16px;
+  min-height: var(--tk-control-h, 40px);
+  padding: 9px 16px;
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  font-size: 14.5px;
-  line-height: 1.25;
+  font-size: var(--tk-fs-md, 0.875rem);
+  line-height: 1.2;
   text-align: center;
+}
+
+/* The punch glyph rides in a flex row with the label, so it stays vertically
+   centered in both the resting and the "Recording..." state. */
+#time-in-btn svg,
+#time-out-btn svg {
+  flex-shrink: 0;
 }
 
 .attendance-schedule {
