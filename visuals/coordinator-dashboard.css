@@ -13,7 +13,7 @@
 html { scroll-behavior: smooth; }
 body {
   background: var(--navy);
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
   transition: background-color 0.4s ease, color 0.4s ease;
@@ -1131,7 +1131,7 @@ textarea {
   border: 1px solid var(--border);
   backdrop-filter: none;
   border-radius: 10px;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   padding: 12px 16px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 0.95rem;
@@ -1152,7 +1152,7 @@ textarea:focus {
 /* Select options visibility fix */
 select option {
   background: var(--tk-surface-1);
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   padding: 8px 4px;
 }
 
@@ -1622,7 +1622,7 @@ body.light-mode .tab-back-btn:hover {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 1.75rem;
   font-weight: 700;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   line-height: 1.2;
 }
 
@@ -2226,7 +2226,7 @@ body.light-mode .report-modal-card {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
 }
 
 .pending-action__desc {
@@ -3789,7 +3789,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3859,7 +3859,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
 .search-empty-state__title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   margin-bottom: 4px;
 }
 
@@ -3961,7 +3961,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
 .mobile-search-result-name {
   font-size: 1rem;
   font-weight: 600;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
 }
 
 .mobile-search-result-meta {
@@ -4014,7 +4014,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
 .trainee-profile-detail__value {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   word-break: break-word;
 }
 
@@ -4038,7 +4038,7 @@ body.light-mode .data-table tbody tr:not(.skel-row):not(.state-row):hover .cell 
 .trainee-profile-assignment__value {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   text-align: right;
   max-width: 60%;
   word-break: break-word;
@@ -4098,7 +4098,7 @@ body.light-mode .search-view-all:hover {
 
 .tp-modal__close:hover {
   background: rgba(148, 163, 184, 0.12);
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   border-color: var(--border);
 }
 
@@ -4723,6 +4723,13 @@ body.light-mode .tp-table-wrap { background: rgba(255, 255, 255, 0.6); }
 body.light-mode .tp-detail-row td { background: rgba(15, 23, 42, 0.03); }
 body.light-mode .tp-wait { color: #b45309; }
 body.light-mode .tp-strong { color: #131a2b; }
+
+/* Muted profile text rides on --muted / --tk-text (≈4.9:1 on white) which
+   reads faint inside the profile modal; darken to the slate-700 step. */
+body.light-mode .tp-muted,
+body.light-mode .tp-stack__sub,
+body.light-mode .tp-detail-grid span,
+body.light-mode .tp-header__meta { color: #4e5a72; }
 
 /* ── Stacked table cards (mobile) ────────────────────────────────────────────
    Tables marked .tk-stack (stamped by the dashboard script) render as

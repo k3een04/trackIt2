@@ -13,7 +13,7 @@
 html { scroll-behavior: smooth; }
 body {
   background: var(--navy);
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
   transition: background-color 0.4s ease, color 0.4s ease;
@@ -1028,7 +1028,7 @@ textarea {
   border: 1px solid var(--border);
   backdrop-filter: none;
   border-radius: 10px;
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   padding: 12px 16px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 0.95rem;
@@ -1046,7 +1046,7 @@ textarea:focus {
 /* Select options visibility fix */
 select option {
   background: var(--tk-surface-1);
-  color: #d5dce9;
+  color: var(--tk-text-strong);
   padding: 8px 4px;
 }
 
@@ -1213,6 +1213,31 @@ body.light-mode .sidebar {
 body.light-mode .glass-card {
   background: var(--glass);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* Trainee detail (Overview → View Profile): the section headings, DTR table
+   content and feedback footnote relied on inherited cascade defaults that read
+   faint on the white panel. Pin them to explicit light-mode ink. */
+body.light-mode #trainee-detail-modal { color: #172238; }
+
+body.light-mode #trainee-detail-modal h4 { color: #172238; }
+
+body.light-mode #trainee-detail-modal .glass-card table thead th,
+body.light-mode #trainee-detail-modal .glass-card table tbody td {
+  color: #4e5a72;
+}
+
+body.light-mode #trainee-detail-modal .text-slate-400,
+body.light-mode #trainee-detail-modal .text-slate-500 {
+  color: #4e5a72 !important;
+}
+
+body.light-mode #trainee-detail-modal .text-white {
+  color: #172238 !important;
+}
+
+body.light-mode #trainee-detail-modal textarea {
+  color: #172238 !important;
 }
 
 body.light-mode input,
