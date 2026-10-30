@@ -46,6 +46,7 @@
     .glass-card {
       background: var(--glass);
       border: 1px solid var(--border);
+      border-radius: 14px;
       backdrop-filter: none;
     }
 
@@ -269,7 +270,7 @@
     /* Hero mockup */
     .mockup-wrap {
       position: relative;
-      border-radius: 20px;
+      border-radius: 14px;
       overflow: hidden;
       border: 1px solid var(--border);
       background: var(--navy-mid);

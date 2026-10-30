@@ -141,7 +141,7 @@ nav {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
-  background: #131a2b;
+  background: var(--tk-surface-nav);
   backdrop-filter: none;
   box-shadow: 0 1px 0 var(--border);
   border-bottom: 1px solid var(--border);
@@ -232,7 +232,7 @@ nav {
   top: 100px;
   width: 220px;
   height: calc(100vh - 100px);
-  background: #131a2b;
+  background: var(--tk-surface-nav);
   backdrop-filter: none;
   border-right: 1px solid var(--border);
   padding: 24px 16px;
@@ -514,7 +514,7 @@ nav {
   padding: 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: #1c2638;
+  background: var(--tk-surface-2);
   transition: all 0.2s;
 }
 
@@ -532,7 +532,7 @@ nav {
 .trainee-progress-item {
   padding: 12px;
   border-radius: 8px;
-  background: #1c2638;
+  background: var(--tk-surface-2);
   border: 1px solid var(--border);
 }
 
@@ -543,7 +543,7 @@ nav {
   gap: 12px;
   padding: 16px;
   border-radius: 10px;
-  background: #1c2638;
+  background: var(--tk-surface-2);
   border: 1px solid var(--border);
   position: relative;
 }
@@ -685,7 +685,7 @@ nav {
     width: 220px;
     height: calc(100vh - 60px);
     top: 60px;
-    background: #131a2b;
+    background: var(--tk-surface-nav);
     border-right: 1px solid var(--border);
     padding: 16px;
     overflow-y: auto;
@@ -1065,7 +1065,7 @@ nav {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #171f30;
+    background: var(--tk-surface-1);
     border-bottom: 1px solid var(--border);
   }
 
@@ -1096,7 +1096,7 @@ nav {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #171f30;
+    background: var(--tk-surface-1);
     border-bottom: 1px solid var(--border);
   }
 
@@ -1146,12 +1146,12 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  box-shadow: 0 0 0 3px rgba(66, 107, 235, 0.12);
 }
 
 /* Select options visibility fix */
 select option {
-  background: #171f30;
+  background: var(--tk-surface-1);
   color: #d5dce9;
   padding: 8px 4px;
 }
@@ -1446,7 +1446,7 @@ select option:hover {
 }
 
 #theme-toggle:hover {
-  background: #1c2638;
+  background: var(--tk-surface-2);
 }
 
 /* Light mode button appearance */
@@ -4121,7 +4121,7 @@ body.light-mode .search-view-all:hover {
   gap: 10px;
   padding: 14px 22px;
   border-top: 1px solid var(--border);
-  background: #131a2b;
+  background: var(--tk-surface-nav);
 }
 
 .tp-foot-primary { padding: 10px 20px; font-size: 0.8125rem; }

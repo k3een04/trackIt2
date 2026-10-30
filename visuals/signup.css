@@ -148,13 +148,13 @@ nav {
   color: var(--teal);
 }
 .role-btn.active {
-  border-color: rgba(59,130,246,0.6);
-  background: rgba(59,130,246,0.12);
-  box-shadow: 0 0 20px rgba(59,130,246,0.2);
+  border-color: rgba(66, 107, 235, 0.6);
+  background: rgba(66, 107, 235, 0.12);
+  box-shadow: 0 0 0 3px rgba(66, 107, 235, 0.14);
 }
 .role-btn.active .role-btn-icon {
-  background: rgba(59,130,246,0.2);
-  border-color: rgba(59,130,246,0.4);
+  background: rgba(66, 107, 235, 0.2);
+  border-color: rgba(66, 107, 235, 0.4);
 }
 .role-btn-icon {
   width: 40px; 
@@ -279,22 +279,23 @@ select.input-field option {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
-  color: var(--navy);
+  background: var(--teal-dark);
+  color: #ffffff;
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
   padding: 13px 28px;
   border-radius: 12px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-  box-shadow: 0 4px 20px rgba(66, 107, 235, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.35);
   cursor: pointer;
   border: none;
   width: 100%;
 }
 .btn-primary:hover { 
   transform: translateY(-2px); 
-  box-shadow: 0 6px 28px rgba(66, 107, 235, 0.45); 
+  background: #2743b8;
+  box-shadow: 0 10px 26px -14px rgba(2, 6, 23, 0.55); 
 }
 .btn-primary:active {
   transform: translateY(0);

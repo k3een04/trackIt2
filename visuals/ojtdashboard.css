@@ -124,7 +124,7 @@ nav {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
-  background: #131a2b;
+  background: var(--tk-surface-nav);
   backdrop-filter: none;
   box-shadow: 0 1px 0 var(--border);
   border-bottom: 1px solid var(--border);
@@ -141,20 +141,21 @@ nav img{
   width: 60px;
 }
 
-/* CTA button */
+/* CTA button — solid cobalt with a white label, matching the shared design
+   system (trackit-glass.css overrides this, but the base stays correct). */
 .btn-primary {
   display: inline-flex;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
-  color: var(--navy);
+  background: var(--teal-dark);
+  color: #ffffff;
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
   padding: 12px 28px;
   border-radius: 10px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 0 20px rgba(66, 107, 235, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.35);
   cursor: pointer;
   border: none;
   text-decoration: none;
@@ -162,7 +163,8 @@ nav img{
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 32px rgba(66, 107, 235, 0.5);
+  background: #2743b8;
+  box-shadow: 0 10px 26px -14px rgba(2, 6, 23, 0.55);
 }
 
 .btn-ghost {
@@ -224,7 +226,7 @@ nav {
   top: 100px;
   width: 220px;
   height: calc(100vh - 100px);
-  background: #131a2b;
+  background: var(--tk-surface-nav);
   backdrop-filter: none;
   border-right: 1px solid var(--border);
   padding: 24px 16px;
@@ -582,7 +584,7 @@ nav {
   position: sticky;
   top: 76px;
   z-index: 20;
-  background: #131a2b;
+  background: var(--tk-surface-nav);
   backdrop-filter: none;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -733,7 +735,7 @@ body.light-mode .journal-sticky-header__title {
   width: min(640px, 96vw);
   max-height: 90vh;
   overflow-y: auto;
-  background: #131a2b;
+  background: var(--tk-surface-nav);
   border: 1px solid #293449;
   border-radius: 16px;
   padding: 24px;
@@ -774,7 +776,7 @@ body.light-mode .journal-sticky-header__title {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #131a2b;
+  background: var(--tk-surface-nav);
 }
 
 .journal-photo-preview img {
@@ -1275,7 +1277,7 @@ body.light-mode .attendance-schedule__value {
 
 .download-modal-card {
   width: min(720px, 96vw);
-  background: #131a2b;
+  background: var(--tk-surface-nav);
   border: 1px solid #293449;
   border-radius: 16px;
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.6);
@@ -1450,7 +1452,7 @@ body.light-mode .attendance-schedule__value {
     width: 220px;
     height: calc(100vh - 60px);
     top: 60px;
-    background: #131a2b;
+    background: var(--tk-surface-nav);
     border-right: 1px solid var(--border);
     padding: 16px;
     overflow-y: auto;
@@ -1856,7 +1858,7 @@ body.light-mode .attendance-schedule__value {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #131a2b;
+    background: var(--tk-surface-nav);
     border-bottom: 1px solid var(--border);
     margin: -24px -24px 16px;
     padding: 16px 24px 16px;
@@ -1868,7 +1870,7 @@ body.light-mode .attendance-schedule__value {
     position: sticky;
     bottom: 0;
     z-index: 10;
-    background: #131a2b;
+    background: var(--tk-surface-nav);
     border-top: 1px solid var(--border);
     margin: 16px -24px -24px;
     padding: 16px 24px 24px;
@@ -1907,7 +1909,7 @@ body.light-mode .attendance-schedule__value {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #131a2b;
+    background: var(--tk-surface-nav);
     border-bottom: 1px solid var(--border);
   }
 
@@ -1917,7 +1919,7 @@ body.light-mode .attendance-schedule__value {
     left: -100%; /* closed drawer must clear the wider 88vw panel */
     height: calc(100vh - 60px);
     top: 60px;
-    background: #131a2b;
+    background: var(--tk-surface-nav);
   }
 
   .sidebar.open {
@@ -1963,7 +1965,7 @@ textarea:focus {
 
 /* Select options visibility fix */
 select option {
-  background: #171f30;
+  background: var(--tk-surface-1);
   color: #d5dce9;
   padding: 8px 4px;
 }
@@ -2314,7 +2316,7 @@ body.light-mode #qr-expiry-timer {
 }
 
 #theme-toggle:hover {
-  background: #1c2638;
+  background: var(--tk-surface-2);
 }
 
 /* Light mode button appearance */
@@ -2398,7 +2400,7 @@ body.light-mode #theme-toggle:hover {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding: 24px;
-  background: #171f30;
+  background: var(--tk-surface-1);
   border: 1px solid rgba(66, 107, 235, 0.3);
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
@@ -2660,7 +2662,7 @@ body:not(.light-mode) #status-indicator.checking {
 
 body:not(.light-mode) #status-indicator.in-range {
   background: #34d399;
-  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.18);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
   animation: none;
 }
 
