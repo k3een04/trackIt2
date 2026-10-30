@@ -36,7 +36,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid rgba(148, 163, 184, 0.28);
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #426beb, #2743b8);
   color: #ffffff;
   font-size: 0.78rem;
   font-weight: 700;
@@ -48,16 +48,16 @@
 .nav-user-avatar:hover {
   transform: translateY(-1px);
   border-color: rgba(96, 165, 250, 0.7);
-  box-shadow: 0 6px 16px -8px rgba(59, 130, 246, 0.8);
+  box-shadow: 0 6px 16px -8px rgba(66, 107, 235, 0.8);
 }
 
 .nav-user-avatar:focus-visible {
-  outline: 2px solid #60a5fa;
+  outline: 2px solid #7592f1;
   outline-offset: 2px;
 }
 
 .nav-user-avatar.has-photo {
-  background: #1e293b;
+  background: #1c2638;
 }
 
 /* Mobile keeps the navbar uncluttered: the utility icons and menu are enough,
@@ -94,7 +94,7 @@
   overflow: hidden;
   border: 2px dashed rgba(148, 163, 184, 0.45);
   background: rgba(148, 163, 184, 0.12);
-  color: #e2e8f0;
+  color: #d5dce9;
   font-size: 1.4rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -103,12 +103,12 @@
 }
 
 .profile-picture-card__preview:hover {
-  border-color: #60a5fa;
-  background: rgba(59, 130, 246, 0.12);
+  border-color: #7592f1;
+  background: rgba(66, 107, 235, 0.12);
 }
 
 .profile-picture-card__preview:focus-visible {
-  outline: 2px solid #60a5fa;
+  outline: 2px solid #7592f1;
   outline-offset: 3px;
 }
 
@@ -121,7 +121,7 @@
 .profile-picture-card.has-photo .profile-picture-card__preview {
   border-style: solid;
   border-color: rgba(96, 165, 250, 0.5);
-  background: #0f172a;
+  background: #131a2b;
 }
 
 .profile-picture-card__preview img {
@@ -153,7 +153,7 @@
   margin: 0.6rem 0 0;
   font-size: 0.72rem;
   line-height: 1.4;
-  color: #94a3b8;
+  color: #a8b4c9;
 }
 
 .profile-picture-card__status[data-tone='success'] {
@@ -165,22 +165,22 @@
 }
 
 .profile-picture-card__status[data-tone='muted'] {
-  color: #94a3b8;
+  color: #a8b4c9;
 }
 
 /* ── Light theme ─────────────────────────────────────────────────────────── */
 
 body.light-mode .profile-picture-card__preview {
-  color: #1e293b;
+  color: #1c2638;
   background: rgba(15, 23, 42, 0.05);
   border-color: rgba(15, 23, 42, 0.18);
 }
 
 body.light-mode .profile-picture-card__preview:hover {
-  border-color: #2563eb;
-  background: rgba(37, 99, 235, 0.08);
+  border-color: #3158d4;
+  background: rgba(49, 92, 232, 0.08);
 }
 
 body.light-mode .profile-picture-card.has-photo .profile-picture-card__preview {
-  background: #e2e8f0;
+  background: #d5dce9;
 }

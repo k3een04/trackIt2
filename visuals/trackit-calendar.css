@@ -45,7 +45,7 @@ body.light-mode input.tk-cal-field {
 /* ── 2. POPOVER SHELL ────────────────────────────────────────────────────── */
 
 .tk-cal-pop {
-  --tk-cal-surface: #151f32;
+  --tk-cal-surface: #171f30;
   --tk-cal-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   --tk-cal-dx: 5px;
   --tk-cal-dy: 0px;
@@ -62,7 +62,7 @@ body.light-mode input.tk-cal-field {
   -webkit-backdrop-filter: none;
   box-shadow:
     var(--tk-shadow-3),
-    inset 0 1px 0 rgba(59, 130, 246, 0.08);
+    inset 0 1px 0 rgba(66, 107, 235, 0.08);
   color: var(--tk-text);
   font-size: 13px;
   line-height: 1.4;
@@ -192,7 +192,7 @@ body.light-mode .tk-cal-pop {
 .tk-cal-title:hover::after { opacity: 0.85; }
 
 /* Top of the hierarchy: the active year always carries the TrackIT accent. */
-.tk-cal-year { color: var(--tk-teal); font-variant-numeric: tabular-nums; }
+.tk-cal-year { color: var(--tk-primary); font-variant-numeric: tabular-nums; }
 
 /* Year view is the top level — the title stops being a control. */
 .tk-cal-title.is-static {
@@ -273,12 +273,12 @@ body.light-mode .tk-cal-pop {
 }
 
 .tk-cal-day:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.16);
+  background: rgba(66, 107, 235, 0.16);
   color: var(--tk-text-strong);
 }
 
 .tk-cal-day:focus-visible {
-  outline: 2px solid var(--tk-teal);
+  outline: 2px solid var(--tk-primary);
   outline-offset: 2px;
 }
 
@@ -287,22 +287,22 @@ body.light-mode .tk-cal-pop {
 
 /* Today keeps an outline so it stays legible even when selected. */
 .tk-cal-day.is-today {
-  box-shadow: inset 0 0 0 1.5px var(--tk-teal);
-  color: var(--tk-teal);
+  box-shadow: inset 0 0 0 1.5px var(--tk-primary);
+  color: var(--tk-primary);
   font-weight: 600;
 }
 
 /* Selected: solid accent. Dark ink keeps real contrast against the teal. */
 .tk-cal-day.is-selected,
 .tk-cal-day.is-selected:hover {
-  background: var(--tk-teal);
+  background: var(--tk-primary);
   color: #04121b;
   font-weight: 700;
-  box-shadow: 0 2px 9px -3px rgba(59, 130, 246, 0.75);
+  box-shadow: 0 2px 9px -3px rgba(66, 107, 235, 0.75);
 }
 
 .tk-cal-day.is-today.is-selected {
-  box-shadow: 0 2px 9px -3px rgba(59, 130, 246, 0.75);
+  box-shadow: 0 2px 9px -3px rgba(66, 107, 235, 0.75);
   color: #04121b;
 }
 
@@ -329,7 +329,7 @@ body.light-mode .tk-cal-pop {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--tk-teal);
+  background: var(--tk-primary);
   transform: translateX(-50%);
 }
 
@@ -340,7 +340,7 @@ body.light-mode .tk-cal-pop {
 .tk-cal-day.is-range-end {
   width: 100%;
   border-radius: 0;
-  background: rgba(59, 130, 246, 0.14);
+  background: rgba(66, 107, 235, 0.14);
   color: var(--tk-text);
 }
 
@@ -384,27 +384,27 @@ body.light-mode .tk-cal-pop {
 }
 
 .tk-cal-opt:focus-visible {
-  outline: 2px solid var(--tk-teal);
+  outline: 2px solid var(--tk-primary);
   outline-offset: 1px;
 }
 
 /* Current month / current year: accent, not a fill. */
 .tk-cal-opt.is-current {
-  border-color: var(--tk-hairline-teal);
-  color: var(--tk-teal);
+  border-color: var(--tk-hairline-accent);
+  color: var(--tk-primary);
   font-weight: 700;
 }
 
 .tk-cal-opt.is-selected {
-  background: var(--tk-teal);
-  border-color: var(--tk-teal);
+  background: var(--tk-primary);
+  border-color: var(--tk-primary);
   color: #04121b;
   font-weight: 700;
 }
 
 .tk-cal-opt.is-selected:hover {
-  background: var(--tk-teal);
-  border-color: var(--tk-teal);
+  background: var(--tk-primary);
+  border-color: var(--tk-primary);
   color: #04121b;
 }
 
@@ -416,13 +416,13 @@ body.light-mode .tk-cal-pop {
 /* ── 8. LIGHT MODE ───────────────────────────────────────────────────────── */
 
 body.light-mode .tk-cal-day:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.14);
+  background: rgba(66, 107, 235, 0.14);
   color: var(--tk-text-strong);
 }
 
 body.light-mode .tk-cal-day.is-today {
-  box-shadow: inset 0 0 0 1.5px var(--tk-teal);
-  color: var(--tk-teal-strong);
+  box-shadow: inset 0 0 0 1.5px var(--tk-primary);
+  color: var(--tk-primary-strong);
 }
 
 body.light-mode .tk-cal-day.is-booked { color: var(--tk-text-muted); }
@@ -430,7 +430,7 @@ body.light-mode .tk-cal-day.is-booked { color: var(--tk-text-muted); }
 body.light-mode .tk-cal-day.is-in-range,
 body.light-mode .tk-cal-day.is-range-start,
 body.light-mode .tk-cal-day.is-range-end {
-  background: rgba(59, 130, 246, 0.14);
+  background: rgba(66, 107, 235, 0.14);
 }
 
 body.light-mode .tk-cal-opt { background: var(--tk-surface-2); }
@@ -441,8 +441,8 @@ body.light-mode .tk-cal-opt:hover {
 }
 
 body.light-mode .tk-cal-opt.is-current {
-  border-color: var(--tk-hairline-teal);
-  color: var(--tk-teal-deep);
+  border-color: var(--tk-hairline-accent);
+  color: var(--tk-primary-deep);
 }
 
 /* ── 9. RESPONSIVE ───────────────────────────────────────────────────────── */
@@ -494,20 +494,20 @@ body.light-mode .tk-cal-opt.is-current {
 body:not(.light-mode) .tk-cal-pop {
   box-shadow:
     var(--tk-shadow-3),
-    inset 0 1px 0 rgba(59, 130, 246, 0.08);
+    inset 0 1px 0 rgba(66, 107, 235, 0.08);
 }
 
 body:not(.light-mode) .tk-cal-day:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.16);
+  background: rgba(66, 107, 235, 0.16);
 }
 
 body:not(.light-mode) .tk-cal-day.is-selected,
 body:not(.light-mode) .tk-cal-day.is-selected:hover,
 body:not(.light-mode) .tk-cal-day.is-today.is-selected {
-  box-shadow: 0 2px 9px -3px rgba(59, 130, 246, 0.75);
+  box-shadow: 0 2px 9px -3px rgba(66, 107, 235, 0.75);
 }
 
 body:not(.light-mode) .tk-cal-day.is-range-start,
 body:not(.light-mode) .tk-cal-day.is-range-end {
-  background: rgba(59, 130, 246, 0.14);
+  background: rgba(66, 107, 235, 0.14);
 }

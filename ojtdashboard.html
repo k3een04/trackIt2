@@ -18,26 +18,46 @@
           fontFamily: {
             sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
             display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
-          }
+          },
+          // Midnight Slate + Cobalt: remapping slate/blue/green keeps every
+          // utility class in markup aligned with the CSS token system in
+          // visuals/trackit-glass.css (amber/red/violet keep Tailwind defaults).
+          colors: {
+            slate: {
+              50: '#f4f6fa', 100: '#e9edf5', 200: '#d5dce9', 300: '#c0c9da',
+              400: '#a8b4c9', 500: '#7f8ca3', 600: '#667389', 700: '#4e5a72',
+              800: '#36425c', 900: '#232e44', 950: '#171f30',
+            },
+            blue: {
+              50: '#ebf0fe', 100: '#dce4fd', 200: '#b9c8fa', 300: '#9db1f7',
+              400: '#7592f1', 500: '#426beb', 600: '#3158d4', 700: '#2a49bc',
+              800: '#233c99', 900: '#1e2a4f', 950: '#172554',
+            },
+            green: {
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+              400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+              800: '#065f46', 900: '#064e3b', 950: '#022c22',
+            },
+          },
         }
       }
     }
   </script>
-  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=18">
+  <link rel="stylesheet" href="visuals/ojtdashboard.css?v=19">
   <!-- Verification workflow (confirmation, loading and text-entry dialogs).
        Self-contained .vm-* rules so it stays identical on every dashboard. -->
-  <link rel="stylesheet" href="visuals/verification-modal.css?v=5">
+  <link rel="stylesheet" href="visuals/verification-modal.css?v=6">
   <!-- Sidebar messenger: launcher at the bottom of the rail + popup chat. -->
-  <link rel="stylesheet" href="visuals/messaging.css?v=6">
+  <link rel="stylesheet" href="visuals/messaging.css?v=7">
   <!-- Profile picture badge + Settings uploader shared by all dashboards. -->
-  <link rel="stylesheet" href="visuals/profile-picture.css?v=2">
+  <link rel="stylesheet" href="visuals/profile-picture.css?v=3">
   <!-- Shared TrackIT glassmorphism design system. Loaded last so it wins on
        load order; its selectors are body-prefixed so they also beat the
        utilities the Tailwind CDN injects at runtime. -->
-  <link rel="stylesheet" href="visuals/trackit-glass.css?v=5">
+  <link rel="stylesheet" href="visuals/trackit-glass.css?v=6">
   <!-- Reusable date/month picker. Loaded last so its field and popover rules
        win against the per-page input styles above. -->
-  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=4">
+  <link rel="stylesheet" href="visuals/trackit-calendar.css?v=5">
 </head>
 <body>
   <script>
@@ -1045,7 +1065,7 @@
   <script src="iconsax.js?v=1"></script>
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
-  <script src="chart-theme.js?v=2"></script>
+  <script src="chart-theme.js?v=3"></script>
   <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
        which writes .value and listens for the change events it re-dispatches. -->
   <script src="trackit-calendar.js?v=1"></script>
@@ -1059,6 +1079,6 @@
   <script src="messaging.js?v=7"></script>
   <!-- Shared profile picture uploader + navbar avatar. -->
   <script src="profile-picture.js?v=1"></script>
-  <script src="ojtdashboard.js?v=15"></script>
+  <script src="ojtdashboard.js?v=16"></script>
 </body>
 </html>

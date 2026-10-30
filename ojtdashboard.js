@@ -3220,7 +3220,7 @@ function renderTheoriesList(identifiedTheories) {
     theoriesListEl.innerHTML = '<p class="text-slate-500 text-sm">No IT theories or practices were identified in your narrative. Please provide more details about your OJT activities.</p>';
   } else {
     theoriesListEl.innerHTML = list.map((theory) => `
-        <div class="theory-card" style="padding: 12px; border-radius: 6px; border-left: 3px solid var(--tk-teal); margin-bottom: 8px;">
+        <div class="theory-card" style="padding: 12px; border-radius: 6px; border-left: 3px solid var(--tk-primary); margin-bottom: 8px;">
           <p class="theory-card__title" style="margin: 0; font-weight: 600; font-size: 12px;">${theory.course} – ${theory.courseName}</p>
           <p class="theory-card__text" style="margin: 4px 0 0 0; font-size: 13px;">${theory.category}</p>
           <p class="theory-card__text" style="margin: 6px 0 0 0; font-size: 13px;">${theory.theory}</p>

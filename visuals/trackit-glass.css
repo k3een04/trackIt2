@@ -6,10 +6,10 @@
    order; every component selector is `body`-prefixed so it also beats the
    single-class utilities generated at runtime by the Tailwind CDN.
 
-   This is a SOLID layered-surface system (not glassmorphism): opaque navy
-   steps in dark mode, deliberate white / off-white steps in light mode.
-   Blur is reserved for nav rails and overlays only. Cobalt (#3B82F6) is an
-   accent for states and indicators, never a surface fill.
+   This is a SOLID layered-surface system (not glassmorphism): opaque Midnight
+   Slate steps in dark mode, deliberate white / off-white steps in light mode.
+   Blur is reserved for nav rails and overlays only. Cobalt (#426BEB dark /
+   #315CE8 light) is an accent for states and interaction, never a surface fill.
 
    Structure:
      1. Design tokens (dark)          6. Stat / KPI cards
@@ -24,25 +24,63 @@
 /* ── 1. DESIGN TOKENS (dark — Midnight Slate + Cobalt) ──────────────────── */
 
 :root {
-  /* Brand - cobalt primary; light mode overrides these to its own palette */
-  --tk-teal: #3b82f6;
-  --tk-teal-strong: #2563eb;
-  --tk-teal-deep: #1d4ed8;
+  /* Typography + spacing system shared by every dashboard. */
+  --tk-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --tk-font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+
+  --tk-fs-2xs: 0.6875rem;  /* 11px - timestamps, fine print            */
+  --tk-fs-xs: 0.75rem;     /* 12px - status labels, table headers      */
+  --tk-fs-sm: 0.8125rem;   /* 13px - supporting descriptions           */
+  --tk-fs-md: 0.875rem;    /* 14px - body text, table content, nav     */
+  --tk-fs-lg: 1rem;        /* 16px - card titles, section headings     */
+  --tk-fs-xl: 1.25rem;     /* 20px - section headings                  */
+  --tk-fs-2xl: 1.5rem;     /* 24px - page titles (compact)             */
+  --tk-fs-page: 1.75rem;   /* 28px - page titles, KPI values           */
+  --tk-fs-stat: 1.75rem;   /* 28px - KPI values / primary statistics   */
+  --tk-lh-tight: 1.25;
+  --tk-lh-normal: 1.5;
+  --tk-weight-medium: 500;
+  --tk-weight-semibold: 600;
+  --tk-weight-bold: 700;
+
+  --tk-space-1: 4px;
+  --tk-space-2: 8px;
+  --tk-space-3: 12px;
+  --tk-space-4: 16px;
+  --tk-space-5: 24px;
+  --tk-space-6: 32px;
+  --tk-space-7: 40px;
+  --tk-space-8: 48px;
+
+  --tk-control-h: 40px;     /* desktop inputs / buttons                 */
+  --tk-control-h-sm: 34px;
+  --tk-icon-sm: 16px;
+  --tk-icon-md: 20px;
+
+  /* Brand — cobalt primary. `--tk-primary-soft` is the light step used for
+     accent text/icons on dark surfaces where raw cobalt would fail contrast. */
+  --tk-primary: #426beb;
+  --tk-primary-strong: #3158d4;
+  --tk-primary-deep: #2743b8;
+  --tk-primary-soft: #7592f1;
+  --tk-primary-softer: #9db1f7;
+  --tk-focus: #7592f1;
 
   /* Level 1 — page / Level 2 — primary / Level 3 — secondary / Level 4 — elevated */
-  --tk-bg: #0b1120;
-  --tk-surface-1: #151f32;   /* primary containers: cards, panels          */
-  --tk-surface-2: #1e293b;   /* secondary: nested subsections, widgets     */
-  --tk-surface-3: #243147;   /* elevated: rows, chips, hover lift          */
-  --tk-surface-nav: #0f172a;     /* nav + sidebar rails (solid)            */
-  --tk-surface-overlay: #151f32;/* modals & dropdowns (solid)              */
-  --tk-hover: #1e293b;
-  --tk-selected: #172554;
+  --tk-bg: #101522;
+  --tk-surface-1: #171f30;   /* primary containers: cards, panels          */
+  --tk-surface-2: #1c2638;   /* secondary: nested subsections, widgets     */
+  --tk-surface-3: #202b3e;   /* elevated: rows, chips, hover lift          */
+  --tk-surface-nav: #131a2b;     /* nav + sidebar rails (solid)            */
+  --tk-surface-overlay: #1c2638;/* modals & dropdowns (solid)              */
+  --tk-input-bg: #131b2a;    /* form wells                                 */
+  --tk-hover: #1b2438;
+  --tk-selected: #1e2a4f;    /* active nav: subtle cobalt-tinted slate     */
 
   /* Hairlines: solid slate separators (spec-pinned values) */
-  --tk-hairline: #29364b;
-  --tk-hairline-strong: #3b4a61;
-  --tk-hairline-teal: #3b82f6;
+  --tk-hairline: #293449;
+  --tk-hairline-strong: #39465f;
+  --tk-hairline-accent: #426beb;
 
   /* Elevation: soft, controlled, low-contrast */
   --tk-blur: 14px;
@@ -50,7 +88,7 @@
   --tk-shadow-1: 0 1px 2px rgba(2, 6, 23, 0.35);
   --tk-shadow-2: 0 10px 26px -14px rgba(2, 6, 23, 0.55);
   --tk-shadow-3: 0 22px 48px -18px rgba(2, 6, 23, 0.6);
-  --tk-glow-teal: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 0 0 2px rgba(96, 165, 250, 0.25);
+  --tk-glow-primary: 0 0 0 1px rgba(66, 107, 235, 0.4), 0 0 0 2px rgba(117, 146, 241, 0.28);
 
   /* Geometry: professional, technical — never toy-like */
   --tk-radius: 14px;
@@ -65,10 +103,10 @@
   --tk-gap-grid: 16px;
 
   /* Type */
-  --tk-text: #e2e8f0;
-  --tk-text-strong: #f1f5f9;
-  --tk-text-muted: #94a3b8;
-  --tk-text-faint: #94a3b8;
+  --tk-text: #a8b4c9;
+  --tk-text-strong: #f1f5fc;
+  --tk-text-muted: #7f8ca3;
+  --tk-text-faint: #7f8ca3;
 
   /* Motion */
   --tk-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -76,32 +114,32 @@
   --tk-dur-fast: 140ms;
 
   /* Semantic status (dark) */
-  --tk-status-success-bg: #143d2a;
-  --tk-status-success-text: #86efac;
-  --tk-status-pending-bg: #422d0a;
+  --tk-status-success-bg: #11342a;
+  --tk-status-success-text: #6ee7b7;
+  --tk-status-pending-bg: #3e2c0b;
   --tk-status-pending-text: #fcd34d;
   --tk-status-error-bg: #451a1a;
   --tk-status-error-text: #fca5a5;
-  --tk-status-info-bg: #172554;
-  --tk-status-info-text: #93c5fd;
+  --tk-status-info-bg: #1e2a55;
+  --tk-status-info-text: #93b0f8;
   --tk-status-progress-bg: #312e81;
   --tk-status-progress-text: #c4b5fd;
-  --tk-status-neutral-bg: #29364b;
-  --tk-status-neutral-text: #cbd5e1;
+  --tk-status-neutral-bg: #293449;
+  --tk-status-neutral-text: #c0c9da;
 
-  --tk-chart-surface: #151f32;
-  --tk-chart-grid: #29364b;
-  --tk-input-border: #3b4a61;
+  --tk-chart-surface: #171f30;
+  --tk-chart-grid: #293449;
+  --tk-input-border: #39465f;
 
   /* Legacy aliases - dashboards load before this file, these win */
-  --navy: #0b1120;
-  --navy-mid: #151f32;
-  --teal: #3b82f6;
-  --teal-dark: #2563eb;
+  --navy: #101522;
+  --navy-mid: #171f30;
+  --teal: #426beb;
+  --teal-dark: #3158d4;
   --gold: #fbbf24;
-  --muted: #94a3b8;
-  --glass: #151f32;
-  --border: #29364b;
+  --muted: #7f8ca3;
+  --glass: #171f30;
+  --border: #293449;
 }
 
 /* ── 2. LIGHT-MODE TOKENS ────────────────────────────────────────────────── */
@@ -109,56 +147,62 @@
    surfaces, cool off-white secondary steps, neutral hairlines. */
 
 body.light-mode {
-  --tk-teal: #2457c5;
-  --tk-teal-strong: #1d46a3;
-  --tk-teal-deep: #193b8a;
+  --tk-primary: #315ce8;
+  --tk-primary-strong: #274bc4;
+  --tk-primary-deep: #1f3fa8;
+  --tk-primary-soft: #315ce8;
+  --tk-primary-softer: #4c6ff0;
+  --tk-focus: #274bc4;
 
-  --tk-bg: #f3f6fb;
+  --tk-bg: #f4f6fa;
   --tk-surface-1: #ffffff;
   --tk-surface-2: #f8fafd;
-  --tk-surface-3: #eaf0f8;
+  --tk-surface-3: #edf1f8;
   --tk-surface-nav: #ffffff;
   --tk-surface-overlay: #ffffff;
-  --tk-hover: #eaf0f8;
-  --tk-selected: #e5edff;
+  --tk-input-bg: #ffffff;
+  --tk-hover: #edf1f8;
+  --tk-selected: #e8edfd;
 
-  --tk-hairline: #d8e0ed;
-  --tk-hairline-strong: #b8c5d8;
-  --tk-hairline-teal: #afc5f5;
+  --tk-hairline: #e1e6ef;
+  --tk-hairline-strong: #c9d2e0;
+  --tk-hairline-accent: #afc2f5;
   --tk-subtle-divider: #e6ebf3;
-  --tk-chart-grid: #e2e8f0;
-  --tk-input-border: #cbd5e1;
+  --tk-chart-grid: #e6eaf2;
+  --tk-input-border: #c9d2e0;
 
-  --tk-shadow-1: 0 1px 2px rgba(23, 37, 84, 0.06);
-  --tk-shadow-2: 0 10px 26px -14px rgba(23, 37, 84, 0.18);
-  --tk-shadow-3: 0 22px 48px -20px rgba(23, 37, 84, 0.25);
-  --tk-glow-teal: 0 0 0 1px rgba(36, 87, 197, 0.2), 0 6px 20px -10px rgba(36, 87, 197, 0.35);
+  --tk-shadow-1: 0 1px 2px rgba(23, 34, 56, 0.06);
+  --tk-shadow-2: 0 10px 26px -14px rgba(23, 34, 56, 0.18);
+  --tk-shadow-3: 0 22px 48px -20px rgba(23, 34, 56, 0.25);
+  --tk-glow-primary: 0 0 0 1px rgba(49, 92, 232, 0.2), 0 6px 20px -10px rgba(49, 92, 232, 0.35);
 
-  --tk-text: #263449;
-  --tk-text-strong: #172554;
-  --tk-text-muted: #475569;
-  --tk-text-faint: #64748b;
+  --tk-text: #65728a;
+  --tk-text-strong: #172238;
+  --tk-text-muted: #65728a;
+  --tk-text-faint: #64718a;
 
-  --tk-status-success-bg: #dcfce7;
-  --tk-status-success-text: #166534;
+  --tk-status-success-bg: #d1fae5;
+  --tk-status-success-text: #047857;
   --tk-status-pending-bg: #fef3c7;
   --tk-status-pending-text: #92400e;
   --tk-status-error-bg: #fee2e2;
   --tk-status-error-text: #991b1b;
-  --tk-status-info-bg: #dbeafe;
-  --tk-status-info-text: #1d4ed8;
-  --tk-status-neutral-bg: #e2e8f0;
-  --tk-status-neutral-text: #334155;
+  --tk-status-info-bg: #dce4fd;
+  --tk-status-info-text: #2743b8;
+  --tk-status-progress-bg: #ede9fe;
+  --tk-status-progress-text: #5b21b6;
+  --tk-status-neutral-bg: #e9edf5;
+  --tk-status-neutral-text: #4e5a72;
 
-  --navy: #f3f6fb;
+  --navy: #f4f6fa;
   --navy-mid: #ffffff;
-  --teal: #2457c5;
-  --teal-dark: #1d46a3;
+  --teal: #315ce8;
+  --teal-dark: #274bc4;
   --gold: #b45309;
-  --muted: #64748b;
+  --muted: #65728a;
   --glass: #ffffff;
-  --border: #d8e0ed;
-  color: #263449;
+  --border: #e1e6ef;
+  color: #172238;
 }
 
 /* ── 3. PAGE ATMOSPHERE ─────────────────────────────────────────────────── */
@@ -168,10 +212,11 @@ body {
   background-color: var(--tk-bg);
   background-image: none;
   background-attachment: fixed;
+  font-family: var(--tk-font-sans);
 }
 
 body.light-mode {
-  background-color: #f3f6fb;
+  background-color: #f4f6fa;
   background-image: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0) 300px);
 }
 
@@ -296,10 +341,27 @@ body .glass-panel {
 
 body .page-header h1 {
   color: var(--tk-text-strong);
+  font-family: var(--tk-font-display);
+  font-size: var(--tk-fs-page);
+  font-weight: var(--tk-weight-bold);
+  line-height: var(--tk-lh-tight);
   letter-spacing: -0.015em;
 }
 
-body .page-header p { color: var(--tk-text-muted); }
+body .page-header p {
+  color: var(--tk-text-muted);
+  font-size: var(--tk-fs-sm);
+  line-height: var(--tk-lh-normal);
+}
+
+/* Card titles: one weight and size everywhere. */
+body .glass-card > h3:first-child,
+body .glass-panel > h3:first-child {
+  font-size: var(--tk-fs-lg);
+  font-weight: var(--tk-weight-semibold);
+  line-height: var(--tk-lh-tight);
+  letter-spacing: -0.01em;
+}
 
 body .divider {
   background: linear-gradient(
@@ -392,9 +454,9 @@ body .tab-back-btn:disabled {
 }
 
 body.light-mode .tab-back-btn {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #0c1626;
+  background: rgba(66, 107, 235, 0.12);
+  border-color: rgba(66, 107, 235, 0.3);
+  color: #172238;
 }
 
 body.light-mode .tab-back-btn.is-disabled,
@@ -547,7 +609,7 @@ body .analytics-mini::before {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(59, 130, 246, 0.5),
+    rgba(66, 107, 235, 0.5),
     transparent
   );
   opacity: 0.5;
@@ -558,40 +620,53 @@ body.light-mode .analytics-mini::before {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(59, 130, 246, 0.55),
+    rgba(66, 107, 235, 0.55),
     transparent
   );
 }
 
 body .kpi-value,
-body .analytics-mini-value,
 body .stat-num {
   color: var(--tk-text-strong);
+  font-family: var(--tk-font-sans);
+  font-size: var(--tk-fs-stat);
+  font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
-  font-weight: 700;
+  font-weight: var(--tk-weight-bold);
+  line-height: 1.2;
+}
+
+body .analytics-mini-value {
+  color: var(--tk-text-strong);
+  font-family: var(--tk-font-sans);
+  font-size: var(--tk-fs-xl);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  font-weight: var(--tk-weight-bold);
+  line-height: 1.2;
 }
 
 body .kpi-label,
 body .analytics-mini-label {
   color: var(--tk-text-muted);
   letter-spacing: 0.06em;
-  font-weight: 600;
+  font-weight: var(--tk-weight-semibold);
 }
 
 body .kpi-note { color: var(--tk-text-faint); }
 
 /* Icon wells: glass chip, not a solid teal block. */
 body .icon-box {
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.28);
+  background: rgba(66, 107, 235, 0.12);
+  border: 1px solid rgba(66, 107, 235, 0.28);
   border-radius: var(--tk-radius-sm);
-  color: #93c5fd;
+  color: #93b0f8;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 body.light-mode .icon-box {
-  background: rgba(59, 130, 246, 0.10);
-  border-color: rgba(59, 130, 246, 0.24);
+  background: rgba(66, 107, 235, 0.10);
+  border-color: rgba(66, 107, 235, 0.24);
 }
 
 /* Progress bars sit on an inset track. */
@@ -634,8 +709,8 @@ body .report-table thead th,
 body .glass-card table thead th {
   background: var(--tk-surface-2);
   color: var(--tk-text-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: var(--tk-fs-xs);
+  font-weight: var(--tk-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: 0;
@@ -651,6 +726,7 @@ body .glass-card table tbody td {
   border: 0;
   border-bottom: 1px solid var(--tk-hairline);
   color: var(--tk-text);
+  font-size: var(--tk-fs-md);
   padding: 14px 16px;
 }
 
@@ -705,6 +781,7 @@ body textarea {
   border-radius: var(--tk-radius-sm);
   color: var(--tk-text);
   padding: 10px 14px;
+  min-height: var(--tk-control-h);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   transition:
@@ -716,19 +793,19 @@ body textarea {
 body input::placeholder,
 body textarea::placeholder { color: var(--tk-text-faint); }
 
-/* Dark inputs sit on the nav-step so they read as dark wells inside cards. */
+/* Dark inputs sit in the dedicated input well. */
 body:not(.light-mode) input,
 body:not(.light-mode) select,
 body:not(.light-mode) textarea {
-  background: var(--tk-surface-nav);
+  background: var(--tk-input-bg);
   border-color: var(--tk-input-border);
 }
 
 body:not(.light-mode) input:focus,
 body:not(.light-mode) select:focus,
 body:not(.light-mode) textarea:focus {
-  border-color: #60a5fa;
-  box-shadow: var(--tk-glow-teal);
+  border-color: #7592f1;
+  box-shadow: var(--tk-glow-primary);
 }
 
 body input:hover,
@@ -741,8 +818,8 @@ body input:focus,
 body select:focus,
 body textarea:focus {
   outline: none;
-  border-color: var(--tk-hairline-teal);
-  box-shadow: var(--tk-glow-teal);
+  border-color: var(--tk-hairline-accent);
+  box-shadow: var(--tk-glow-primary);
 }
 
 body input:focus-visible,
@@ -750,12 +827,12 @@ body select:focus-visible,
 body textarea:focus-visible,
 body button:focus-visible,
 body a:focus-visible {
-  outline: 2px solid var(--tk-teal);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
 }
 
 body:not(.light-mode) select option {
-  background: #0f172a;
+  background: #131a2b;
   color: var(--tk-text);
 }
 
@@ -786,14 +863,14 @@ body .tab-btn:hover {
 
 body .filter-tab.active,
 body .tab-btn.active {
-  color: #93c5fd;
+  color: #93b0f8;
   background: var(--tk-selected);
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 body.light-mode .filter-tab.active,
 body.light-mode .tab-btn.active {
-  background: rgba(59, 130, 246, 0.12);
+  background: rgba(66, 107, 235, 0.12);
 }
 
 /* Ghost + primary buttons share one shape language. */
@@ -803,6 +880,7 @@ body .btn-ghost {
   border: 1px solid var(--tk-hairline);
   border-radius: var(--tk-radius-sm);
   color: var(--tk-text);
+  min-height: var(--tk-control-h);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   transition:
@@ -813,18 +891,19 @@ body .btn-ghost {
 }
 
 body .btn-ghost:hover {
-  color: #93c5fd;
+  color: #93b0f8;
   border-color: var(--tk-hairline-strong);
   background: var(--tk-surface-3);
   transform: translateY(-1px);
 }
 
-body.light-mode .btn-ghost:hover { background: rgba(59, 130, 246, 0.08); }
+body.light-mode .btn-ghost:hover { background: rgba(66, 107, 235, 0.08); }
 
 body .btn-primary {
   border-radius: var(--tk-radius-sm);
+  min-height: var(--tk-control-h);
   /* Solid cobalt (not a gradient) keeps white label text at 5.2:1 contrast. */
-  background-color: var(--tk-teal-strong) !important;
+  background-color: var(--tk-primary-strong) !important;
   background-image: none !important;
   color: #ffffff;
   box-shadow: var(--tk-shadow-1);
@@ -836,13 +915,13 @@ body .btn-primary {
 
 body .btn-primary:hover {
   transform: translateY(-1px);
-  background-color: var(--tk-teal-deep) !important;
+  background-color: var(--tk-primary-deep) !important;
   box-shadow: var(--tk-shadow-2);
 }
 
 body .btn-primary:active {
   transform: translateY(0);
-  background-color: var(--tk-teal-deep) !important;
+  background-color: var(--tk-primary-deep) !important;
 }
 
 /* ── 9. STATUS BADGES ───────────────────────────────────────────────────── */
@@ -855,8 +934,8 @@ body .badge {
   gap: 6px;
   padding: 4px 12px;
   border-radius: var(--tk-radius-pill);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: var(--tk-fs-xs);
+  font-weight: var(--tk-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   border: 1px solid transparent;
@@ -873,7 +952,7 @@ body .status-completed,
 body .status-reviewed {
   background: var(--tk-status-success-bg);
   color: var(--tk-status-success-text);
-  border-color: rgba(134, 239, 172, 0.28);
+  border-color: rgba(110, 231, 183, 0.28);
 }
 
 body .status-inactive,
@@ -921,14 +1000,14 @@ body.light-mode .status-present,
 body.light-mode .status-verified,
 body.light-mode .status-approved,
 body.light-mode .status-on-track {
-  background: rgba(22, 163, 74, 0.10);
-  color: #15803d;
-  border-color: rgba(22, 163, 74, 0.26);
+  background: rgba(5, 150, 105, 0.10);
+  color: #047857;
+  border-color: rgba(5, 150, 105, 0.26);
 }
 
 body .attendance-completion {
   background: var(--tk-status-success-bg);
-  border: 1px solid rgba(134, 239, 172, 0.3);
+  border: 1px solid rgba(110, 231, 183, 0.3);
 }
 
 body .attendance-completion__title {
@@ -940,8 +1019,8 @@ body .attendance-completion__text {
 }
 
 body .dtr-summary-tile--accent {
-  background: rgba(59, 130, 246, 0.05);
-  border-left: 3px solid var(--tk-teal);
+  background: rgba(66, 107, 235, 0.05);
+  border-left: 3px solid var(--tk-primary);
 }
 
 body .dtr-summary-tile--neutral {
@@ -957,7 +1036,7 @@ body .ojt-progress-label {
 }
 
 body .ojt-progress-value {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
   font-weight: 600;
 }
 
@@ -966,7 +1045,7 @@ body .ojt-progress-track {
 }
 
 body .ojt-progress-fill {
-  background: linear-gradient(90deg, var(--tk-teal), var(--tk-teal-strong));
+  background: linear-gradient(90deg, var(--tk-primary), var(--tk-primary-strong));
 }
 
 body .schedule-item {
@@ -988,7 +1067,7 @@ body .theory-card {
 }
 
 body .theory-card__title {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
 }
 
 body .theory-card__tag {
@@ -1008,9 +1087,9 @@ body .trackit-toast {
 }
 
 body .trackit-toast-success {
-  background: rgba(34, 197, 94, 0.12);
-  color: #4ade80;
-  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.28);
 }
 
 body .trackit-toast-error {
@@ -1020,9 +1099,9 @@ body .trackit-toast-error {
 }
 
 body .trackit-toast-info {
-  background: rgba(59, 130, 246, 0.12);
-  color: #93c5fd;
-  border-color: rgba(59, 130, 246, 0.28);
+  background: rgba(66, 107, 235, 0.12);
+  color: #93b0f8;
+  border-color: rgba(66, 107, 235, 0.28);
 }
 
 body .trackit-toast p:last-child {
@@ -1083,17 +1162,17 @@ body #notif-btn:hover {
 /* Open state: brighter icon and a tinted border - a cobalt outline at full
    strength read louder than any other control in the header. */
 body #notif-btn[aria-expanded='true'] {
-  border-color: rgba(59, 130, 246, 0.45);
+  border-color: rgba(66, 107, 235, 0.45);
   background: var(--tk-surface-2);
   color: var(--tk-text-strong);
 }
 
 body.light-mode #notif-btn[aria-expanded='true'] {
-  border-color: rgba(37, 99, 235, 0.35);
+  border-color: rgba(49, 92, 232, 0.35);
 }
 
 body #notif-btn:focus-visible {
-  outline: 2px solid var(--tk-teal);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
 }
 
@@ -1120,7 +1199,7 @@ body .notif-badge {
   height: 17px;
   padding: 0 4px;
   border-radius: var(--tk-radius-pill);
-  background: var(--tk-teal);
+  background: var(--tk-primary);
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
@@ -1130,7 +1209,7 @@ body .notif-badge {
 
 /* Unread rows are marked by the chip, not by the niche "dot" style. */
 body .unread-dot {
-  background: var(--tk-teal);
+  background: var(--tk-primary);
   border-radius: var(--tk-radius-pill);
 }
 
@@ -1241,7 +1320,7 @@ body.light-mode .notif-action--danger:hover { color: #991b1b; }
 body .notif-action:focus-visible,
 body .notif-item:focus-visible,
 body .notif-close:focus-visible {
-  outline: 2px solid var(--tk-teal);
+  outline: 2px solid var(--tk-focus);
   outline-offset: -2px;
 }
 
@@ -1296,20 +1375,20 @@ body .notif-avatar {
 }
 
 body .notif-avatar.journal,
-body .notif-avatar.system { background: var(--tk-status-info-bg); border-color: rgba(147, 197, 253, 0.28); color: #60a5fa; }
+body .notif-avatar.system { background: var(--tk-status-info-bg); border-color: rgba(147, 197, 253, 0.28); color: #7592f1; }
 
 body .notif-avatar.attendance,
-body .notif-avatar.activity { background: var(--tk-status-success-bg); border-color: rgba(134, 239, 172, 0.28); color: #4ade80; }
+body .notif-avatar.activity { background: var(--tk-status-success-bg); border-color: rgba(110, 231, 183, 0.28); color: #34d399; }
 
 body .notif-avatar.inactivity { background: var(--tk-status-pending-bg); border-color: rgba(252, 211, 77, 0.28); color: #fbbf24; }
 
 body .notif-avatar.dtr { background: var(--tk-status-error-bg); border-color: rgba(252, 165, 165, 0.28); color: #f87171; }
 
 body.light-mode .notif-avatar.journal,
-body.light-mode .notif-avatar.system { border-color: rgba(37, 99, 235, 0.22); color: #1d4ed8; }
+body.light-mode .notif-avatar.system { border-color: rgba(49, 92, 232, 0.22); color: #2743b8; }
 
 body.light-mode .notif-avatar.attendance,
-body.light-mode .notif-avatar.activity { border-color: rgba(22, 163, 74, 0.22); color: #15803d; }
+body.light-mode .notif-avatar.activity { border-color: rgba(5, 150, 105, 0.22); color: #047857; }
 
 body.light-mode .notif-avatar.inactivity { border-color: rgba(180, 83, 9, 0.22); color: #b45309; }
 
@@ -1372,7 +1451,7 @@ body .notif-dot {
   height: 6px;
   margin-top: 6px;
   border-radius: 50%;
-  background: var(--tk-teal);
+  background: var(--tk-primary);
 }
 
 /* Dismiss control stays out of the way until the row is hovered or focused,
@@ -1450,7 +1529,7 @@ body:not(.light-mode) .notification-icon.info,
 body:not(.light-mode) .notification-icon.information {
   background: var(--tk-status-info-bg);
   border-color: rgba(147, 197, 253, 0.28);
-  color: #60a5fa;
+  color: #7592f1;
 }
 
 body:not(.light-mode) .notif-icon.attendance,
@@ -1460,8 +1539,8 @@ body:not(.light-mode) .notification-icon.attendance,
 body:not(.light-mode) .notification-icon.activity,
 body:not(.light-mode) .notification-icon.success {
   background: var(--tk-status-success-bg);
-  border-color: rgba(134, 239, 172, 0.28);
-  color: #4ade80;
+  border-color: rgba(110, 231, 183, 0.28);
+  color: #34d399;
 }
 
 body:not(.light-mode) .notif-icon.inactivity,
@@ -1488,8 +1567,8 @@ body.light-mode .notification-icon.dtr {
 }
 
 body.light-mode .notification-icon.journal {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: #dce4fd;
+  color: #2743b8;
 }
 
 /* ── 11. SIDEBAR & NAVIGATION ───────────────────────────────────────────── */
@@ -1624,12 +1703,12 @@ body .nav-link.active {
   font-weight: 600;
 }
 
-body .nav-link.active svg { color: var(--tk-teal); }
+body .nav-link.active svg { color: var(--tk-primary); }
 
 /* Keyboard focus has to be visible without importing the cobalt wash, so it
    is a ring offset from the pill instead of a fill change. */
 body .nav-link:focus-visible {
-  outline: 2px solid var(--tk-teal);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
   color: var(--tk-text-strong);
 }
@@ -1679,9 +1758,9 @@ body #theme-icon svg * {
 
 /* ── 12. MICRO-INTERACTIONS + RESPONSIVE REFINEMENT ───────────────────────── */
 
-/* Focus: one restrained teal ring shared by every interactive surface. */
+/* Focus: one restrained cobalt ring shared by every interactive surface. */
 body :is(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--tk-hairline-teal);
+  outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -1762,7 +1841,7 @@ body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
 @media (max-width: 1024px) {
   body .glass-card,
   body .glass-panel { padding: 20px; }
-  body .page-header h1 { font-size: 1.8rem; }
+  body .page-header h1 { font-size: 1.6rem; }
   body .analytics-kpi,
   body .analytics-mini { padding: 18px; }
 }
@@ -1788,14 +1867,14 @@ body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
   body .glass-card,
   body .glass-panel { padding: 18px; border-radius: var(--tk-radius-sm); }
   body .page-header { margin-bottom: 20px; }
-  body .page-header h1 { font-size: 1.5rem; }
-  body .page-header p { font-size: 0.85rem; }
+  body .page-header h1 { font-size: 1.4rem; }
+  body .page-header p { font-size: var(--tk-fs-sm); }
   body .chart-frame { padding: 10px; }
   body .analytics-kpi,
   body .analytics-mini { padding: 16px; }
   body .kpi-value,
-  body .analytics-mini-value,
   body .stat-num { font-size: 1.6rem; overflow-wrap: anywhere; }
+  body .analytics-mini-value { overflow-wrap: anywhere; }
   body .icon-box { width: 42px; height: 42px; }
   body input,
   body select,
@@ -1827,16 +1906,16 @@ body .bg-white\/10 { background: var(--tk-surface-3); background-image: none; }
 }
 
 body.light-mode .status-completed {
-  background: rgba(22, 163, 74, 0.10);
-  color: #15803d;
-  border-color: rgba(22, 163, 74, 0.26);
+  background: rgba(5, 150, 105, 0.10);
+  color: #047857;
+  border-color: rgba(5, 150, 105, 0.26);
 }
 
 body.light-mode .status-inactive,
 body.light-mode .status-absent,
 body.light-mode .status-holiday {
   background: rgba(100, 116, 139, 0.10);
-  color: #475569;
+  color: #4e5a72;
   border-color: rgba(100, 116, 139, 0.26);
 }
 
@@ -1851,9 +1930,9 @@ body.light-mode .status-warning {
 
 body.light-mode .status-submitted,
 body.light-mode .status-accredited {
-  background: rgba(59, 130, 246, 0.10);
-  color: #1d4ed8;
-  border-color: rgba(59, 130, 246, 0.26);
+  background: rgba(66, 107, 235, 0.10);
+  color: #2743b8;
+  border-color: rgba(66, 107, 235, 0.26);
 }
 
 body.light-mode .glass-card,
@@ -1927,21 +2006,21 @@ body.light-mode .nav-link.active {
   box-shadow: none;
 }
 
-body.light-mode .nav-link.active svg { color: var(--tk-teal); }
+body.light-mode .nav-link.active svg { color: var(--tk-primary); }
 
 body.light-mode .btn-primary {
-  background: var(--tk-teal) !important;
+  background: var(--tk-primary) !important;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(36, 87, 197, 0.2);
+  box-shadow: 0 4px 12px rgba(49, 92, 232, 0.2);
 }
 
 body.light-mode .btn-primary:hover {
-  background: var(--tk-teal-strong) !important;
-  box-shadow: 0 8px 18px rgba(36, 87, 197, 0.25);
+  background: var(--tk-primary-strong) !important;
+  box-shadow: 0 8px 18px rgba(49, 92, 232, 0.25);
 }
 
 body.light-mode .btn-primary:active {
-  background: var(--tk-teal-deep) !important;
+  background: var(--tk-primary-deep) !important;
 }
 
 body.light-mode .btn-ghost {
@@ -1951,9 +2030,9 @@ body.light-mode .btn-ghost {
 }
 
 body.light-mode .btn-ghost:hover {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
   background: var(--tk-hover);
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 body.light-mode .tab-btn,
@@ -1965,42 +2044,42 @@ body.light-mode .filter-tab {
 
 body.light-mode .tab-btn.active,
 body.light-mode .filter-tab.active {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
   background: var(--tk-selected);
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 body.light-mode .tab-back-btn {
   color: #ffffff;
-  background: var(--tk-teal);
-  border-color: var(--tk-teal);
-  box-shadow: 0 4px 12px rgba(36, 87, 197, 0.2);
+  background: var(--tk-primary);
+  border-color: var(--tk-primary);
+  box-shadow: 0 4px 12px rgba(49, 92, 232, 0.2);
 }
 
 body.light-mode .tab-back-btn:hover {
-  background: var(--tk-teal-strong);
-  border-color: var(--tk-teal-strong);
-  box-shadow: 0 8px 18px rgba(36, 87, 197, 0.25);
+  background: var(--tk-primary-strong);
+  border-color: var(--tk-primary-strong);
+  box-shadow: 0 8px 18px rgba(49, 92, 232, 0.25);
 }
 
 body.light-mode .icon-box,
 body.light-mode .section-head__icon {
-  color: var(--tk-teal) !important;
+  color: var(--tk-primary) !important;
   background: var(--tk-selected) !important;
-  border-color: var(--tk-hairline-teal) !important;
+  border-color: var(--tk-hairline-accent) !important;
 }
 
 body.light-mode .analytics-kpi::before,
 body.light-mode .analytics-mini::before,
 body.light-mode .attendance-card::before {
-  background: linear-gradient(90deg, transparent, rgba(36, 87, 197, 0.55), transparent);
+  background: linear-gradient(90deg, transparent, rgba(49, 92, 232, 0.55), transparent);
 }
 
 body.light-mode .kpi-value,
 body.light-mode .analytics-mini-value,
 body.light-mode .stat-num {
   color: var(--tk-text-strong);
-  background: linear-gradient(135deg, #172554 0%, #2457c5 100%);
+  background: linear-gradient(135deg, #172238 0%, #315ce8 100%);
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -2039,7 +2118,7 @@ body.light-mode select option {
 }
 
 body.light-mode :is(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline-color: var(--tk-teal);
+  outline-color: var(--tk-focus);
 }
 
 body.light-mode .notif-popup,
@@ -2078,7 +2157,7 @@ body.light-mode .trainee-progress-item:hover {
 
 body.light-mode .journal-item.selected {
   background: var(--tk-selected);
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 body.light-mode .chart-frame {
@@ -2095,7 +2174,7 @@ body.light-mode .status-completed,
 body.light-mode .status-reviewed {
   background: var(--tk-status-success-bg);
   color: var(--tk-status-success-text);
-  border-color: #86efac;
+  border-color: #6ee7b7;
 }
 
 body.light-mode .status-late,
@@ -2121,7 +2200,7 @@ body.light-mode .status-submitted,
 body.light-mode .status-accredited {
   background: var(--tk-status-info-bg);
   color: var(--tk-status-info-text);
-  border-color: #93c5fd;
+  border-color: #93b0f8;
 }
 
 body.light-mode .status-inactive,
@@ -2129,13 +2208,13 @@ body.light-mode .status-holiday,
 body.light-mode .status-neutral {
   background: var(--tk-status-neutral-bg);
   color: var(--tk-status-neutral-text);
-  border-color: #cbd5e1;
+  border-color: #c0c9da;
 }
 
 body.light-mode .text-blue-400,
 body.light-mode .text-blue-400,
 body.light-mode .border-blue-400\/30 {
-  color: var(--tk-teal) !important;
+  color: var(--tk-primary) !important;
 }
 
 body.light-mode .text-yellow-400 {
@@ -2147,7 +2226,7 @@ body.light-mode .text-red-400 {
 }
 
 body.light-mode .text-green-400 {
-  color: #166534 !important;
+  color: #047857 !important;
 }
 
 body.light-mode .journal-day-tab {
@@ -2156,9 +2235,9 @@ body.light-mode .journal-day-tab {
 
 body.light-mode .journal-day-tab:hover,
 body.light-mode .journal-day-tab[aria-selected="true"] {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
   background: var(--tk-selected);
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 body.light-mode .journal-section,
@@ -2172,7 +2251,7 @@ body.light-mode .journal-section__summary {
 
 body.light-mode .attendance-completion {
   background: var(--tk-status-success-bg);
-  border-color: #86efac;
+  border-color: #6ee7b7;
 }
 
 body.light-mode .attendance-completion__title {
@@ -2185,7 +2264,7 @@ body.light-mode .attendance-completion__text {
 
 body.light-mode .dtr-summary-tile--accent {
   background: var(--tk-selected);
-  border-left-color: var(--tk-teal);
+  border-left-color: var(--tk-primary);
 }
 
 body.light-mode .dtr-summary-tile--neutral {
@@ -2201,7 +2280,7 @@ body.light-mode .ojt-progress-label {
 }
 
 body.light-mode .ojt-progress-value {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
 }
 
 body.light-mode .ojt-progress-track {
@@ -2209,7 +2288,7 @@ body.light-mode .ojt-progress-track {
 }
 
 body.light-mode .ojt-progress-fill {
-  background: linear-gradient(90deg, var(--tk-teal), var(--tk-teal-strong));
+  background: linear-gradient(90deg, var(--tk-primary), var(--tk-primary-strong));
 }
 
 body.light-mode .btn-attendance-disabled {
@@ -2217,9 +2296,9 @@ body.light-mode .btn-attendance-disabled {
 }
 
 body.light-mode #time-in-btn {
-  --attend-dark: #166534 !important;
-  --attend-dark-pulse: #15803d !important;
-  --attend-border: #166534 !important;
+  --attend-dark: #047857 !important;
+  --attend-dark-pulse: #047857 !important;
+  --attend-border: #047857 !important;
   --attend-accent-soft: rgba(21, 128, 61, 0.16) !important;
 }
 
@@ -2231,23 +2310,23 @@ body.light-mode #time-out-btn {
 }
 
 body.light-mode .attendance-refresh {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
   background: var(--tk-selected);
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 body.light-mode .attendance-refresh:hover {
   background: var(--tk-hover);
-  border-color: var(--tk-teal);
+  border-color: var(--tk-primary);
 }
 
 body.light-mode .attendance-schedule {
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 body.light-mode .attendance-schedule__label svg,
 body.light-mode .attendance-schedule__value {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
 }
 
 body.light-mode .attendance-alert {
@@ -2257,7 +2336,7 @@ body.light-mode .attendance-alert {
 }
 
 body.light-mode .qr-frame {
-  border-color: var(--tk-teal);
+  border-color: var(--tk-primary);
   background: var(--tk-selected);
 }
 
@@ -2272,9 +2351,9 @@ body.light-mode .trackit-toast {
 }
 
 body.light-mode .trackit-toast-success {
-  background: #dcfce7;
-  color: #166534;
-  border-color: #86efac;
+  background: #d1fae5;
+  color: #047857;
+  border-color: #6ee7b7;
 }
 
 body.light-mode .trackit-toast-error {
@@ -2284,9 +2363,9 @@ body.light-mode .trackit-toast-error {
 }
 
 body.light-mode .trackit-toast-info {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border-color: #93c5fd;
+  background: #dce4fd;
+  color: #2743b8;
+  border-color: #93b0f8;
 }
 
 body.light-mode .trackit-toast p:last-child {
@@ -2324,7 +2403,7 @@ body.light-mode .theory-card {
 }
 
 body.light-mode .theory-card__title {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
 }
 
 body.light-mode .theory-card__tag {
@@ -2351,9 +2430,9 @@ body.light-mode .schedule-item__time {
 }
 
 body.light-mode .schedule-info-note {
-  color: #1d4ed8 !important;
-  background: #dbeafe !important;
-  border-color: #93c5fd !important;
+  color: #2743b8 !important;
+  background: #dce4fd !important;
+  border-color: #93b0f8 !important;
 }
 
 /* Stacked "card row" presentation for the narrowest screens, opt-in via

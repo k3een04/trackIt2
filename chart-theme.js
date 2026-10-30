@@ -32,63 +32,63 @@
   // ──────────────────────────────────────────────────────────────────────────
   var FALLBACK = {
     dark: {
-      teal: '#60a5fa',
-      tealDark: '#2563eb',
+      teal: '#7592f1',
+      tealDark: '#3158d4',
       gold: '#fbbf24',
-      muted: '#94a3b8',
-      surface: '#151f32',
-      border: '#29364b',
-      text: '#e2e8f0',
-      tick: '#cbd5e1',
-      tickStrong: '#e2e8f0',
-      grid: '#29364b',
-      legend: '#cbd5e1',
-      tooltipBg: 'rgba(21,31,50,0.96)',
-      tooltipBorder: '#3b4a61',
-      tooltipText: '#e2e8f0',
-      tooltipTitle: '#f1f5f9',
-      secondary: '#94a3b8',
-      supportingBlue: '#3b82f6',
-      positive: '#4ade80',
+      muted: '#a8b4c9',
+      surface: '#171f30',
+      border: '#293449',
+      text: '#a8b4c9',
+      tick: '#a8b4c9',
+      tickStrong: '#f1f5fc',
+      grid: '#293449',
+      legend: '#a8b4c9',
+      tooltipBg: 'rgba(23,31,48,0.96)',
+      tooltipBorder: '#39465f',
+      tooltipText: '#a8b4c9',
+      tooltipTitle: '#f1f5fc',
+      secondary: '#a8b4c9',
+      supportingBlue: '#426beb',
+      positive: '#34d399',
       warning: '#fbbf24',
       negative: '#f87171',
-      info: '#60a5fa',
+      info: '#93b0f8',
     },
     light: {
-      teal: '#2457c5',
-      tealDark: '#1d46a3',
+      teal: '#315ce8',
+      tealDark: '#274bc4',
       gold: '#b45309',
-      muted: '#64748b',
+      muted: '#65728a',
       surface: '#ffffff',
-      border: '#d8e0ed',
-      text: '#263449',
-      tick: '#475569',
-      tickStrong: '#172554',
-      grid: '#e2e8f0',
-      legend: '#334155',
+      border: '#e1e6ef',
+      text: '#172238',
+      tick: '#65728a',
+      tickStrong: '#172238',
+      grid: '#e6eaf2',
+      legend: '#172238',
       tooltipBg: '#ffffff',
-      tooltipBorder: '#b8c5d8',
-      tooltipText: '#263449',
-      tooltipTitle: '#172554',
-      secondary: '#64748b',
-      supportingBlue: '#60a5fa',
-      positive: '#15803d',
+      tooltipBorder: '#c9d2e0',
+      tooltipText: '#172238',
+      tooltipTitle: '#172238',
+      secondary: '#65728a',
+      supportingBlue: '#426beb',
+      positive: '#047857',
       warning: '#b45309',
       negative: '#b91c1c',
-      info: '#60a5fa',
+      info: '#2743b8',
     },
   };
 
   // Non-theme accents already in use across the dashboards. Kept verbatim so no
   // chart changes hue.
   var ACCENT = {
-    teal: '#3b82f6',
-    green: '#22c55e',
+    teal: '#426beb',
+    green: '#10b981',
     red: '#ef4444',
-    blue: '#3b82f6',
-    purple: '#3b82f6',
+    blue: '#426beb',
+    purple: '#426beb',
     gold: '#fbbf24',
-    slate: '#94a3b8',
+    slate: '#a8b4c9',
   };
 
   function readCssVar(name) {
@@ -112,8 +112,8 @@
     Object.keys(base).forEach(function (key) { out[key] = base[key]; });
 
     // Prefer whatever the stylesheet currently defines.
-    var teal = readCssVar('--tk-teal') || readCssVar('--teal');
-    var tealDark = readCssVar('--tk-teal-strong') || readCssVar('--teal-dark');
+    var teal = readCssVar('--tk-primary') || readCssVar('--teal');
+    var tealDark = readCssVar('--tk-primary-strong') || readCssVar('--teal-dark');
     var gold = readCssVar('--gold');
     var muted = readCssVar('--tk-text-muted') || readCssVar('--muted');
     var surface = readCssVar('--tk-surface-1') || readCssVar('--navy-mid');
@@ -366,7 +366,7 @@
             : theme.tickStrong;
 
           ctx.font = (isHovered ? '600 11px ' : '500 11px ') +
-            (cfg.fontFamily || "'DM Sans', sans-serif");
+            (cfg.fontFamily || "'Inter', sans-serif");
           var pad = isHovered ? 8 : 5;
 
           if (horizontal) {
@@ -388,7 +388,7 @@
   // OPTIONS FACTORY
   // ──────────────────────────────────────────────────────────────────────────
 
-  var FONT_FAMILY = "'DM Sans', system-ui, sans-serif";
+  var FONT_FAMILY = "'Inter', system-ui, sans-serif";
 
   /** Shared spacing so every bar chart in the product has identical proportions. */
   var SPACING = {

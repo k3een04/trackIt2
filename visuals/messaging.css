@@ -48,9 +48,9 @@ body .sidebar.has-tk-msg { padding-bottom: 82px; }
 }
 
 .tk-msg-launcher.is-open {
-  color: #93c5fd;
+  color: #93b0f8;
   background: var(--tk-selected);
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 .tk-msg-launcher svg { flex-shrink: 0; }
@@ -225,7 +225,7 @@ body .sidebar.has-tk-msg { padding-bottom: 82px; }
 
 .tk-msg-search input::placeholder { color: var(--tk-text-faint); }
 
-.tk-msg-search input:focus { border-color: var(--tk-teal); }
+.tk-msg-search input:focus { border-color: var(--tk-primary); }
 
 .tk-msg-contacts {
   flex: 1;
@@ -260,7 +260,7 @@ body .sidebar.has-tk-msg { padding-bottom: 82px; }
 
 .tk-msg-contact.is-active {
   background: var(--tk-selected);
-  border-color: var(--tk-hairline-teal);
+  border-color: var(--tk-hairline-accent);
 }
 
 .tk-msg-avatar {
@@ -270,7 +270,7 @@ body .sidebar.has-tk-msg { padding-bottom: 82px; }
   height: 36px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #426beb, #2743b8);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -369,7 +369,7 @@ body.light-mode .tk-msg-role--supervisor {
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--tk-teal);
+  background: var(--tk-primary);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -457,7 +457,7 @@ body.light-mode .tk-msg-role--supervisor {
   align-self: flex-end;
   border-color: transparent;
   border-radius: 14px 14px 4px 14px;
-  background: var(--tk-teal-strong);
+  background: var(--tk-primary-strong);
   color: #fff;
 }
 
@@ -506,7 +506,7 @@ body.light-mode .tk-msg-role--supervisor {
 
 .tk-msg-thread__sub--typing,
 .tk-msg-contact__preview--typing {
-  color: var(--tk-teal);
+  color: var(--tk-primary);
   font-weight: 600;
 }
 
@@ -559,7 +559,7 @@ body.light-mode .tk-msg-role--supervisor {
 
 .tk-msg-retry:hover {
   background: var(--tk-hover);
-  border-color: var(--tk-teal);
+  border-color: var(--tk-primary);
 }
 
 .tk-msg-status {
@@ -601,7 +601,7 @@ body.light-mode .tk-msg-role--supervisor {
 
 .tk-msg-composer textarea::placeholder { color: var(--tk-text-faint); }
 
-.tk-msg-composer textarea:focus { border-color: var(--tk-teal); }
+.tk-msg-composer textarea:focus { border-color: var(--tk-primary); }
 
 .tk-msg-send {
   display: grid;
@@ -611,7 +611,7 @@ body.light-mode .tk-msg-role--supervisor {
   flex-shrink: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--tk-teal-strong);
+  background: var(--tk-primary-strong);
   color: #fff;
   cursor: pointer;
   transition:
@@ -619,7 +619,7 @@ body.light-mode .tk-msg-role--supervisor {
     opacity var(--tk-dur) var(--tk-ease);
 }
 
-.tk-msg-send:hover { background: var(--tk-teal-deep); }
+.tk-msg-send:hover { background: var(--tk-primary-deep); }
 
 .tk-msg-send:disabled {
   opacity: 0.45;
