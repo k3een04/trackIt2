@@ -8,17 +8,50 @@
   <meta http-equiv="Expires" content="0">
   <title>TrackIT – Sign Up</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="visuals/signup.css?v=2">
+  <script>
+    // Shared TrackIT design tokens for the Tailwind CDN: the Inter/Plus Jakarta
+    // pairing and the Midnight Slate + Cobalt palette. Remapping slate/blue/green
+    // here is what keeps the utility classes in markup aligned with the shared
+    // CSS token system.
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            slate: {
+              50: '#f4f6fa', 100: '#e9edf5', 200: '#d5dce9', 300: '#c0c9da',
+              400: '#a8b4c9', 500: '#7f8ca3', 600: '#667389', 700: '#4e5a72',
+              800: '#36425c', 900: '#232e44', 950: '#171f30',
+            },
+            blue: {
+              50: '#ebf0fe', 100: '#dce4fd', 200: '#b9c8fa', 300: '#9db1f7',
+              400: '#7592f1', 500: '#426beb', 600: '#3158d4', 700: '#2a49bc',
+              800: '#233c99', 900: '#1e2a4f', 950: '#172554',
+            },
+            green: {
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+              400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+              800: '#065f46', 900: '#064e3b', 950: '#022c22',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="visuals/signup.css?v=3">
 </head>
-<body class="bg-[#0b1120] text-slate-100 font-sans antialiased min-h-screen">
+<body class="bg-[#101522] text-slate-100 font-sans antialiased min-h-screen">
 
   <!-- NAV -->
   <nav class="px-5 py-4 md:px-10">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2.5 group">
         <img src="Trackitlogo.png" alt="TrackIT Logo" class="nav-logo-img w-9 h-9 object-contain group-hover:scale-105 transition-transform duration-200">
-        <span style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;" class="font-display font-800 text-xl md:text-2xl text-white tracking-tight">Track<span class="text-blue-400">IT</span></span>
+        <span style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;font-weight:800;letter-spacing:-0.02em;" class="font-display font-800 text-xl md:text-2xl text-white tracking-tight">Track<span class="text-blue-400">IT</span></span>
       </a>
       <div class="hidden md:flex items-center gap-4">
         <span class="text-sm text-slate-400">Already have an account?</span>
@@ -56,7 +89,7 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile"></svg>
               </div>
               <div>
-                <div class="text-sm font-semibold text-white" style="font-family:'Syne',sans-serif;">OJT Student</div>
+                <div class="text-sm font-semibold text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">OJT Student</div>
                 <div class="text-xs text-slate-400">Track hours, submit journals & DTR</div>
               </div>
             </div>
@@ -65,7 +98,7 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="briefcase"></svg>
               </div>
               <div>
-                <div class="text-sm font-semibold text-white" style="font-family:'Syne',sans-serif;">OJT Coordinator</div>
+                <div class="text-sm font-semibold text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">OJT Coordinator</div>
                 <div class="text-xs text-slate-400">Oversee trainees, analytics & reports</div>
               </div>
             </div>
@@ -74,7 +107,7 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile2-user"></svg>
               </div>
               <div>
-                <div class="text-sm font-semibold text-white" style="font-family:'Syne',sans-serif;">Company Supervisor</div>
+                <div class="text-sm font-semibold text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Company Supervisor</div>
                 <div class="text-xs text-slate-400">Verify DTRs & review trainee progress</div>
               </div>
             </div>
@@ -84,7 +117,7 @@
         <!-- Right – Signup Form -->
         <div class="reveal reveal-delay-2">
           <div class="glass-card rounded-2xl p-8 md:p-10">
-            <h2 class="font-display font-800 text-2xl mb-2 text-white" style="font-family:'Syne',sans-serif;">Create Account</h2>
+            <h2 class="font-display font-800 text-2xl mb-2 text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Create Account</h2>
             <p class="text-slate-400 text-sm mb-6">Get started with your OJT tracking journey</p>
 
             <!-- STEP 1: Role Selection -->
@@ -96,7 +129,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile"></svg>
                   </div>
                   <div class="text-left">
-                    <div class="font-semibold text-white text-sm" style="font-family:'Syne',sans-serif;">OJT Student</div>
+                    <div class="font-semibold text-white text-sm" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">OJT Student</div>
                     <div class="text-xs text-slate-400">Track hours, submit journals & daily time records</div>
                   </div>
                   <svg class="ml-auto flex-shrink-0 opacity-40 role-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-right3"></svg>
@@ -107,7 +140,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="briefcase"></svg>
                   </div>
                   <div class="text-left">
-                    <div class="font-semibold text-white text-sm" style="font-family:'Syne',sans-serif;">OJT Coordinator</div>
+                    <div class="font-semibold text-white text-sm" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">OJT Coordinator</div>
                     <div class="text-xs text-slate-400">Oversee trainees, analytics & generate reports</div>
                   </div>
                   <svg class="ml-auto flex-shrink-0 opacity-40 role-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-right3"></svg>
@@ -118,7 +151,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile2-user"></svg>
                   </div>
                   <div class="text-left">
-                    <div class="font-semibold text-white text-sm" style="font-family:'Syne',sans-serif;">Company Supervisor</div>
+                    <div class="font-semibold text-white text-sm" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Company Supervisor</div>
                     <div class="text-xs text-slate-400">Verify DTRs & monitor trainee performance</div>
                   </div>
                   <svg class="ml-auto flex-shrink-0 opacity-40 role-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="arrow-right3"></svg>
@@ -302,7 +335,7 @@
     </div>
   </section>
 
-  <script src="iconsax.js?v=1"></script>
+  <script src="iconsax.js?v=2"></script>
   <script src="signup.js?v=4"></script>
 </body>
 </html>

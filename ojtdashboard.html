@@ -20,8 +20,8 @@
             display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
           },
           // Midnight Slate + Cobalt: remapping slate/blue/green keeps every
-          // utility class in markup aligned with the CSS token system in
-          // visuals/trackit-glass.css (amber/red/violet keep Tailwind defaults).
+          // utility class in markup aligned with the shared CSS token system
+          // (amber/red/violet keep Tailwind defaults).
           colors: {
             slate: {
               50: '#f4f6fa', 100: '#e9edf5', 200: '#d5dce9', 300: '#c0c9da',
@@ -759,6 +759,11 @@
             <h3 class="font-display font-700 mb-6">Weekly Hours Rendered</h3>
             <div class="chart-frame chart-frame--bars">
               <canvas id="weeklyChart"></canvas>
+              <div id="weekly-chart-empty" class="chart-empty-state" hidden>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="chart21"></svg>
+                <p class="chart-empty-state__title">No verified hours yet</p>
+                <p>Weekly totals appear here once your supervisor starts verifying DTR entries.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1062,7 +1067,7 @@
   </script>
   <!-- Local Iconsax Linear icon registry. Must load before any script that
        renders icons; hydrates [data-iconsax] placeholders. -->
-  <script src="iconsax.js?v=1"></script>
+  <script src="iconsax.js?v=2"></script>
   <!-- Shared bar-chart design system: must load after Chart.js and before the
        dashboard script that builds the charts. -->
   <script src="chart-theme.js?v=3"></script>

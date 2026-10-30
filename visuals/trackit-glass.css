@@ -727,6 +727,7 @@ body .glass-card table tbody td {
   border-bottom: 1px solid var(--tk-hairline);
   color: var(--tk-text);
   font-size: var(--tk-fs-md);
+  font-variant-numeric: tabular-nums;
   padding: 14px 16px;
 }
 
@@ -1125,6 +1126,20 @@ body .report-modal-card {
   overflow: hidden;
 }
 
+/* Large dialogs scroll internally so tall content never clips on short or
+   landscape screens; the overlay stays fixed and the actions stay reachable. */
+body #all-trainees-modal > div > .glass-card,
+body #report-modal > div > .report-modal-card,
+body #trainee-profile-modal .tp-modal,
+body #assign-supervisor-modal > div > .glass-card,
+body .journal-detail-modal > div,
+body .download-modal-card,
+body .report-modal-card {
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* ── Notification bell + popover ─────────────────────────────────────────── */
 /* One definition for all three dashboards. The panel itself lives at body
    level and is positioned against the bell by JS: #navbar carries a
@@ -1174,6 +1189,16 @@ body.light-mode #notif-btn[aria-expanded='true'] {
 body #notif-btn:focus-visible {
   outline: 2px solid var(--tk-focus);
   outline-offset: 2px;
+}
+
+/* Touch: header toggles keep 44px targets on phones and coarse pointers,
+   matching the bell. */
+@media (max-width: 768px), (pointer: coarse) {
+  body #theme-toggle,
+  body #menu-toggle {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* Touch: the bell keeps a 44px target on phones and coarse pointers while the
@@ -1826,6 +1851,36 @@ body .chart-frame {
   border: 1px solid var(--tk-hairline);
   padding: 12px;
 }
+
+/* Chart empty state: overlays the plotting area when a chart has nothing to
+   plot, so "no data" never reads as a broken or blank chart. JS toggles the
+   hidden attribute; the state must be distinguishable from loading. */
+body .chart-empty-state {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px;
+  text-align: center;
+  background: var(--tk-surface-2);
+  color: var(--tk-text-muted);
+  font-size: var(--tk-fs-sm);
+  line-height: var(--tk-lh-normal);
+}
+
+body .chart-empty-state svg { color: var(--tk-text-faint); flex-shrink: 0; }
+
+body .chart-empty-state__title {
+  margin: 0;
+  color: var(--tk-text-strong);
+  font-weight: var(--tk-weight-semibold);
+}
+
+body .chart-empty-state p { margin: 0; }
 
 /* Tailwind wells used on hand-written containers map to the L3 step too. */
 body .border-white\/10 { border-color: var(--tk-hairline); }

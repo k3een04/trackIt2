@@ -1,13 +1,13 @@
 
     :root {
-  --navy: #0b1120;
-  --navy-mid: #151f32;
-  --teal: #3b82f6;
-  --teal-dark: #2563eb;
+  --navy: #101522;
+  --navy-mid: #171f30;
+  --teal: #426beb;
+  --teal-dark: #3158d4;
   --gold: #fbbf24;
-  --muted: #94a3b8;
+  --muted: #a8b4c9;
   --glass: rgba(17, 24, 39, 0.75);
-  --border: #29364b;
+  --border: #293449;
 }
 
 * { 
@@ -20,14 +20,14 @@ html {
 
 body {
   background: var(--navy);
-  color: #e2e8f0;
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #d5dce9;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
 }
 
 h1, h2, h3, .font-display { 
-  font-family: 'Syne', sans-serif; 
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; 
 }
 
 /* Noise texture overlay */
@@ -70,12 +70,12 @@ body::before {
   border: 1px solid var(--border);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(59, 130, 246, 0.04);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(66, 107, 235, 0.04);
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 55%, #2563eb 100%);
+  background: linear-gradient(135deg, #7592f1 0%, #426beb 55%, #3158d4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -98,7 +98,7 @@ nav {
   left: 0; 
   right: 0;
   z-index: 100;
-  background: #0f172a;
+  background: #131a2b;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-bottom: 1px solid var(--border);
@@ -139,7 +139,7 @@ nav {
   gap: 8px;
   background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
   color: var(--navy);
-  font-family: 'Syne', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
   padding: 13px 28px;
@@ -168,22 +168,22 @@ nav {
 .input-field {
   width: 100%;
   padding: 11px 16px;
-  background: #0f172a;
-  border: 1px solid #3b4a61;
+  background: #131a2b;
+  border: 1px solid #39465f;
   border-radius: 10px;
-  color: #f1f5f9;
-  font-family: 'DM Sans', sans-serif;
+  color: #f1f5fc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 0.95rem;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .input-field::placeholder {
-  color: #64748b;
+  color: #667389;
 }
 .input-field:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #426beb;
   background: rgba(255, 255, 255, 0.07);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(66, 107, 235, 0.15);
 }
 
 /* Checkbox custom */
@@ -193,7 +193,7 @@ nav {
   gap: 8px;
   cursor: pointer;
   font-size: 0.88rem;
-  color: #cbd5e1;
+  color: #c0c9da;
   user-select: none;
 }
 .checkbox-label input {
@@ -212,7 +212,7 @@ nav {
   font-weight: 600;
 }
 .link-text:hover {
-  color: #93c5fd;
+  color: #93b0f8;
 }
 
 /* Animation */
@@ -281,7 +281,7 @@ nav {
   justify-content: center;
   font-size: 24px;
   line-height: 1;
-  color: #94a3b8;
+  color: #a8b4c9;
   background: transparent;
   border: none;
   border-radius: 9px;
@@ -294,7 +294,7 @@ nav {
 }
 
 .modal-link-btn {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: transparent;
   border: none;
   padding: 0;

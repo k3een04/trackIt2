@@ -12,8 +12,8 @@
     <script>
     // Shared TrackIT design tokens for the Tailwind CDN: the Inter/Plus Jakarta
     // pairing and the Midnight Slate + Cobalt palette. Remapping slate/blue/green
-    // here is what keeps the utility classes in markup aligned with the CSS
-    // token system in visuals/trackit-glass.css.
+    // here is what keeps the utility classes in markup aligned with the shared
+    // CSS token system.
     tailwind.config = {
       theme: {
         extend: {
@@ -328,7 +328,7 @@
           </div>
           <div>
             <label class="block text-sm font-semibold mb-2">Status Filter</label>
-            <select id="trainee-status-filter" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #151f32; backdrop-filter: none; pointer-events: auto;">
+            <select id="trainee-status-filter" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #171f30; backdrop-filter: none; pointer-events: auto;">
               <option>All Status</option>
               <option>Active</option>
               <option>On Leave</option>
@@ -448,7 +448,7 @@
               <!-- Trainee Selector -->
               <div class="mb-8">
                 <label class="block text-sm font-semibold mb-3">Select Trainee</label>
-                <select id="schedule-trainee-select" class="w-full px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #151f32; backdrop-filter: none; pointer-events: auto;" onchange="loadTraineeSchedule()">
+                <select id="schedule-trainee-select" class="w-full px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #171f30; backdrop-filter: none; pointer-events: auto;" onchange="loadTraineeSchedule()">
                   <option value="">Loading trainees...</option>
                 </select>
               </div>
@@ -491,7 +491,7 @@
               </div>
 
               <!-- Info Box -->
-              <div class="schedule-info-note" style="padding: 12px; background: rgba(59,130,246,0.1); border-radius: 6px; border-left: 3px solid #3b82f6; margin-bottom: 20px; font-size: 12px;">
+              <div class="schedule-info-note" style="padding: 12px; background: rgba(66,107,235,0.1); border-radius: 6px; border-left: 3px solid #426beb; margin-bottom: 20px; font-size: 12px;">
                 <p style="margin: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg> Use 24-hour format (e.g., 08:00 for 8 AM, 17:00 for 5 PM)</p>
               </div>
 
@@ -532,7 +532,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-2">Select Trainee</label>
-            <select id="dtr-trainee-select" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #151f32; backdrop-filter: none; pointer-events: auto;">
+            <select id="dtr-trainee-select" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #171f30; backdrop-filter: none; pointer-events: auto;">
               <option value="">Select a trainee...</option>
             </select>
           </div>
@@ -665,7 +665,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-2">Select Trainee</label>
-            <select id="appraisal-trainee-select" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #151f32; backdrop-filter: none; pointer-events: auto;">
+            <select id="appraisal-trainee-select" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #171f30; backdrop-filter: none; pointer-events: auto;">
               <option value="">Select a trainee...</option>
             </select>
           </div>
@@ -1012,7 +1012,7 @@
   <script src="appraisal-pdf.js?v=1"></script>
   <!-- Local Iconsax Linear icon registry. Must load before any script that
        renders icons; hydrates [data-iconsax] placeholders. -->
-  <script src="iconsax.js?v=1"></script>
+  <script src="iconsax.js?v=2"></script>
   <!-- Enhances [data-trackit-cal] fields; must precede the dashboard script,
        which writes .value and listens for the change events it re-dispatches. -->
   <script src="trackit-calendar.js?v=1"></script>

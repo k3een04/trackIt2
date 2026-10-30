@@ -846,8 +846,17 @@ function updateChartTheme(isLightMode) {
   }
   if (!weeklyChartInstance || !weeklyChartInstance.options || !weeklyChartInstance.options.scales) return;
 
-  const ticksColor = isLightMode ? 'rgba(30, 41, 59, 0.6)' : 'rgba(203, 213, 225, 0.6)';
-  const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.15)' : '#29364b';
+  // Fallback repaint for the rare case the shared design system is absent.
+  // Colours come from the live theme tokens so this path matches the primary one.
+  let gridToken = '#293449';
+  let tickToken = 'rgba(168, 180, 201, 0.75)';
+  try {
+    const css = getComputedStyle(document.body);
+    gridToken = (css.getPropertyValue('--tk-chart-grid') || '').trim() || gridToken;
+    tickToken = (css.getPropertyValue('--tk-text') || '').trim() || tickToken;
+  } catch (error) { /* keep fallbacks */ }
+  const ticksColor = isLightMode ? 'rgba(30, 41, 59, 0.6)' : tickToken;
+  const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.15)' : gridToken;
 
   if (weeklyChartInstance.options.scales.y) {
     if (weeklyChartInstance.options.scales.y.ticks) weeklyChartInstance.options.scales.y.ticks.color = ticksColor;
@@ -2523,11 +2532,21 @@ async function initWeeklyChart(student) {
 
     weeklyChartInstance = new Chart(ctx, chartConfig);
     window.TrackITCharts.register(weeklyChartInstance);
-    
+
+    // Empty state: with no verified hours the plot area would be blank bars on
+    // a zero axis — overlay an explicit "no data" message instead.
+    setWeeklyChartEmpty(!weekHours.some((hours) => hours > 0));
+
     console.log('Chart created successfully');
   } catch (error) {
     console.error('Error initializing weekly chart:', error);
   }
+}
+
+// Toggles the weekly chart's empty-state overlay without touching chart data.
+function setWeeklyChartEmpty(isEmpty) {
+  const overlay = document.getElementById('weekly-chart-empty');
+  if (overlay) overlay.hidden = !isEmpty;
 }
 
 // Get ISO week number for a date

@@ -284,9 +284,9 @@ nav {
 }
 
 .page-header h1 {
-  font-size: 2.2rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: var(--tk-fs-page);
+  font-weight: var(--tk-weight-bold);
+  letter-spacing: -0.015em;
   margin-bottom: 8px;
 }
 
@@ -2171,7 +2171,7 @@ body.light-mode .glass-card {
 }
 
 body.light-mode .stat-num {
-  background: linear-gradient(135deg, #4e5a72 0%, #667389 100%);
+  background: linear-gradient(135deg, #172238 0%, #315ce8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -2578,7 +2578,7 @@ body.light-mode svg {
 
 /* Fix visibility of stat numbers and yellow text in light mode */
 body.light-mode .stat-num {
-  background: linear-gradient(135deg, #131a2b 0%, #4e5a72 100%);
+  background: linear-gradient(135deg, #172238 0%, #315ce8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

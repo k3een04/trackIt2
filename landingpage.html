@@ -8,8 +8,41 @@
   <meta http-equiv="Expires" content="0">
   <title>TrackIT – OJT Monitoring System</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="visuals/landingpage.css?v=3">
+  <script>
+    // Shared TrackIT design tokens for the Tailwind CDN: the Inter/Plus Jakarta
+    // pairing and the Midnight Slate + Cobalt palette. Remapping slate/blue/green
+    // here is what keeps the utility classes in markup aligned with the shared
+    // CSS token system.
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            slate: {
+              50: '#f4f6fa', 100: '#e9edf5', 200: '#d5dce9', 300: '#c0c9da',
+              400: '#a8b4c9', 500: '#7f8ca3', 600: '#667389', 700: '#4e5a72',
+              800: '#36425c', 900: '#232e44', 950: '#171f30',
+            },
+            blue: {
+              50: '#ebf0fe', 100: '#dce4fd', 200: '#b9c8fa', 300: '#9db1f7',
+              400: '#7592f1', 500: '#426beb', 600: '#3158d4', 700: '#2a49bc',
+              800: '#233c99', 900: '#1e2a4f', 950: '#172554',
+            },
+            green: {
+              50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+              400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+              800: '#065f46', 900: '#064e3b', 950: '#022c22',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="visuals/landingpage.css?v=4">
   <script>
     // Arm the reveal hidden state before first paint. If landingpage.js never
     // runs (blocked, missing, or throws) the timer disarms it again so no
@@ -24,14 +57,14 @@
     })();
   </script>
 </head>
-<body class="bg-[#0b1120] text-slate-100 font-sans antialiased min-h-screen">
+<body class="bg-[#101522] text-slate-100 font-sans antialiased min-h-screen">
 
   <!-- NAV -->
   <nav id="navbar" class="px-5 py-3 md:px-10">
     <div class="max-w-6xl mx-auto flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2.5 group">
         <img src="Trackitlogo.png" alt="TrackIT Logo" class="nav-logo-img w-9 h-9 object-contain group-hover:scale-105 transition-transform duration-200">
-        <span class="font-display font-800 text-xl md:text-2xl text-white tracking-tight" style="font-family:'Syne',sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-blue-400">IT</span></span>
+        <span class="font-display font-800 text-xl md:text-2xl text-white tracking-tight" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;font-weight:800;letter-spacing:-0.02em;">Track<span class="text-blue-400">IT</span></span>
       </a>
 
       <div class="hidden md:flex items-center gap-8">
@@ -76,12 +109,12 @@
           </div>
 
           <h1 class="text-4xl md:text-5xl lg:text-6xl font-display leading-tight mb-6 reveal reveal-delay-1" style="font-weight:800;letter-spacing:-0.03em;line-height:1.1;">
-            OJT Monitoring,<br/>
-            <span class="gradient-text">Reimagined.</span>
+            Bring Clarity to<br/>
+            <span class="gradient-text">Every Stage of OJT.</span>
           </h1>
 
           <p class="text-slate-400 text-base md:text-lg leading-relaxed mb-8 max-w-md reveal reveal-delay-2">
-            TrackIT is a centralized web-based On-the-Job Training monitoring system powered by GPS geofencing, descriptive analytics, NLP auto-summarization, and real-time dashboards.
+            Track attendance, rendered hours, digital journals, and trainee progress through one organized OJT monitoring platform.
           </p>
 
           <div class="flex flex-wrap gap-4 reveal reveal-delay-3">
@@ -110,7 +143,7 @@
         </div>
 
         <!-- Right – mockup -->
-        <div class="reveal reveal-delay-2 float-anim glow-ring rounded-2xl">
+        <div class="reveal reveal-delay-2 glow-ring rounded-2xl">
           <div class="mockup-wrap">
             <div class="mockup-bar">
               <div class="dot" style="background:#ff5f57"></div>
@@ -128,7 +161,7 @@
               <div class="flex items-center justify-between mb-2">
                 <div>
                   <div class="text-xs text-slate-500">Welcome back,</div>
-                  <div class="font-display font-bold text-sm text-white" style="font-family:'Syne',sans-serif;">Zoe Nicole Mandal</div>
+                  <div class="font-display font-bold text-sm text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Zoe Nicole Mandal</div>
                 </div>
                 <div class="pill" style="font-size:0.65rem;">OJT Active</div>
               </div>
@@ -140,7 +173,7 @@
                   <span class="text-xs font-bold text-blue-400">68%</span>
                 </div>
                 <div class="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div class="h-full rounded-full" style="width:68%;background:linear-gradient(90deg,#3b82f6,#2563eb);"></div>
+                  <div class="h-full rounded-full" style="width:68%;background:linear-gradient(90deg,#426beb,#3158d4);"></div>
                 </div>
                 <div class="flex justify-between mt-2">
                   <span class="text-xs text-slate-600">272 hrs done</span>
@@ -151,15 +184,15 @@
               <!-- Mini cards row -->
               <div class="grid grid-cols-3 gap-2">
                 <div class="glass-card rounded-xl p-2 text-center">
-                  <div class="text-lg font-display font-bold text-blue-400" style="font-family:'Syne',sans-serif;">12</div>
+                  <div class="text-lg font-display font-bold text-blue-400" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">12</div>
                   <div class="text-xs text-slate-500">Journals</div>
                 </div>
                 <div class="glass-card rounded-xl p-2 text-center">
-                  <div class="text-lg font-display font-bold text-yellow-400" style="font-family:'Syne',sans-serif;">5</div>
+                  <div class="text-lg font-display font-bold text-yellow-400" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">5</div>
                   <div class="text-xs text-slate-500">Pending</div>
                 </div>
                 <div class="glass-card rounded-xl p-2 text-center">
-                  <div class="text-lg font-display font-bold text-green-400" style="font-family:'Syne',sans-serif;">98%</div>
+                  <div class="text-lg font-display font-bold text-green-400" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">98%</div>
                   <div class="text-xs text-slate-500">Attendance</div>
                 </div>
               </div>
@@ -177,7 +210,7 @@
                   <div class="text-xs text-slate-500 mt-0.5">Inside site radius · Location verified</div>
                 </div>
                 <div class="ml-auto">
-                  <div class="w-2 h-2 rounded-full bg-blue-400" style="box-shadow:0 0 8px #3b82f6;"></div>
+                  <div class="w-2 h-2 rounded-full bg-blue-400" style="box-shadow:0 0 8px #426beb;"></div>
                 </div>
               </div>
 
@@ -218,7 +251,7 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="info-circle"></svg>
         </div>
         <div>
-          <div class="text-sm font-bold text-white mb-1" style="font-family:'Syne',sans-serif;">The Problem TrackIT Solves</div>
+          <div class="text-sm font-bold text-white mb-1" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">The Problem TrackIT Solves</div>
           <p class="text-sm text-slate-400 leading-relaxed">OJT management in the CICT department currently relies on paper-based DTRs and manual processes — non-integrated, lacking real-time tracking, report generation, and interactive visualization tools, causing inefficiencies and delays.</p>
         </div>
       </div>
@@ -242,7 +275,7 @@
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="gps"></svg>
           </div>
-          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Geofenced Attendance</h3>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Geofenced Attendance</h3>
           <p class="text-sm text-slate-400 leading-relaxed">GPS-verified time-in and time-out against each company's own site radius. Punches made outside the geofence are rejected, and every DTR entry stores its coordinates and validated location.</p>
         </div>
 
@@ -251,7 +284,7 @@
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>
           </div>
-          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Digital Weekly Journals</h3>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Digital Weekly Journals</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Structured checkbox-based journals capturing theoretical concepts in practice, with integrated grammar correction and NLP-powered auto-summarization.</p>
         </div>
 
@@ -260,7 +293,7 @@
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="chart21"></svg>
           </div>
-          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Descriptive Analytics</h3>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Descriptive Analytics</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Interactive dashboards and charts giving coordinators data-driven insights into trainee performance, attendance trends, and program outcomes.</p>
         </div>
 
@@ -269,7 +302,7 @@
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="shield-tick"></svg>
           </div>
-          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Digital Signature Verification</h3>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Digital Signature Verification</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Supervisors verify and digitally sign weekly journals and monthly performance appraisal forms with a single confirmation — no printing required.</p>
         </div>
 
@@ -278,7 +311,7 @@
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="note-text"></svg>
           </div>
-          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">NLP Auto-Summarization</h3>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">NLP Auto-Summarization</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Natural Language Processing automatically generates concise, meaningful summaries of trainee journal entries, saving coordinators hours of review time.</p>
         </div>
 
@@ -287,7 +320,7 @@
           <div class="icon-box mb-4 group-hover:bg-blue-400/20 transition-colors">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="document-download"></svg>
           </div>
-          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Syne',sans-serif;">Printable Document Generation</h3>
+          <h3 class="font-display font-bold text-white mb-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Printable Document Generation</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Automatically generate and export printable DTRs, weekly journals, and monthly performance appraisal forms ready for submission and record-keeping.</p>
         </div>
 
@@ -312,44 +345,44 @@
         <div class="relative pl-16 pb-10 reveal" data-reveal-item>
           <div class="timeline-line"></div>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
-            <span class="text-blue-400 font-bold font-display" style="font-family:'Syne',sans-serif;">01</span>
+            <span class="text-blue-400 font-bold font-display" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">01</span>
           </div>
-          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Trainee Times In On-Site</h3>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Trainee Times In On-Site</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Arriving at the company, the trainee taps time-in from their dashboard. GPS confirms they are inside the company's geofence before the punch is accepted, and late arrivals are flagged automatically.</p>
         </div>
 
         <div class="relative pl-16 pb-10 reveal" data-reveal-item>
           <div class="timeline-line"></div>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
-            <span class="text-blue-400 font-bold font-display" style="font-family:'Syne',sans-serif;">02</span>
+            <span class="text-blue-400 font-bold font-display" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">02</span>
           </div>
-          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Weekly Journals</h3>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Weekly Journals</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Trainees write weekly journals with checkbox-based theory-to-practice entries and grammar correction.</p>
         </div>
 
         <div class="relative pl-16 pb-10 reveal" data-reveal-item>
           <div class="timeline-line"></div>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
-            <span class="text-blue-400 font-bold font-display" style="font-family:'Syne',sans-serif;">03</span>
+            <span class="text-blue-400 font-bold font-display" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">03</span>
           </div>
-          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Supervisor Reviews & Signs</h3>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Supervisor Reviews & Signs</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Company supervisors verify DTRs, then digitally sign the weekly journal and monthly performance appraisal form with a single click.</p>
         </div>
 
         <div class="relative pl-16 pb-10 reveal" data-reveal-item>
           <div class="timeline-line"></div>
           <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
-            <span class="text-blue-400 font-bold font-display" style="font-family:'Syne',sans-serif;">04</span>
+            <span class="text-blue-400 font-bold font-display" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">04</span>
           </div>
-          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">NLP Summarizes Journals</h3>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">NLP Summarizes Journals</h3>
           <p class="text-sm text-slate-400 leading-relaxed">The NLP engine auto-generates concise summaries of trainee journals, allowing OJT coordinators to quickly assess trainee learning outcomes.</p>
         </div>
 
         <div class="relative pl-16 reveal" data-reveal-item>
-          <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-yellow-500/30 bg-yellow-500/10 flex items-center justify-center">
-            <span class="text-yellow-400 font-bold font-display" style="font-family:'Syne',sans-serif;">05</span>
+          <div class="absolute left-0 top-0 w-12 h-12 rounded-full border border-blue-500/30 bg-blue-500/10 flex items-center justify-center">
+            <span class="text-blue-400 font-bold font-display" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">05</span>
           </div>
-          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Syne',sans-serif;">Analytics, Reports & Exports</h3>
+          <h3 class="font-display font-bold text-white mb-1 pt-2" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Analytics, Reports & Exports</h3>
           <p class="text-sm text-slate-400 leading-relaxed">Coordinators access descriptive analytics dashboards, generate automated reports, and export printable DTRs and performance appraisal forms for submission.</p>
         </div>
 
@@ -376,7 +409,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile"></svg>
           </div>
           <div class="pill mb-3" style="font-size:0.65rem;">Trainee</div>
-          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">OJT Trainee</h3>
+          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">OJT Trainee</h3>
           <ul class="space-y-2">
             <li class="flex items-start gap-2 text-sm text-slate-400">
               <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>
@@ -403,7 +436,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="profile2-user"></svg>
           </div>
           <div class="pill mb-3" style="font-size:0.65rem;">Supervisor</div>
-          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">Company Supervisor</h3>
+          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Company Supervisor</h3>
           <ul class="space-y-2">
             <li class="flex items-start gap-2 text-sm text-slate-400">
               <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>
@@ -426,7 +459,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="briefcase"></svg>
           </div>
           <div class="pill mb-3" style="font-size:0.65rem;border-color:rgba(245,200,66,0.3);background:rgba(245,200,66,0.08);color:#fbbf24;">Coordinator</div>
-          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Syne',sans-serif;">OJT Coordinator</h3>
+          <h3 class="font-display font-bold text-white mb-3" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">OJT Coordinator</h3>
           <ul class="space-y-2">
             <li class="flex items-start gap-2 text-sm text-slate-400">
               <svg class="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg>
@@ -487,7 +520,7 @@
                 <img src="visuals/team/zoe.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">
               </div>
               <div>
-                <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Zoe Nicole D. Mandal</div>
+                <div class="text-sm font-bold text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Zoe Nicole D. Mandal</div>
                 <div class="text-xs text-slate-500">Project Manager</div>
               </div>
               <div class="ml-auto">
@@ -501,11 +534,11 @@
                 <img src="visuals/team/kevin.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">
               </div>
               <div>
-                <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Kevin Nicolas N. Marciano</div>
+                <div class="text-sm font-bold text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Kevin Nicolas N. Marciano</div>
                 <div class="text-xs text-slate-500">Lead Programmer</div>
               </div>
               <div class="ml-auto">
-                <div class="pill" style="font-size:0.6rem;border-color:rgba(96,165,250,0.3);background:rgba(96,165,250,0.08);color:#60a5fa;">DEV</div>
+                <div class="pill" style="font-size:0.6rem;border-color:rgba(117,146,241,0.3);background:rgba(117,146,241,0.08);color:#7592f1;">DEV</div>
               </div>
             </div>
 
@@ -515,11 +548,11 @@
                 <img src="visuals/team/emmanuel.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">
               </div>
               <div>
-                <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">Emmanuel Kay John H. Estorco</div>
+                <div class="text-sm font-bold text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">Emmanuel Kay John H. Estorco</div>
                 <div class="text-xs text-slate-500">System Analyst</div>
               </div>
               <div class="ml-auto">
-                <div class="pill" style="font-size:0.6rem;border-color:rgba(96,165,250,0.3);background:rgba(96,165,250,0.08);color:#60a5fa;">SA</div>
+                <div class="pill" style="font-size:0.6rem;border-color:rgba(117,146,241,0.3);background:rgba(117,146,241,0.08);color:#7592f1;">SA</div>
               </div>
             </div>
 
@@ -529,11 +562,11 @@
                 <img src="visuals/team/john.jpg" alt="" loading="lazy" decoding="async" onerror="this.remove()">
               </div>
               <div>
-                <div class="text-sm font-bold text-white" style="font-family:'Syne',sans-serif;">John Michael M. Celis</div>
+                <div class="text-sm font-bold text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;">John Michael M. Celis</div>
                 <div class="text-xs text-slate-500">UI/UX Designer</div>
               </div>
               <div class="ml-auto">
-                <div class="pill" style="font-size:0.6rem;border-color:rgba(96,165,250,0.3);background:rgba(96,165,250,0.08);color:#60a5fa;">UX</div>
+                <div class="pill" style="font-size:0.6rem;border-color:rgba(117,146,241,0.3);background:rgba(117,146,241,0.08);color:#7592f1;">UX</div>
               </div>
             </div>
 
@@ -571,7 +604,7 @@
     <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 reveal">
       <div class="flex items-center gap-2.5">
         <img src="Trackitlogo.png" alt="TrackIT Logo" class="w-6 h-6 object-contain">
-        <span class="font-display text-sm text-white" style="font-family:'Syne',sans-serif;font-weight:700;">Track<span class="text-blue-400">IT</span></span>
+        <span class="font-display text-sm text-white" style="font-family:'Plus Jakarta Sans', 'Inter', sans-serif;font-weight:700;">Track<span class="text-blue-400">IT</span></span>
       </div>
       <p class="text-xs text-slate-600 text-center">© 2025 TrackIT · Group IT27-E05 · STI West Negros University CICT · INTE1031 Capstone Project 1</p>
       <div class="flex items-center gap-4">
@@ -583,7 +616,7 @@
   </footer>
 
 
-  <script src="iconsax.js?v=1"></script>
+  <script src="iconsax.js?v=2"></script>
   <script src="landingpage.js?v=2"></script>
 </body>
 </html>
