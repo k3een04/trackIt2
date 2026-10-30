@@ -199,6 +199,12 @@ app.get('/messaging.js', (req, res) => {
 app.get('/profile-picture.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'profile-picture.js'));
 });
+// Local Iconsax Linear icon registry. The dashboards and auth pages reference
+// it via [data-iconsax] placeholders, so without this route every icon on the
+// deployed site renders empty (see the tracer note above).
+app.get('/iconsax.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'iconsax.js'));
+});
 app.get('/coordinator-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'coordinator-dashboard.js'));
 });
