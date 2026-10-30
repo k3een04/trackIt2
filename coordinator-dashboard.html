@@ -53,7 +53,7 @@
   <link rel="stylesheet" href="visuals/trackit-glass.css?v=6">
   <!-- Verification workflow (confirmation, loading and text-entry dialogs).
        Self-contained .vm-* rules so it stays identical on every dashboard. -->
-  <link rel="stylesheet" href="visuals/verification-modal.css?v=7">
+  <link rel="stylesheet" href="visuals/verification-modal.css?v=8">
   <!-- Sidebar messenger: launcher at the bottom of the rail + popup chat. -->
   <link rel="stylesheet" href="visuals/messaging.css?v=7">
   <!-- Profile picture badge + Settings uploader shared by all dashboards. -->
@@ -121,8 +121,8 @@
     </nav>
 
   <!-- Global Search Results (body level so nav's backdrop-filter can't become the containing block) -->
-  <div id="global-search-results" class="hidden fixed glass-card overflow-hidden" style="background: #171f30; border: 1px solid #293449; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; max-height: 400px; overflow-y: auto; width: 280px;"></div>
-  <div id="global-search-loading" class="hidden fixed glass-card px-4 py-3 text-center text-xs text-slate-500" style="background: #171f30; border: 1px solid #293449; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; width: 280px;">
+  <div id="global-search-results" class="hidden fixed glass-card overflow-hidden" style="background: var(--tk-surface-1); border: 1px solid var(--tk-hairline); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; max-height: 400px; overflow-y: auto; width: 280px;"></div>
+  <div id="global-search-loading" class="hidden fixed glass-card px-4 py-3 text-center text-xs text-slate-500" style="background: var(--tk-surface-1); border: 1px solid var(--tk-hairline); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 200; width: 280px;">
     <div class="flex items-center justify-center gap-2">
       <svg class="animate-spin text-blue-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-opacity="1"></path></svg>
       <span>Searching...</span>
@@ -148,8 +148,8 @@
 
   <!-- Mobile Search Overlay -->
   <div id="mobile-search-overlay" class="sidebar-overlay" onclick="closeMobileSearch()" aria-hidden="true"></div>
-  <div id="mobile-search-panel" class="hidden fixed inset-0 z-[90] flex flex-col md:hidden" style="background: #131a2b; backdrop-filter: none;">
-    <div class="flex items-center gap-3 p-4 border-b border-white/10 sticky top-0" style="background: #131a2b; backdrop-filter: none; z-index: 10;">
+  <div id="mobile-search-panel" class="hidden fixed inset-0 z-[90] flex flex-col md:hidden" style="background: var(--tk-surface-nav); backdrop-filter: none;">
+    <div class="flex items-center gap-3 p-4 border-b border-white/10 sticky top-0" style="background: var(--tk-surface-nav); backdrop-filter: none; z-index: 10;">
       <button onclick="closeMobileSearch()" class="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0" aria-label="Close search" title="Close">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
@@ -479,7 +479,7 @@
       <!-- ALL STUDENTS MODAL (paginated, 10 students per page) -->
       <div id="all-trainees-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
         <div class="min-h-full flex items-start justify-center p-4">
-          <div class="glass-card w-full max-w-5xl my-8" style="background: #171f30;">
+          <div class="glass-card w-full max-w-5xl my-8" style="background: var(--tk-surface-1);">
             <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
               <div>
                 <h3 class="font-display font-700 text-lg">All Trainees</h3>
@@ -998,7 +998,7 @@
     <!-- REPORT PREVIEW MODAL -->
     <div id="report-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
       <div class="min-h-full flex items-start justify-center p-4">
-        <div class="glass-card report-modal-card w-full max-w-4xl my-8" style="background: #171f30;">
+        <div class="glass-card report-modal-card w-full max-w-4xl my-8" style="background: var(--tk-surface-1);">
           <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
             <div>
               <h3 id="report-modal-title" class="font-display font-700 text-lg">Report</h3>
@@ -1157,7 +1157,7 @@
 
   <!-- Trainee Profile Modal (comprehensive OJT monitoring view) -->
   <div id="trainee-profile-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
-    <div class="glass-card tp-modal" role="dialog" aria-modal="true" aria-labelledby="trainee-profile-name" style="background: #171f30; border: 1px solid #293449;">
+    <div class="glass-card tp-modal" role="dialog" aria-modal="true" aria-labelledby="trainee-profile-name" style="background: var(--tk-surface-1); border: 1px solid var(--tk-hairline);">
       <button onclick="closeTraineeProfileModal()" class="tp-modal__close" aria-label="Close profile" title="Close">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
@@ -1440,7 +1440,7 @@
 
   <!-- Assign Supervisor Modal -->
   <div id="assign-supervisor-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
-    <div class="glass-card p-8 w-full max-w-md relative" style="background: #171f30; border: 1px solid #293449;">
+    <div class="glass-card p-8 w-full max-w-md relative" style="background: var(--tk-surface-1); border: 1px solid var(--tk-hairline);">
       <button onclick="closeAssignModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition" aria-label="Close dialog">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="close-circle"></svg>
       </button>
@@ -1477,7 +1477,7 @@
        can open from any tab. -->
   <div id="journal-tracker-modal" class="hidden fixed inset-0 z-[100] overflow-y-auto" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
     <div class="min-h-full flex items-start justify-center p-4">
-      <div class="glass-card w-full max-w-5xl my-8" style="background: #171f30;">
+      <div class="glass-card w-full max-w-5xl my-8" style="background: var(--tk-surface-1);">
         <div class="flex items-start justify-between flex-wrap gap-3 p-6 border-b border-white/10">
           <div>
             <h3 class="font-display font-700 text-lg">Journal Submission Tracker</h3>
@@ -1554,6 +1554,6 @@
   <script src="messaging.js?v=7"></script>
   <!-- Shared profile picture uploader + navbar avatar. -->
   <script src="profile-picture.js?v=1"></script>
-  <script src="coordinator-dashboard.js?v=22"></script>
+  <script src="coordinator-dashboard.js?v=23"></script>
 </body>
 </html>

@@ -2214,7 +2214,7 @@ async function confirmAssignSupervisor() {
   btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-iconsax="tick-circle"></svg> Assign`;
 
   if (result && result.success) {
-    showNotification('Error', result.message, 'error');
+    showNotification('Success', result.message, 'success');
     closeAssignModal();
     loadTrainees(); // Refresh the table
 
@@ -3409,6 +3409,9 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+// Note: the returned-to-supervisor state is intentionally not charted here —
+// the segment read as a dead category. The backend still tracks it for the
+// Journal Review flow (`/coordinator/journals/:id/reject`).
 function renderJournalStatusChart(statusData, windowDays = 90) {
   const journalCtx = document.getElementById('journalStatusChart');
   if (!journalCtx) return;
@@ -3416,13 +3419,11 @@ function renderJournalStatusChart(statusData, windowDays = 90) {
   const data = {
     labels: [
       'Awaiting Supervisor',
-      'Returned to Supervisor',
       'Awaiting Coordinator',
       'Approved',
     ],
     values: [
       statusData?.awaitingSupervisor || 0,
-      statusData?.returnedToSupervisor || 0,
       statusData?.awaitingCoordinator || 0,
       statusData?.approved || 0,
     ],
@@ -3431,10 +3432,10 @@ function renderJournalStatusChart(statusData, windowDays = 90) {
   const statusTokens = () => window.TrackITCharts.tokens();
   const dataset = {
     data: data.values,
-    backgroundColor: ['warning', 'negative', 'info', 'positive'].map((key) => TrackITCharts.alpha(statusTokens()[key], 0.8)),
-    borderColor: ['warning', 'negative', 'info', 'positive'].map((key) => TrackITCharts.alpha(statusTokens()[key], 1)),
+    backgroundColor: ['warning', 'info', 'positive'].map((key) => TrackITCharts.alpha(statusTokens()[key], 0.8)),
+    borderColor: ['warning', 'info', 'positive'].map((key) => TrackITCharts.alpha(statusTokens()[key], 1)),
     borderWidth: 2,
-    trackitPalette: ['warning', 'negative', 'info', 'positive'],
+    trackitPalette: ['warning', 'info', 'positive'],
   };
 
   if (window.analyticsCharts?.journalStatusChart) {

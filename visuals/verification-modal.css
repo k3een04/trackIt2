@@ -1,8 +1,9 @@
 /* ────────────────────────────────────────────────────────────────────────────
    TrackIT VerificationModal
    Shared confirmation / loading / success / error workflow.
-   Dark navy surface, cobalt accent, amber warning, red error — used for both
-   journal signing and DTR verification so the two flows stay identical.
+   Theme-aware surface (Midnight Slate dark / white light), cobalt accent,
+   amber warning, red error — used for both journal signing and DTR
+   verification so the two flows stay identical.
    ──────────────────────────────────────────────────────────────────────────── */
 
 .vm {
@@ -933,4 +934,150 @@
     background: #ffffff;
     animation: vm-pulse 1.4s ease-in-out infinite;
   }
+}
+
+/* -- light mode ------------------------------------------------------------
+   The dialog follows the dashboard theme instead of staying dark-locked.
+   Surfaces resolve to the light tokens; status hues keep their meanings with
+   darker, light-mode-readable text. Cobalt deepens to its light-mode step. */
+
+body.light-mode .vm {
+  background: rgba(23, 34, 56, 0.45);
+}
+
+body.light-mode .vm__panel {
+  background: #ffffff;
+  border-color: #e1e6ef;
+  box-shadow: 0 24px 64px rgba(23, 34, 56, 0.25), 0 2px 10px rgba(23, 34, 56, 0.08);
+}
+
+body.light-mode .vm__badge {
+  background: rgba(49, 92, 232, 0.08);
+  border-color: rgba(49, 92, 232, 0.3);
+  color: #3158d4;
+}
+
+body.light-mode .vm__title { color: #172238; }
+body.light-mode .vm__subtitle { color: #65728a; }
+body.light-mode .vm__desc { color: #4e5a72; }
+body.light-mode .vm__note { color: #65728a; }
+
+body.light-mode .vm__info {
+  background: #f8fafd;
+  border-color: #e1e6ef;
+}
+
+body.light-mode .vm__info-label { color: #65728a; }
+
+body.light-mode .vm__row { border-bottom-color: #e1e6ef; }
+body.light-mode .vm__row dt { color: #65728a; }
+body.light-mode .vm__row dd { color: #172238; }
+
+body.light-mode .vm__list { border-top-color: rgba(23, 34, 56, 0.08); }
+
+body.light-mode .vm__item {
+  background: rgba(23, 34, 56, 0.02);
+  border-color: rgba(23, 34, 56, 0.08);
+}
+
+body.light-mode .vm__item-title { color: #172238; }
+body.light-mode .vm__item-meta { color: #65728a; }
+
+body.light-mode .vm__pill--ok {
+  background: rgba(49, 92, 232, 0.1);
+  color: #2743b8;
+  border-color: rgba(49, 92, 232, 0.3);
+}
+
+body.light-mode .vm__pill--warn {
+  background: rgba(180, 83, 9, 0.1);
+  color: #92400e;
+  border-color: rgba(180, 83, 9, 0.3);
+}
+
+body.light-mode .vm__pill--neutral {
+  background: rgba(100, 116, 139, 0.12);
+  color: #4e5a72;
+  border-color: rgba(100, 116, 139, 0.28);
+}
+
+body.light-mode .vm__more { color: #65728a; }
+
+body.light-mode .vm__warn-text { color: #65728a; }
+body.light-mode .vm__warn-title { color: #92400e; }
+body.light-mode .vm__warn-icon { color: #b45309; }
+
+body.light-mode .vm__state-icon--ok { color: #3158d4; }
+body.light-mode .vm__state-icon--ok::after { border-color: rgba(49, 92, 232, 0.4); }
+body.light-mode .vm__state-icon--err { color: #dc2626; }
+
+body.light-mode .vm__ok {
+  background: rgba(49, 92, 232, 0.08);
+  border-color: rgba(49, 92, 232, 0.3);
+  color: #2743b8;
+}
+
+body.light-mode .vm__ok-mark { color: #3158d4; }
+
+body.light-mode .vm__detail {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+body.light-mode .vm__foot {
+  border-top-color: #e1e6ef;
+  background: rgba(23, 34, 56, 0.02);
+}
+
+body.light-mode .vm__btn:focus-visible { outline-color: #274bc4; }
+
+body.light-mode .vm__btn--primary {
+  background: #315ce8;
+  box-shadow: 0 4px 12px rgba(49, 92, 232, 0.2);
+}
+
+body.light-mode .vm__btn--primary:hover:not(:disabled) {
+  background: #274bc4;
+  box-shadow: 0 8px 18px rgba(49, 92, 232, 0.25);
+}
+
+body.light-mode .vm__btn--ghost {
+  background: #ffffff;
+  border-color: rgba(23, 34, 56, 0.14);
+  color: #4e5a72;
+}
+
+body.light-mode .vm__btn--ghost:hover:not(:disabled) {
+  border-color: rgba(49, 92, 232, 0.5);
+  background: rgba(49, 92, 232, 0.08);
+  color: #2743b8;
+}
+
+body.light-mode .vm__label { color: #4e5a72; }
+
+body.light-mode .vm__hint { color: #65728a; }
+
+body.light-mode .vm__input-error {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+/* The input rules above are dark-locked with !important so dashboard input
+   resets cannot punch a light field into the dark dialog; the light overrides
+   match that specificity and load later in the file. */
+body.light-mode #verification-modal-root .vm__input {
+  background: #ffffff !important;
+  color: #172238 !important;
+  border-color: #c0c9da !important;
+}
+
+body.light-mode #verification-modal-root .vm__input::placeholder {
+  color: #7d899d !important;
+}
+
+body.light-mode #verification-modal-root .vm__input:focus {
+  background: #ffffff !important;
+  border-color: #3158d4 !important;
 }

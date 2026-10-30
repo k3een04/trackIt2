@@ -52,7 +52,7 @@
   <link rel="stylesheet" href="visuals/trackit-calendar.css?v=5">
   <!-- Verification workflow (journal sign / DTR verify / appraisal sign). Kept
        self-contained in .vm-* so it stays identical on every dashboard. -->
-  <link rel="stylesheet" href="visuals/verification-modal.css?v=7">
+  <link rel="stylesheet" href="visuals/verification-modal.css?v=8">
   <!-- Sidebar messenger: launcher at the bottom of the rail + popup chat. -->
   <link rel="stylesheet" href="visuals/messaging.css?v=7">
   <!-- Profile picture badge + Settings uploader shared by all dashboards. -->
@@ -328,7 +328,7 @@
           </div>
           <div>
             <label class="block text-sm font-semibold mb-2">Status Filter</label>
-            <select id="trainee-status-filter" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #171f30; backdrop-filter: none; pointer-events: auto;">
+            <select id="trainee-status-filter" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: var(--tk-surface-1); backdrop-filter: none; pointer-events: auto;">
               <option>All Status</option>
               <option>Active</option>
               <option>On Leave</option>
@@ -448,7 +448,7 @@
               <!-- Trainee Selector -->
               <div class="mb-8">
                 <label class="block text-sm font-semibold mb-3">Select Trainee</label>
-                <select id="schedule-trainee-select" class="w-full px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #171f30; backdrop-filter: none; pointer-events: auto;" onchange="loadTraineeSchedule()">
+                <select id="schedule-trainee-select" class="w-full px-4 py-3 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: var(--tk-surface-1); backdrop-filter: none; pointer-events: auto;" onchange="loadTraineeSchedule()">
                   <option value="">Loading trainees...</option>
                 </select>
               </div>
@@ -532,7 +532,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-2">Select Trainee</label>
-            <select id="dtr-trainee-select" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #171f30; backdrop-filter: none; pointer-events: auto;">
+            <select id="dtr-trainee-select" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: var(--tk-surface-1); backdrop-filter: none; pointer-events: auto;">
               <option value="">Select a trainee...</option>
             </select>
           </div>
@@ -665,7 +665,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-2">Select Trainee</label>
-            <select id="appraisal-trainee-select" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: #171f30; backdrop-filter: none; pointer-events: auto;">
+            <select id="appraisal-trainee-select" class="w-full px-4 py-2 text-white text-sm rounded-lg border border-white/10 focus:border-blue-400 outline-none" style="background: var(--tk-surface-1); backdrop-filter: none; pointer-events: auto;">
               <option value="">Select a trainee...</option>
             </select>
           </div>
